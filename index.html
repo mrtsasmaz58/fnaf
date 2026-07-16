@@ -287,6 +287,33 @@
   #ventDark{position:fixed;inset:0;z-index:13;pointer-events:none;background:radial-gradient(ellipse 45% 55% at 50% 50%,rgba(0,0,0,0) 30%,rgba(0,0,0,.85) 88%);display:none;}
   #ventDark.show{display:block;}
 
+  /* ---- KOŞU BARI (stamina) ---- */
+  #stamBox{margin-top:7px;text-align:right;}
+  #stamLabel{font-size:12px;color:#9aa;}
+  #stamBar{width:150px;height:9px;border:1px solid rgba(255,255,255,.3);border-radius:3px;margin-top:3px;overflow:hidden;background:#111;margin-left:auto;}
+  #stamFill{height:100%;width:100%;background:linear-gradient(90deg,#2a8adf,#39c0c0 55%,#3fd07a);transition:width .1s;}
+  #stamFill.tired{background:linear-gradient(90deg,#c02020,#e0862a);}
+
+  /* ---- KAMERA GÖREVİ ---- */
+  #camTask{position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:27;font-family:'Courier New',monospace;
+    font-weight:bold;font-size:14px;color:#ffe08a;background:rgba(20,14,4,.86);border:1px solid #c9a227;border-radius:9px;
+    padding:9px 16px;pointer-events:none;text-align:center;display:none;box-shadow:0 4px 16px rgba(0,0,0,.6);text-shadow:0 1px 4px #000;}
+  #camTask.show{display:block;}
+  #camTask.urgent{color:#ff8a6a;border-color:#e0402a;animation:blink .5s steps(1) infinite;}
+
+  /* ---- YARALANMA / KURTARMA (multiplayer) ---- */
+  #hurtOv{position:fixed;inset:0;z-index:16;pointer-events:none;display:none;
+    box-shadow:inset 0 0 220px 70px rgba(140,0,0,.6);}
+  #hurtOv.show{display:block;animation:hurtPulse 1.6s ease-in-out infinite;}
+  @keyframes hurtPulse{0%,100%{opacity:.7;}50%{opacity:1;}}
+  #hurtHud{position:fixed;left:50%;bottom:30%;transform:translateX(-50%);z-index:28;font-family:'Courier New',monospace;
+    font-weight:bold;font-size:16px;color:#ff9a9a;text-shadow:0 0 12px #900;text-align:center;pointer-events:none;display:none;letter-spacing:.5px;}
+  #hurtHud.show{display:block;}
+  #reviveBtn{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);z-index:28;font-family:'Courier New',monospace;
+    font-weight:bold;font-size:15px;color:#dff5e0;background:linear-gradient(#1a4a2a,#0c2a16);border:2px solid #3fd07a;border-radius:10px;
+    padding:12px 20px;pointer-events:none;text-align:center;display:none;box-shadow:0 0 20px rgba(60,200,120,.4);}
+  #reviveBtn.show{display:block;}
+
   /* ---- ÖZEL GECE PANELİ ---- */
   #cnPanel{position:fixed;inset:0;z-index:45;background:radial-gradient(ellipse at center 40%,rgba(30,20,8,.6),#000 72%);
     display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px;}
@@ -399,8 +426,13 @@
     <div id="clockBox"><span id="clockTime">12:00</span><span id="nightLbl">GECE 1</span>
       <div id="clockBar"><div id="clockFill"></div></div></div></div>
   <div id="battBox"><div id="battLabel">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState">KAPALI</div>
+    <div id="stamBox"><div id="stamLabel">🏃 KOŞU</div><div id="stamBar"><div id="stamFill"></div></div></div>
     <div id="maskBox" class="hidden"><div id="maskLabel">🎭 MASKE</div><div id="maskBar"><div id="maskFill"></div></div></div></div>
 </div>
+<div id="camTask"></div>
+<div id="hurtOv"></div>
+<div id="hurtHud"></div>
+<button id="reviveBtn"></button>
 
 <!-- Dokunmatik kontroller -->
 <div id="joyZone" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div></div>
@@ -1645,7 +1677,22 @@ function updateAI(dt){
     }
     u.glowL.visible=u.glowR.visible=true;
 
-    let tx=player.x, tz=player.z, sp=a.speed*sm, want=false;
+    // MULTIPLAYER YARALI: sen yerdeysen (downed) canavarlar seni hedef almaz, evlerine çekilir
+    // (helpless'ken üstünde kamp kurmasınlar; tek tehdit 60sn kan kaybı sayacı + takımın yetişmesi)
+    if(downed){
+      let hx=a.home.x, hz=a.home.z; a.chasing=false;
+      if(a.kind==='cove' && a.mode!=='cove') a.mode='back';
+      a.navT-=dt;
+      if(a.navT<=0 || Math.hypot(a.ntx-a.pos.x,a.ntz-a.pos.z)<0.35){ a.navT=0.5; const nt=navTarget(a.pos.x,a.pos.z,hx,hz); a.ntx=nt[0]; a.ntz=nt[1]; }
+      const mv=stepToward(a,a.ntx,a.ntz,a.speed*sm*0.9,dt);
+      const spd=dt>0?mv/dt:0; a.walk+=(Math.min(1,spd/2.6)-a.walk)*Math.min(1,dt*8); a.phase+=dt*(4.5+spd*1.7);
+      const bob=poseRig(m,{phase:a.phase,walk:a.walk,lean:0.04,jaw:0.02,headYaw:Math.sin(a.phase*0.22)*0.3,headPitch:0});
+      if(mv>0.001){ a.left=true; a.lx=a.ntx; a.lz=a.ntz; }
+      m.position.set(a.pos.x*SC,(a.left?0.02:a.homeY)+bob,a.pos.z*SC); m.lookAt(a.lx*SC,1.4,a.lz*SC);
+      u.eyeWhite.emissiveIntensity=0.9; continue;
+    }
+
+    let tx=player.x, tz=player.z, sp=a.speed*sm*camBoost, want=false;   // camBoost: kamera görevi kaçırılınca hızlanır
     const dist0=Math.hypot(player.x-a.pos.x, player.z-a.pos.z);
     const see=dist0<cfg.detect && losClear(a.pos.x,a.pos.z,player.x,player.z);
 
@@ -1804,7 +1851,7 @@ function updateAI(dt){
       if(aiStep<=0 && a.walk>0.3) Audio.step();
       const dnow=Math.hypot(player.x-a.pos.x, player.z-a.pos.z);
       dmax=Math.max(dmax, 1-Math.min(dnow,13)/13);
-      if(dnow<1.15 && losClear(a.pos.x,a.pos.z,player.x,player.z)) startJump(m, a.name);
+      if(dnow<1.15 && losClear(a.pos.x,a.pos.z,player.x,player.z)) catchPlayer(m, a.name);
     }
   }
   if(aiStep<=0) aiStep=0.32;
@@ -2324,6 +2371,12 @@ let ventCrawler=0;     // >0 iken vent'te biri var, maske takılmazsa süre biti
 let ventCrawlerT=0;    // sonraki tehdit için geri sayım
 let ventFrom=null, ventTo=null, ventT=0;   // sürünme animasyonu
 let ventCool=0;    // vent kullanım/bekleme süresi (çıkıştan sonra 3 sn tekrar girilemez)
+// KOŞU BARI (stamina) — cömert: ~10 sn koşu, yürüyünce dolar; bitince yorgun (koşamaz + nefes nefese → Chika'yı çeker)
+let stamina=100, exhausted=false, breathT=0;
+// KAMERA GÖREVİ — arada "şu kamerayı kontrol et"; kaçırırsan kademeli ceza (1: hız↑, 2: daha hız↑, 3: Puppet kutudan çıkar)
+let camTaskT=randRange(35,55), camTask=null, camTaskWin=0, camMiss=0, camBoost=1, camBoostT=0;
+// YARALANMA / KURTARMA (yalnız multiplayer) — yakalanınca ölmezsin, yaralanırsın: 60sn içinde kurtarılmazsan ölürsün, o sürede koşamazsın
+let downed=false, downT=0, reviveHold=0, downAttacker=null;
 function inOffice(){ return player.x>=-5 && player.x<=5 && player.z>=15 && player.z<=21; }
 function nearVent(){ for(const v of VENTS){ if(Math.hypot(player.x-v.x, player.z-v.z)<1.7) return v; } return null; }
 
@@ -2413,6 +2466,17 @@ const Net=(()=>{
   function applyDoor(d){ const dr=doors[d.i]; if(!dr) return; dr.closed=!!d.cl; dr.closeT=d.ct||0; dr.cool=d.co||0; }
   function sendDoor(i){ const dr=doors[i]; if(!dr) return; const m={t:'door',id:myId,i:i,cl:dr.closed?1:0,ct:dr.closeT||0,co:dr.cool||0};
     if(host) broadcast(m); else if(conns[0]&&conns[0].open){ try{conns[0].send(m);}catch(e){} } }
+  // YARALANMA / KURTARMA senkronu (co-op)
+  function relay(m){ if(host) broadcast(m,m.fromExcept); else if(conns[0]&&conns[0].open){ try{conns[0].send(m);}catch(e){} } }
+  function applyDown(d){ const r=ensureRemote(d.id,d.name,d.skin)||remotes[d.id]; if(r){ r.downed=true; r.x=r.tx=d.x; r.z=r.tz=d.z; } }
+  function applyUp(d){ const r=remotes[d.id]; if(r) r.downed=false; }
+  function sendDown(){ const m={t:'down',id:myId,x:+player.x.toFixed(2),z:+player.z.toFixed(2)}; relay(m); }
+  function sendUp(){ relay({t:'up',id:myId}); }
+  function sendRevive(tid){ const m={t:'revive',id:tid}; if(tid===myId){ getUp(); return; } relay(m); }   // host kendine
+  // en yakın YARALI uzak oyuncu (kurtarma için) — {id,dist} ya da null
+  function nearestDowned(px,pz){ let best=null,bd=2.2;
+    for(const id in remotes){ const r=remotes[id]; if(!r.downed) continue; const d=Math.hypot(r.x-px,r.z-pz); if(d<bd){ bd=d; best={id,dist:d,name:r.name}; } }
+    return best; }
 
   /* ---- host: bağlantı + relay ---- */
   function roster(){ const l=[{id:'H',name:myName,skin:mySkin,host:true}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name,skin:c._skin||0}); }); return l; }
@@ -2426,6 +2490,9 @@ const Net=(()=>{
         if(started){ try{c.send({t:'start',night:selNight});}catch(e){} }
       } else if(d.t==='pose'){ applyPose(d); broadcast(d,d.id); }
       else if(d.t==='door'){ applyDoor(d); broadcast(d,d.id); }
+      else if(d.t==='down'){ applyDown(d); broadcast(d,d.id); }
+      else if(d.t==='up'){ applyUp(d); broadcast(d,d.id); }
+      else if(d.t==='revive'){ if(d.id===myId) getUp(); else broadcast(d); }   // hedefe ulaştır
     });
     c.on('close',()=>{ removeRemote(c.peer); conns=conns.filter(x=>x!==c); broadcast({t:'roster',roster:roster()}); broadcast({t:'leave',id:c.peer}); refreshList(); });
     conns.push(c);
@@ -2447,6 +2514,9 @@ const Net=(()=>{
       else if(d.t==='roster'){ applyRoster(d.roster); }
       else if(d.t==='pose'){ applyPose(d); }
       else if(d.t==='door'){ applyDoor(d); }
+      else if(d.t==='down'){ applyDown(d); }
+      else if(d.t==='up'){ applyUp(d); }
+      else if(d.t==='revive'){ if(d.id===myId) getUp(); }
       else if(d.t==='start'){ beginSession(d.night); }
       else if(d.t==='leave'){ removeRemote(d.id); }
     });
@@ -2515,8 +2585,8 @@ const Net=(()=>{
       if(far>4){ r.x=r.tx; r.z=r.tz; }        // büyük boşluk (paket kaybı/ışınlama) → kaydırma yerine ışınla
       else { r.x+=dx*k; r.z+=dz*k; }
       let dy=r.tyaw-r.yaw; while(dy>Math.PI)dy-=2*Math.PI; while(dy<-Math.PI)dy+=2*Math.PI; r.yaw+=dy*k;
-      r.obj.position.set(r.x*SC,0,r.z*SC); r.obj.rotation.y=r.yaw;
-      r.obj.userData.fl.visible=!!r.f;
+      r.obj.position.set(r.x*SC, r.downed?0.15:0, r.z*SC); r.obj.rotation.y=r.yaw; r.obj.rotation.z=r.downed?1.35:0;   // yaralı → yere devrilir
+      r.obj.userData.fl.visible=!!r.f && !r.downed;
       r.obj.visible=(state===S.PLAY||state===S.CAMS);
     }
     if(started && (state===S.PLAY||state===S.CAMS)){
@@ -2544,7 +2614,7 @@ const Net=(()=>{
   $('#mktClose').addEventListener('click',e=>{ e.stopPropagation(); $('#mktPanel').classList.remove('show'); });
   $('#mktBtn').classList.remove('hidden');
 
-  return { tick, leave, sendDoor, isPlaying:()=>active&&started, active:()=>active };
+  return { tick, leave, sendDoor, sendDown, sendUp, sendRevive, nearestDowned, isPlaying:()=>active&&started, active:()=>active };
 })();
 
 /* Yön: yaw 0 => +Z (güney). Kuzeye bakmak için yaw=PI. */
@@ -2650,7 +2720,7 @@ function endTouch(e){ for(const t of e.changedTouches){ if(t.identifier===joyId)
 renderer.domElement.addEventListener('touchend',endTouch); renderer.domElement.addEventListener('touchcancel',endTouch);
 
 $('#flashBtn').addEventListener('click',toggleFlash);
-$('#runBtn').addEventListener('click',()=>{ running=!running; $('#runBtn').classList.toggle('on',running); });
+$('#runBtn').addEventListener('click',()=>{ if(exhausted||downed){ toast(downed?'🩸 YARALISIN':'😮‍💨 NEFES NEFESE'); return; } running=!running; $('#runBtn').classList.toggle('on',running); });
 $('#menu').addEventListener('click',()=>{ customMode=false; startGame(); });
 $('#dead').addEventListener('click',toMenu);
 $('#win').addEventListener('click',toMenu);
@@ -2669,11 +2739,11 @@ addEventListener('mouseup',stopWind);
 windBtn.addEventListener('touchstart',e=>{e.preventDefault(); startWind();},{passive:false});
 windBtn.addEventListener('touchend',e=>{e.preventDefault(); stopWind();},{passive:false});
 
-function toggleFlash(){ if(masked) return; if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?'AÇIK':'KAPALI'; Audio.click(); }
+function toggleFlash(){ if(masked||downed) return; if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?'AÇIK':'KAPALI'; Audio.click(); }
 
 // --- MASKE ---
 function toggleMask(){
-  if(state!==S.PLAY) return;
+  if(state!==S.PLAY || downed) return;
   if(!masked){
     if(maskCharge<8){ toast('🎭 MASKE YOK — nefes al'); Audio.tone(160,.12,'square',.15); return; }
     masked=true; flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
@@ -2685,7 +2755,7 @@ function setMaskOff(){ masked=false; $('#maskOv').classList.remove('show'); $('#
 
 // --- VENT (kestirme sürünme) ---
 function enterVent(){
-  if(state!==S.PLAY) return;
+  if(state!==S.PLAY || downed) return;
   if(ventCool>0){ toast('🪜 VENT HAZIR DEĞİL — '+Math.ceil(ventCool)+'s'); Audio.tone(140,.12,'square',.14); return; }
   const v=nearVent(); if(!v) return;
   const other=VENTS.find(o=>o!==v);
@@ -2698,7 +2768,7 @@ function finishVent(){
   player.x=ventTo.x; player.z=ventTo.z;
   ventCool=3;   // çıkıştan sonra 3 sn bekleme (spam engeli)
   // çıkışta yakınında KOVALAYAN varsa kaçış yok
-  for(const a of AIS){ if(a.awake && a.chasing && Math.hypot(a.pos.x-player.x,a.pos.z-player.z)<2.6){ state=S.PLAY; startJump(a.model,a.name); return; } }
+  for(const a of AIS){ if(a.awake && a.chasing && Math.hypot(a.pos.x-player.x,a.pos.z-player.z)<2.6){ state=S.PLAY; catchPlayer(a.model,a.name); return; } }
   state=S.PLAY; $('#ventDark').classList.remove('show'); showPlayUI(); Audio.noise(.2,.1,600);
 }
 
@@ -2732,6 +2802,7 @@ function interactDoor(){
 function openCamera(){
   if(state===S.CAMS){ closeCamera(); return; }
   if(state!==S.PLAY) return;
+  if(downed){ toast('🩸 YARALIYKEN KAMERA KULLANILMAZ'); return; }
   if(masked){ toast('🎭 MASKE TAKILIYKEN KAMERA AÇILMAZ'); Audio.tone(200,.1,'square',.15); return; }
   if(!inOffice()){ toast('📹 KAMERA SADECE OFİSTE KULLANILIR'); Audio.tone(200,.1,'square',.15); return; }
   if(!powered){ toast('⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR'); Audio.tone(160,.12,'square',.18); return; }
@@ -2745,7 +2816,7 @@ function refreshCam(){ $('#camName').textContent='CAM • '+CAMV[camIndex].n;
   if(!CAMV[camIndex].prize) winding=false;
 }
 // KUR (müzik kutusu) — basılı tutulur. Kameradan (elektrik varken) VEYA yanına gidip (her zaman)
-function startWind(){ if((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)) winding=true; }
+function startWind(){ if(downed) return; if((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)) winding=true; }
 function stopWind(){ winding=false; }
 
 /* ================= OYUN AKIŞI ================= */
@@ -2802,6 +2873,10 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   night=selNight; clockT=0; lastHour=0;
   masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
   ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null; ventCool=0;
+  stamina=100; exhausted=false; breathT=0;                       // koşu barı sıfırla
+  camTask=null; camTaskT=randRange(35,55); camMiss=0; camBoost=1; camBoostT=0;   // kamera görevi sıfırla
+  downed=false; downT=0; reviveHold=0;                            // yaralanma sıfırla
+  $('#camTask').classList.remove('show','urgent'); $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
   $('#ventDark').classList.remove('show'); $('#ventWarn').classList.add('hidden');
   $('#maskBtn').classList.remove('hidden'); $('#maskBox').classList.remove('hidden');
   player.x=0; player.z=19.7; player.yaw=Math.PI; player.pitch=-0.05; battery=100; flashOn=false; running=false;
@@ -2828,7 +2903,9 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   // olmadan, düşük riskli). Telefon Adamı brifingi artık CO-OP'ta da her oyuncuda çalar.
   startPhone();
 }
-function toMenu(){ state=S.MENU; customMode=false; masked=false; Net.leave(); Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
+function toMenu(){ state=S.MENU; customMode=false; masked=false; downed=false; exhausted=false; camTask=null;
+  $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
+  Net.leave(); Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden'); showJoy(false);
   $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
@@ -2942,6 +3019,7 @@ function hidePlayUI(){
   $('#actBtn').classList.add('hidden'); $('#windBtn').classList.add('hidden'); $('#powerStat').classList.add('hidden');
   $('#boxWrap').classList.add('hidden'); joyZone.classList.add('hidden'); showJoy(false);
   $('#maskBtn').classList.add('hidden'); $('#ventBtn').classList.add('hidden'); $('#ventWarn').classList.add('hidden');
+  $('#camTask').classList.remove('show','urgent'); $('#reviveBtn').classList.remove('show');
   $('#puppetWarn').style.opacity='0'; endPhone();
 }
 function showPlayUI(){
@@ -2965,7 +3043,87 @@ function startJump(model,name){
   if(u.jaw) u.jaw.rotation.x=1.0;   // ağzı ardına kadar açık son görüntün
   if(puppetJump && u.aL){ u.aL.rotation.set(-2.3,0,0); u.aR.rotation.set(-2.3,0,0); u.head.rotation.set(0.32,0,0); }  // kollar fırlar, maske öne
 }
+/* Oyuncu yakalandı — TEK OYUNCU: ölüm (jumpscare). MULTIPLAYER: yaralanır (ölmez), yakalayan geri çekilir.
+   Zaten yaralıyken 2. yakalanış = gerçek ölüm. */
+function catchPlayer(model,name){
+  if(state===S.JUMP||state===S.DEAD) return;
+  if(Net.isPlaying() && !downed){ enterDowned(model,name); return; }
+  startJump(model,name);
+}
+function enterDowned(model,name){
+  downed=true; downT=60; reviveHold=0; downAttacker=name||'???';
+  masked=false; flashOn=false; running=false; winding=false;
+  $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
+  $('#hurtOv').classList.add('show');
+  Audio.animScream(); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
+  toast('🩸 YARALANDIN! 60sn içinde takım seni sarsın, yoksa ölürsün');
+  // seni yakalayan geri çekilir (sahnesine/evine döner) — helpless'ken üstünde kalmasın
+  const a=AIS.find(x=>x.model===model);
+  if(a){ a.chasing=false; a.rage=0; a.hear=0; a.stuck=0; a.doorT=0; a.giveUp=GIVEUP_TIME*1.6; if(a.kind==='cove') a.mode='back'; }
+  if(model===puppet){ puppetOut=false; puppetStage=0; musicBox=Math.max(musicBox,60); puppetJump=false; }
+  Net.sendDown();
+}
+function getUp(){ if(!downed) return; downed=false; downT=0; reviveHold=0;
+  $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
+  toast('🩹 KURTARILDIN! Dikkatli ol.'); Audio.click(); if(navigator.vibrate) navigator.vibrate([60,40,120]);
+  stamina=Math.max(stamina,40); Net.sendUp(); }
+function bleedOut(){ if(state===S.DEAD) return;
+  downed=false; $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
+  Net.sendUp(); puppetJump=false; jumpName=downAttacker||'YARALAR';
+  onDead(); $('#deadWho').textContent='kan kaybından öldün — kimse yetişemedi'; }
+// hangi kamera hangi animatroniği "kontrol eder"
+function camForAnimatronic(a){ if(a.id==='foxo') return 6; if(a.id==='chika') return 5; return 1; }  // COVE / MUTFAK / SAHNE
+function updateCamTask(dt){
+  if(camBoostT>0){ camBoostT-=dt; if(camBoostT<=0) camBoost=1; }
+  const el=$('#camTask');
+  if(camTask){
+    camTaskWin-=dt;
+    if(state===S.CAMS && camIndex===camTask.cam){          // görevi tamamladın
+      toast('✅ '+camTask.label+' KONTROL EDİLDİ'); Audio.click();
+      el.classList.remove('show','urgent'); camTask=null; camTaskT=randRange(40,65); return;
+    }
+    if(camTaskWin<=0){                                      // kaçırdın → kademeli ceza
+      camMiss++; el.classList.remove('show','urgent');
+      if(camMiss>=3){                                       // 3. kaçırma: Puppet anında kutudan çıkar
+        musicBox=Math.min(musicBox,12); puppetStage=3; puppetOut=true;
+        toast('🎭 KAMERA İHMAL EDİLDİ — PUPPET KUTUDAN ÇIKTI!'); Audio.puppetRise(); if(navigator.vibrate) navigator.vibrate(300);
+      } else {                                              // 1-2. kaçırma: animatronikler hızlanır
+        camBoost=1+camMiss*0.18; camBoostT=26;
+        toast('⚠ KAMERA KONTROL EDİLMEDİ — ANİMATRONİKLER HIZLANDI ('+camMiss+'/2)'); Audio.sting();
+      }
+      camTask=null; camTaskT=randRange(35,55); return;
+    }
+    el.textContent='📹 '+camTask.label+' KAMERASINI KONTROL ET — '+Math.ceil(camTaskWin)+'s';
+    el.classList.toggle('urgent', camTaskWin<4); el.classList.add('show');
+    return;
+  }
+  camTaskT-=dt;
+  const awake=AIS.filter(a=>a.awake);
+  if(camTaskT<=0 && awake.length && camMiss<3){
+    const a=awake[Math.floor(Math.random()*awake.length)], cam=camForAnimatronic(a);
+    camTask={cam, label:CAMV[cam].n, who:a.name}; camTaskWin=12;
+    Audio.tone(880,.12,'sine',.12); toast('📹 GÖREV: '+CAMV[cam].n+' kamerasını kontrol et!');
+  }
+}
+function updateDowned(dt){
+  if(downed){
+    downT-=dt;
+    const hh=$('#hurtHud'); hh.classList.add('show'); hh.textContent='🩸 YARALISIN — '+Math.ceil(downT)+'s • takım seni sarmalı';
+    $('#reviveBtn').classList.remove('show');
+    if(downT<=0) bleedOut();
+    return;
+  }
+  $('#hurtHud').classList.remove('show');
+  if(Net.isPlaying()){                                      // yaralı takım arkadaşını yanında bekleyerek sar (3sn)
+    const t=Net.nearestDowned(player.x,player.z), rb=$('#reviveBtn');
+    if(t){ reviveHold+=dt;
+      if(reviveHold>=3){ Net.sendRevive(t.id); reviveHold=0; rb.classList.remove('show'); toast('🩹 '+(t.name||'Takım')+' KURTARILDI'); Audio.click(); }
+      else { rb.classList.add('show'); rb.textContent='🩹 '+(t.name||'?')+' SARILIYOR... '+Math.ceil(3-reviveHold)+'s'; }
+    } else { reviveHold=0; rb.classList.remove('show'); }
+  }
+}
 function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpModel.scale.setScalar(jumpModel.userData.baseScale||1); $('#jumpFlash').style.opacity='0';
+  downed=false; $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
   nearLight.intensity=0.25; nearLight.distance=3.5; nearLight.color.setHex(0x9099aa);   // jumpscare ışığını sıfırla
   $('#puppetVig').style.opacity='0';
   $('#deadWho').textContent = puppetJump? 'PUPPET seni müzik kutusuna soktu' : (jumpName+' seni yakaladı');
@@ -3141,7 +3299,7 @@ function update(dt){
       if(u.aL){ u.aL.rotation.x=-1.15+Math.sin(perf*0.006)*0.12; u.aR.rotation.x=-1.15-Math.sin(perf*0.006)*0.12; u.aL.rotation.z=0; u.aR.rotation.z=0; u.head.rotation.set(0.18,0,Math.sin(perf*0.003)*0.12); }
       // ulaştı → JUMPSCARE
       const dp=Math.hypot(player.x-puppetPos.x, player.z-puppetPos.z);
-      if(dp<1.4) startJump(puppet,'PUPPET');
+      if(dp<1.4) catchPlayer(puppet,'PUPPET');
     } else {
       // ================= KUTUNUN İÇİNDE (kademeye göre yükselir) =================
       const pf=Math.sin(perf*0.0012);
@@ -3178,7 +3336,7 @@ function update(dt){
     else if(puppetStage>=2){ pw.textContent='🎭 PUPPET UYANIYOR...'; pw.style.opacity='0.85'; }
     else pw.style.opacity='0';
     // BİTTİ → anında jumpscare
-    if(musicBox<=0) startJump(puppet,'PUPPET');
+    if(musicBox<=0) catchPlayer(puppet,'PUPPET');
   }
 
   // Animatronik yapay zekası (uyanma + kovalama) + gerilim ambiyansı
@@ -3224,7 +3382,7 @@ function update(dt){
     } else if(ventCrawler<=0){         // süre doldu, maske yok → saldırı
       $('#ventWarn').classList.add('hidden');
       const awakeOnes=AIS.filter(a=>a.awake); const who=awakeOnes.length? awakeOnes[Math.floor(Math.random()*awakeOnes.length)] : AIS[1];
-      startJump(who.model, who.name); return;
+      catchPlayer(who.model, who.name); return;
     }
   } else {
     ventCrawlerT-=dt;
@@ -3237,13 +3395,18 @@ function update(dt){
     }
   }
 
+  updateCamTask(dt);      // "şu kamerayı kontrol et" görevi + kaçırma cezası
+  updateDowned(dt);       // multiplayer: yaralı kan kaybı sayacı + takım kurtarma
+  if(state!==S.PLAY) return;   // bleedOut → ölüm; bu kareyi bitir
+
   // hareket girişi
   let ix=0, iz=0;
   if(keys['w']) iz-=1; if(keys['s']) iz+=1; if(keys['a']) ix-=1; if(keys['d']) ix+=1;
   if(moveVec.x||moveVec.y){ ix+=moveVec.x; iz+=moveVec.y; }
   const len=Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
-  if(masked) running=false;
-  const speed=masked? 1.5 : (running?3.6:2.2);   // hafif nerf (çok hızlıydı); maskeliyken daha yavaş
+  if(masked||exhausted||downed) running=false;   // maske/yorgun/yaralı → koşamaz
+  let speed=masked? 1.5 : (running?3.6:2.2);   // hafif nerf (çok hızlıydı); maskeliyken daha yavaş
+  if(downed) speed=1.05;                        // yaralı: yavaş sürünme
   const fwd=new THREE.Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw));
   const right=new THREE.Vector3(-Math.cos(player.yaw),0,Math.sin(player.yaw));
   let nx=player.x + (fwd.x*(-iz)+right.x*ix)*speed*dt;
@@ -3254,6 +3417,11 @@ function update(dt){
   if(moved>0.001){ walkBob+=dt*(running?14:9); stepTimer-=dt;
     if(stepTimer<=0){ stepTimer=running?0.3:0.45; Audio.step();
       emitNoise(player.x,player.z, running?1.0:0.35); } }   // koşmak CHİKA'yı çağırır
+  // KOŞU BARI (cömert ~10sn): koşarken tükenir, yürüyünce dolar; bitince yorgun (koşamaz + nefes nefese → Chika'yı çeker)
+  if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10);
+    if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast('😮‍💨 NEFES NEFESE — biraz yürü'); }
+  } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)); if(exhausted && stamina>=40) exhausted=false; }
+  if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
 
   // yakın kapı algıla + eylem butonu
   nearDoor=null;
@@ -3297,6 +3465,7 @@ function hud(){ $('#roomName').textContent=roomName(); $('#battFill').style.widt
   $('#nightLbl').textContent=customMode? 'ÖZEL' : ('GECE '+night);
   $('#maskFill').style.width=maskCharge+'%';
   $('#maskFill').style.filter = maskCharge<20? 'saturate(1.6) brightness(1.2)':'none';
+  const sf=$('#stamFill'); sf.style.width=stamina+'%'; sf.classList.toggle('tired', exhausted||stamina<25);   // koşu barı
   $('#clockFill').style.width=Math.min(100, clockT/(NIGHT_HOURS*HOUR_SEC)*100)+'%';
   const ps=$('#powerStat');
   if(powered){ ps.textContent='⚡ ELEKTRİK: AÇIK'; ps.className='pw-on'; }
