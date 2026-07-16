@@ -61,6 +61,12 @@
   #scan{position:fixed;inset:0;z-index:16;pointer-events:none;opacity:.25;
     background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 2px,rgba(0,0,0,.22) 3px,rgba(0,0,0,0) 4px);}
   #vig{position:fixed;inset:0;z-index:14;pointer-events:none;box-shadow:inset 0 0 240px 80px rgba(0,0,0,.92);}
+  /* Puppet dehşet katmanı — kutu azaldıkça/çıkınca ekranı sarar */
+  #puppetVig{position:fixed;inset:0;z-index:17;pointer-events:none;opacity:0;
+    background:radial-gradient(ellipse 62% 66% at 50% 46%, rgba(0,0,0,0) 26%, rgba(24,0,14,.55) 66%, rgba(48,0,24,.95) 100%);}
+  #puppetWarn{position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:31;font-family:'Courier New',monospace;
+    font-weight:bold;font-size:min(22px,5vw);color:#ff5aa8;text-shadow:0 0 16px #a01050,0 0 40px #500;letter-spacing:2px;
+    pointer-events:none;text-align:center;opacity:0;transition:opacity .3s;}
   #loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#000;color:#a33;font-size:20px;letter-spacing:2px;text-align:center;padding:20px;}
 
   /* Elektrik durumu + toast */
@@ -90,6 +96,102 @@
   #windBtn:active{transform:translateX(-50%) scale(.96);}
   #jumpFlash{position:fixed;inset:0;z-index:35;pointer-events:none;background:#500;opacity:0;}
 
+  /* Halüsinasyon (rastgele zararsız korkular) */
+  #hallu{position:fixed;inset:0;z-index:18;pointer-events:none;}
+  #halluFace{position:absolute;inset:0;background-position:center;background-repeat:no-repeat;background-size:contain;opacity:0;mix-blend-mode:screen;}
+  #halluText{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:2;
+    font-family:'Courier New',monospace;font-weight:bold;font-size:min(58px,13vw);letter-spacing:4px;color:#c0161d;
+    text-shadow:0 0 20px #c0161d,0 0 46px #500;opacity:0;text-align:center;white-space:nowrap;}
+  #halluShade{position:absolute;top:0;bottom:0;width:38%;opacity:0;
+    background:linear-gradient(90deg,rgba(0,0,0,.94),rgba(0,0,0,.55) 60%,rgba(0,0,0,0));
+    filter:blur(2px);}
+
+  /* Ayarlar butonu + panel */
+  #setBtn{position:fixed;top:14px;right:16px;z-index:45;width:44px;height:44px;border-radius:11px;
+    background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:1px solid rgba(255,255,255,.18);
+    color:#cfd6e0;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  #setPanel{position:fixed;inset:0;z-index:55;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center 40%,rgba(12,14,20,.94),#000 78%);padding:24px;}
+  #setPanel.show{display:flex;}
+  #setPanel h2{color:#c9a227;font-size:min(34px,7vw);letter-spacing:2px;margin-bottom:6px;}
+  #setPanel .setSub{color:#7a828c;font-size:13px;margin-bottom:22px;}
+  .setRow{width:min(460px,90vw);margin:12px 0;text-align:left;}
+  .setRow .setLbl{font-size:14px;color:#cfd6e0;font-weight:bold;margin-bottom:8px;display:flex;justify-content:space-between;}
+  .setRow .setLbl span{color:#8a929c;font-weight:normal;}
+  .setRow input[type=range]{width:100%;height:26px;accent-color:#c9a227;cursor:pointer;}
+  .segBtns{display:flex;gap:8px;}
+  .segBtns button{flex:1;font-family:'Courier New',monospace;font-weight:bold;font-size:13px;padding:11px 6px;border-radius:9px;
+    background:linear-gradient(#242932,#141820);border:2px solid rgba(255,255,255,.14);color:#cfd6e0;cursor:pointer;}
+  .segBtns button.sel{border-color:#c9a227;color:#ffd76a;background:linear-gradient(#3a3218,#221c0c);box-shadow:0 0 12px rgba(201,162,39,.4);}
+  #setClose,#achClose{margin-top:26px;font-family:'Courier New',monospace;font-weight:bold;font-size:16px;color:#fff;
+    background:linear-gradient(#3a2f18,#241b0e);border:1px solid #c9a227;border-radius:10px;padding:13px 30px;cursor:pointer;}
+
+  /* Başarımlar */
+  #achBtn{position:fixed;top:14px;right:66px;z-index:45;width:44px;height:44px;border-radius:11px;
+    background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:1px solid rgba(255,255,255,.18);
+    color:#ffd76a;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  #achPanel{position:fixed;inset:0;z-index:55;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center 40%,rgba(12,14,20,.94),#000 78%);padding:24px;}
+  #achPanel.show{display:flex;}
+  #achPanel h2{color:#c9a227;font-size:min(34px,7vw);letter-spacing:2px;margin-bottom:6px;}
+  #achList{width:min(520px,92vw);display:flex;flex-direction:column;gap:8px;max-height:64vh;overflow-y:auto;margin-top:16px;}
+  .achRow{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
+  .achRow.unl{border-color:#c9a227;background:linear-gradient(rgba(201,162,39,.12),rgba(201,162,39,.03));}
+  .achRow .ico{font-size:26px;filter:grayscale(1) opacity(.45);}
+  .achRow.unl .ico{filter:none;}
+  .achRow .txt .n{font-weight:bold;color:#cfd6e0;font-size:14px;}
+  .achRow.unl .txt .n{color:#ffe9a8;}
+  .achRow .txt .d{font-size:12px;color:#8a929c;}
+  #achPop{position:fixed;left:50%;top:11%;transform:translateX(-50%) translateY(-24px);z-index:47;
+    background:linear-gradient(#3a3218,#221c0c);border:2px solid #c9a227;border-radius:12px;padding:10px 18px;
+    display:flex;align-items:center;gap:12px;opacity:0;transition:opacity .4s,transform .4s;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.6);}
+  #achPop.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #achPop .aIco{font-size:28px;}
+  #achPop .aTtl{font-size:11px;color:#c9a227;font-weight:bold;letter-spacing:1px;}
+  #achPop .aName{font-size:16px;color:#ffe9a8;font-weight:bold;}
+
+  /* Telefon Adamı */
+  #phone{position:fixed;left:50%;bottom:15%;transform:translateX(-50%);z-index:24;width:min(600px,90vw);
+    background:rgba(8,10,14,.86);border:1px solid rgba(120,160,220,.35);border-radius:12px;padding:11px 14px 26px 52px;
+    display:none;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.6);}
+  #phone.show{display:block;}
+  #phone::before{content:"📞";position:absolute;left:13px;top:22px;font-size:24px;animation:phoneShake .5s ease-in-out infinite;}
+  @keyframes phoneShake{0%,100%{transform:rotate(-9deg);}50%{transform:rotate(9deg);}}
+  #phoneName{font-size:11px;color:#6fa0d0;font-weight:bold;letter-spacing:1px;margin-bottom:4px;}
+  #phoneText{font-size:14px;color:#cfe0f0;line-height:1.5;min-height:2.6em;letter-spacing:.2px;}
+  #phoneSkip{position:absolute;right:10px;bottom:8px;font-family:'Courier New',monospace;font-size:11px;font-weight:bold;
+    color:#9ab;background:rgba(40,50,64,.85);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:4px 9px;cursor:pointer;pointer-events:auto;}
+
+  /* Çok oyunculu lobi */
+  #mpPanel{position:fixed;inset:0;z-index:56;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center 40%,rgba(10,14,22,.96),#000 78%);padding:24px;text-align:center;}
+  #mpPanel.show{display:flex;}
+  #mpPanel h2{color:#5aa0e0;font-size:min(32px,7vw);letter-spacing:2px;margin-bottom:4px;}
+  #mpPanel .setSub{color:#7a828c;font-size:13px;margin-bottom:20px;}
+  .mpBig{font-family:'Courier New',monospace;font-weight:bold;font-size:17px;color:#fff;
+    background:linear-gradient(#1e3a56,#122536);border:2px solid #3a7abf;border-radius:12px;padding:14px 26px;cursor:pointer;margin:6px;}
+  .mpBig:active{transform:scale(.97);}
+  .mpOr{color:#5a6470;font-size:12px;margin:12px 0;}
+  #mpJoinRow{display:flex;gap:8px;justify-content:center;}
+  #mpCodeIn,#mpNameIn{font-family:'Courier New',monospace;font-weight:bold;font-size:16px;text-align:center;letter-spacing:3px;
+    background:#0e1620;border:2px solid rgba(120,160,220,.35);border-radius:9px;color:#cfe0f0;padding:11px 12px;width:150px;text-transform:uppercase;}
+  #mpJoinBtn{font-family:'Courier New',monospace;font-weight:bold;font-size:14px;color:#bfe0ff;background:#153048;border:2px solid #3a7abf;border-radius:9px;padding:0 16px;cursor:pointer;}
+  #mpName{margin-top:16px;color:#8a929c;font-size:13px;}
+  #mpNameIn{width:120px;letter-spacing:1px;font-size:14px;text-transform:none;padding:7px 10px;margin-left:6px;}
+  #mpCodeBox{font-size:15px;color:#cfe0f0;margin-bottom:8px;}
+  #mpCode{font-size:26px;font-weight:bold;color:#7fd0ff;letter-spacing:5px;text-shadow:0 0 14px rgba(90,180,255,.5);}
+  #mpCopy{font-family:'Courier New',monospace;font-size:11px;color:#bfe0ff;background:#153048;border:1px solid #3a7abf;border-radius:6px;padding:4px 8px;cursor:pointer;margin-left:6px;}
+  #mpStatus{color:#c9a227;font-size:13px;margin-bottom:14px;min-height:1.4em;}
+  #mpList{display:flex;flex-direction:column;gap:6px;width:min(360px,86vw);margin-bottom:16px;}
+  .mpPlayer{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:14px;color:#dfe4ea;}
+  .mpPlayer .dot{width:10px;height:10px;border-radius:50%;background:#3fae5a;box-shadow:0 0 8px #3fae5a;}
+  .mpPlayer.host .tag{margin-left:auto;font-size:10px;color:#c9a227;font-weight:bold;}
+  #mpWait{color:#8a929c;font-size:13px;animation:blink 1.4s steps(1) infinite;}
+  #mpBack{margin-top:22px;font-family:'Courier New',monospace;font-weight:bold;font-size:15px;color:#fff;
+    background:linear-gradient(#2a2f38,#161a20);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 26px;cursor:pointer;}
+  /* uzak oyuncu ad etiketi (3D üstünde) */
+  #mpTag{position:fixed;z-index:19;pointer-events:none;font-family:'Courier New',monospace;font-size:12px;color:#bfe0ff;text-shadow:0 1px 4px #000;display:none;}
+
   /* Saat / gece */
   #clockBox{margin-top:7px;}
   #clockTime{font-size:26px;font-weight:bold;color:#e8e2d0;letter-spacing:2px;}
@@ -111,7 +213,82 @@
   /* Kazanma ekranı */
   #win{background:radial-gradient(ellipse at center 40%,rgba(10,30,14,.6),#000 72%);}
   #winClock{font-size:min(96px,16vw);font-weight:bold;color:#ffd76a;text-shadow:0 0 30px rgba(255,200,60,.6);letter-spacing:4px;}
+
+  /* ---- FREDDO MASKESİ ---- */
+  #maskOv{position:fixed;inset:0;z-index:18;pointer-events:none;display:none;}
+  #maskOv.show{display:block;}
+  #mkVig{position:absolute;inset:0;background:radial-gradient(ellipse 56% 60% at 50% 44%,rgba(0,0,0,0) 52%,rgba(8,5,4,.99) 79%);}
+  #mkTop{position:absolute;left:0;right:0;top:0;height:15%;background:linear-gradient(#0c0907,rgba(12,9,7,0));}
+  #mkSnout{position:absolute;left:50%;bottom:-7%;transform:translateX(-50%);width:54%;height:27%;
+    border-radius:50% 50% 44% 44%;background:radial-gradient(ellipse at 50% 22%,#6a4a2a,#2a1c10 72%);
+    box-shadow:inset 0 -12px 44px rgba(0,0,0,.9);}
+  #mkNose{position:absolute;left:50%;bottom:17.5%;transform:translateX(-50%);width:8%;height:4.5%;border-radius:50%;background:#0b0b0e;}
+  #maskBox{margin-top:7px;text-align:right;}
+  #maskLabel{font-size:12px;color:#9aa;}
+  #maskBar{width:150px;height:9px;border:1px solid rgba(255,255,255,.3);border-radius:3px;margin-top:3px;overflow:hidden;background:#111;margin-left:auto;}
+  #maskFill{height:100%;width:100%;background:linear-gradient(90deg,#e11d1d,#8a6a3a 45%,#c9a227);transition:width .1s;}
+  #maskBtn{position:fixed;right:104px;bottom:112px;z-index:22;width:60px;height:60px;border-radius:14px;
+    background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:2px solid rgba(255,255,255,.14);
+    color:#e8c88a;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;}
+  #maskBtn.on{background:radial-gradient(circle at 40% 35%,#6a4a2a,#2a1c10);border-color:#c9a227;box-shadow:0 0 20px rgba(200,160,60,.45);}
+  #maskBtn.spent{opacity:.4;}
+
+  /* ---- HAVALANDIRMA ---- */
+  #ventBtn{position:fixed;left:50%;bottom:186px;transform:translateX(-50%);z-index:22;font-family:'Courier New',monospace;
+    font-weight:bold;font-size:15px;color:#dff;background:linear-gradient(#17313a,#0c1a20);border:1px solid #3f9aae;
+    border-radius:9px;padding:12px 18px;cursor:pointer;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,.5);}
+  #ventWarn{position:fixed;left:50%;top:56%;transform:translateX(-50%);z-index:26;font-size:15px;font-weight:bold;
+    color:#ff6a6a;text-shadow:0 0 12px #900;letter-spacing:1px;pointer-events:none;text-align:center;animation:blink .45s steps(1) infinite;}
+  #ventDark{position:fixed;inset:0;z-index:13;pointer-events:none;background:radial-gradient(ellipse 45% 55% at 50% 50%,rgba(0,0,0,0) 30%,rgba(0,0,0,.85) 88%);display:none;}
+  #ventDark.show{display:block;}
+
+  /* ---- ÖZEL GECE PANELİ ---- */
+  #cnPanel{position:fixed;inset:0;z-index:45;background:radial-gradient(ellipse at center 40%,rgba(30,20,8,.6),#000 72%);
+    display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px;}
+  #cnPanel.show{display:flex;}
+  #cnTitle{font-size:min(38px,8vw);font-weight:bold;color:#c9a227;text-shadow:0 0 20px rgba(200,160,40,.6);letter-spacing:3px;}
+  #cnSub{color:#7a828c;font-size:13px;margin-top:6px;margin-bottom:16px;}
+  .cnRow{display:flex;align-items:center;gap:10px;width:min(430px,92vw);margin:7px 0;}
+  .cnName{width:104px;font-size:13px;font-weight:bold;text-align:left;}
+  .cnRange{flex:1;-webkit-appearance:none;appearance:none;height:8px;border-radius:4px;background:#1a1d23;border:1px solid rgba(255,255,255,.15);outline:none;}
+  .cnRange::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#c9a227;border:2px solid #2a1c0a;cursor:pointer;}
+  .cnRange::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#c9a227;border:2px solid #2a1c0a;cursor:pointer;}
+  .cnVal{width:30px;font-size:16px;font-weight:bold;color:#ffd76a;text-align:right;}
+  #cnPresets{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap;justify-content:center;}
+  .cnPre{font-family:'Courier New',monospace;font-size:12px;font-weight:bold;color:#cfd6e0;background:#1d2128;
+    border:1px solid rgba(255,255,255,.2);border-radius:7px;padding:7px 11px;cursor:pointer;}
+  .cnPre:hover{border-color:#c9a227;color:#ffd76a;}
+  #cnGo{margin-top:18px;font-family:'Courier New',monospace;font-size:18px;font-weight:bold;color:#fff;
+    background:linear-gradient(#4a1a1e,#2a0c0e);border:2px solid #c0161d;border-radius:10px;padding:13px 30px;cursor:pointer;}
+  #cnBack{margin-top:9px;font-family:'Courier New',monospace;font-size:12px;color:#6a7078;background:none;border:none;cursor:pointer;text-decoration:underline;}
+  #cnStar{color:#ffd76a;font-size:12px;height:15px;margin-top:8px;letter-spacing:1px;}
+
+  /* ---- FİNAL SAHNESİ ---- */
+  #ending{position:fixed;inset:0;z-index:40;display:none;pointer-events:auto;}
+  #ending.show{display:block;}
+  #endFade{position:absolute;inset:0;background:#000;opacity:1;}
+  #endText{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(640px,88vw);text-align:center;
+    font-size:min(19px,4.4vw);line-height:1.9;color:#e8dcc0;text-shadow:0 2px 10px #000;}
+  #endText div{opacity:0;transition:opacity 1.4s;}
+  #endText div.in{opacity:1;}
+  #endCheck{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1.6deg);width:min(430px,90vw);
+    background:linear-gradient(#efe6cf,#d8cbab);color:#2a2418;border:1px solid #8a7a55;border-radius:5px;padding:18px 20px;
+    box-shadow:0 18px 50px rgba(0,0,0,.85);opacity:0;transition:opacity 1s;text-align:left;}
+  #endCheck.in{opacity:1;}
+  .ckTop{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #8a7a55;padding-bottom:7px;}
+  .ckBrand{font-size:14px;font-weight:bold;letter-spacing:1px;color:#7a1f2a;}
+  .ckNo{font-size:11px;color:#6a6252;}
+  .ckLine{display:flex;justify-content:space-between;font-size:13px;margin-top:9px;}
+  .ckAmt{margin-top:12px;text-align:right;font-size:min(34px,7vw);font-weight:bold;color:#1a1a14;letter-spacing:1px;}
+  .ckSign{margin-top:12px;padding-top:8px;border-top:1px dashed #9a8a65;display:flex;justify-content:space-between;align-items:flex-end;}
+  .ckSignName{font-family:'Brush Script MT','Segoe Script',cursive;font-size:22px;color:#2a2a5a;transform:rotate(-4deg);}
+  .ckSignLbl{font-size:9px;color:#6a6252;}
+  #endTap{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);font-size:15px;font-weight:bold;color:#c9a227;
+    opacity:0;transition:opacity 1s;animation:blink 1s steps(1) infinite;}
+  #endTap.in{opacity:1;}
 </style>
+<!-- Çok oyunculu (P2P oda kodu) — internet gerektirir; yüklenmezse tek oyunculu çalışır -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -121,15 +298,48 @@
 <div id="loading">GECE BEKÇİSİ 3D<br><span style="font-size:13px;color:#555">pizzacı yükleniyor…</span></div>
 
 <div id="vig"></div><div id="grain"></div><div id="scan"></div>
+<div id="puppetVig"></div>
+<div id="puppetWarn"></div>
 <div id="jumpFlash"></div>
+<div id="hallu"><div id="halluShade"></div><div id="halluFace"></div><div id="halluText"></div></div>
 <div id="cross" class="hidden"></div>
+
+<!-- Ayarlar -->
+<button id="setBtn" class="hidden">⚙</button>
+<div id="setPanel">
+  <h2>⚙ AYARLAR</h2>
+  <div class="setSub">— tercihlerin kaydedilir —</div>
+  <div class="setRow"><div class="setLbl">🔊 ANA SES <span id="setVolVal">42%</span></div>
+    <input id="setVol" type="range" min="0" max="100" value="42"></div>
+  <div class="setRow"><div class="setLbl">💥 JUMPSCARE ŞİDDETİ</div>
+    <div class="segBtns" id="setScare"><button data-v="0.4">AZ</button><button data-v="0.7">ORTA</button><button data-v="1">TAM</button></div></div>
+  <div class="setRow"><div class="setLbl">📳 KAMERA SARSINTISI</div>
+    <div class="segBtns" id="setShake"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
+  <div class="setRow"><div class="setLbl">👁️ HALÜSİNASYONLAR</div>
+    <div class="segBtns" id="setHallu"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
+  <button id="setClose">‹ KAPAT</button>
+</div>
+
+<!-- Başarımlar -->
+<button id="achBtn" class="hidden">🏆</button>
+<div id="achPanel">
+  <h2>🏆 BAŞARIMLAR</h2>
+  <div class="setSub">açılan: <span id="achCount">0 / 0</span></div>
+  <div id="achList"></div>
+  <button id="achClose">‹ KAPAT</button>
+</div>
+<div id="achPop"><div class="aIco">🏆</div><div><div class="aTtl">BAŞARIM AÇILDI</div><div class="aName">—</div></div></div>
+
+<!-- Telefon Adamı -->
+<div id="phone"><div id="phoneName">☎ ESKİ GECE BEKÇİSİ</div><div id="phoneText"></div><button id="phoneSkip">KAPAT ▸</button></div>
 
 <!-- HUD -->
 <div id="hud" class="hidden">
   <div><div id="roomName">OFİS</div><div id="roomSub">Freddy Fazbear's Pizza</div>
     <div id="clockBox"><span id="clockTime">12:00</span><span id="nightLbl">GECE 1</span>
       <div id="clockBar"><div id="clockFill"></div></div></div></div>
-  <div id="battBox"><div id="battLabel">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState">KAPALI</div></div>
+  <div id="battBox"><div id="battLabel">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState">KAPALI</div>
+    <div id="maskBox" class="hidden"><div id="maskLabel">🎭 MASKE</div><div id="maskBar"><div id="maskFill"></div></div></div></div>
 </div>
 
 <!-- Dokunmatik kontroller -->
@@ -137,7 +347,14 @@
 <button id="flashBtn" class="hidden">🔦</button>
 <button id="runBtn" class="hidden">»</button>
 <button id="camBtn" class="hidden">📹</button>
+<button id="maskBtn" class="hidden">🎭</button>
+<button id="ventBtn" class="hidden">🪜 VENT'E GİR</button>
 <button id="actBtn" class="hidden">▼ KAPAT</button>
+
+<!-- Freddo maskesi (takınca görüş kısıtlı) -->
+<div id="maskOv"><div id="mkTop"></div><div id="mkVig"></div><div id="mkSnout"></div><div id="mkNose"></div></div>
+<div id="ventWarn" class="hidden">🪜 VENT'TE BİRİ VAR — MASKE TAK!</div>
+<div id="ventDark"></div>
 
 <!-- Elektrik durumu + mesaj -->
 <div id="powerStat" class="hidden pw-on">⚡ ELEKTRİK: AÇIK</div>
@@ -162,17 +379,72 @@
   <div class="bigTitle">GECE BEKÇİSİ</div>
   <div class="sub">— 06:00'a kadar dayan —</div>
   <div id="nightPick"></div>
+  <button id="customBtn" class="nbtn six hidden" style="width:auto;padding:0 16px;margin-top:14px;flex-direction:row;gap:6px;">🌙 ÖZEL GECE</button>
+  <button id="mpBtn" class="nbtn" style="width:auto;padding:0 16px;margin-top:10px;flex-direction:row;gap:6px;border-color:#3a7abf;color:#bfe0ff;">👥 ÇOK OYUNCU</button>
   <div class="tapHint">BAŞLAMAK İÇİN DOKUN</div>
   <div class="keys">
     <b>Bilgisayar:</b> W A S D = yürü &nbsp;•&nbsp; Fare sürükle = bak &nbsp;•&nbsp; F = fener &nbsp;•&nbsp; Shift = koş &nbsp;•&nbsp; E = kapı<br>
     <b>Telefon:</b> Sol joystick = yürü &nbsp;•&nbsp; Sağ ekran sürükle = bak &nbsp;•&nbsp; 🔦 = fener &nbsp;•&nbsp; » = koş<br>
     <b>C</b> = kamera (yalnız ofiste) &nbsp;•&nbsp; <b>Boşluk / KUR</b> = müzik kutusunu kur<br>
+    <b>M / Q</b> = 🎭 Freddo maskesi &nbsp;•&nbsp; <b>R</b> = 🪜 vent'e gir (kestirme)<br>
+    <span style="color:#8a9aae">🎭 Maske: Freddo & Bonko seni yok sayar + vent'ten sızanı savar. Ama görüşün daralır, yavaşlarsın, kamera/kapı kullanamazsın; oksijen sayacı var.<br>
+    🪜 Vent: ofis ↔ kulis arası kestirme. Sürünürken savunmasızsın — çıkışta kovalayan varsa kaçış yok.</span><br>
     <span style="color:#8a7a5a">🐻 FREDDO ışık tutunca DONAR &nbsp;•&nbsp; 💜 BONKO ışığı görürse ÇILDIRIR<br>
     🐤 CHİKA sesini duyar (koşma!) &nbsp;•&nbsp; 🦊 FOXO'yu kamerada izle yoksa koşar</span><br>
     <span style="color:#c9a227">🚪 Kapı 7s kapalı kalır, sonra kendi açılır — tekrar kapatmak için 7s bekleme.<br>
     Kapıda 3s takılan animatronik VAZGEÇER ve çeker gider. Kapı kalkan değil, zaman kazandırır.</span><br>
     🎵 Müzik kutusu boşalırsa PUPPET seni yer! Elektrik yoksa kamera çalışmaz → Ödül Köşesi'ne gidip elle kur.
   </div>
+</div>
+
+<!-- Özel Gece paneli -->
+<div id="cnPanel">
+  <div id="cnTitle">ÖZEL GECE</div>
+  <div id="cnSub">Her animatroniğin agresifliğini 0–20 arası kendin ayarla</div>
+  <div id="cnRows"></div>
+  <div id="cnStar"></div>
+  <div id="cnPresets">
+    <button class="cnPre" data-p="0,0,0,0">🕊️ SAKİN 0/0/0/0</button>
+    <button class="cnPre" data-p="10,10,10,10">⚖️ DENGE 10x4</button>
+    <button class="cnPre" data-p="20,20,20,20">💀 20/20/20/20</button>
+    <button class="cnPre" data-p="1,9,2,20">🦊 FOXO ÇILGIN</button>
+  </div>
+  <button id="cnGo">🔒 GECEYE BAŞLA</button>
+  <button id="cnBack">‹ MENÜYE DÖN</button>
+</div>
+
+<!-- Çok Oyunculu Lobi -->
+<div id="mpPanel">
+  <h2>👥 ÇOK OYUNCU</h2>
+  <div class="setSub">— aynı pizzacıda 1-4 kişi (oda kodu ile) —</div>
+  <div id="mpHome">
+    <button class="mpBig" id="mpHostBtn">🎮 ODA KUR</button>
+    <div class="mpOr">— veya —</div>
+    <div id="mpJoinRow"><input id="mpCodeIn" maxlength="5" placeholder="ODA KODU" autocomplete="off"><button id="mpJoinBtn">↪ KATIL</button></div>
+    <div id="mpName">Ad: <input id="mpNameIn" maxlength="10" placeholder="Bekçi"></div>
+  </div>
+  <div id="mpRoom" class="hidden">
+    <div id="mpCodeBox">ODA KODU: <span id="mpCode">-----</span> <button id="mpCopy">📋 KOPYALA</button></div>
+    <div id="mpStatus">bağlanıyor…</div>
+    <div id="mpList"></div>
+    <button id="mpStart" class="mpBig hidden">▶ KEŞFE BAŞLA</button>
+    <div id="mpWait" class="hidden">Host'un başlatması bekleniyor…</div>
+  </div>
+  <button id="mpBack">‹ MENÜYE DÖN</button>
+</div>
+
+<!-- Final sahnesi -->
+<div id="ending">
+  <div id="endFade"></div>
+  <div id="endCheck">
+    <div class="ckTop"><span class="ckBrand">FREDDY FAZBEAR'S PIZZA</span><span class="ckNo">No. 006</span></div>
+    <div class="ckLine"><span>Bordro — Gece Bekçisi</span><span>1 hafta</span></div>
+    <div class="ckLine"><span>5 gece × 20:00–06:00</span><span>+ Gece 6 (fazla mesai)</span></div>
+    <div class="ckAmt">$120.50</div>
+    <div class="ckSign"><span class="ckSignName">Fazbear Ent.</span><span class="ckSignLbl">YÖNETİM</span></div>
+  </div>
+  <div id="endText"></div>
+  <div id="endTap">DEVAM İÇİN DOKUN</div>
 </div>
 
 <!-- Ölüm -->
@@ -198,13 +470,18 @@ const app = $('#app');
 
 /* ================= RENDERER / SAHNE ================= */
 const isMobile = /Mobi|Android|iPad|iPhone/i.test(navigator.userAgent);
+const DPR = window.devicePixelRatio||1;
 const renderer = new THREE.WebGLRenderer({antialias:!isMobile, powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isMobile?1.5:2));
+// ADAPTİF ÇÖZÜNÜRLÜK: mobilde 1.0'dan başla, FPS düşükse düşür (0.6'ya kadar), yüksekse yükselt.
+let renderScale = isMobile ? Math.min(DPR,1.0) : Math.min(DPR,2);
+const RS_MIN = isMobile?0.6:0.9, RS_MAX = isMobile?1.15:Math.min(DPR,2);
+renderer.setPixelRatio(renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
-renderer.shadowMap.enabled = true;
+// GÖLGE: mobilde tamamen kapalı (fragment shader + gölge haritası maliyeti mobilin en büyük yükü)
+renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.appendChild(renderer.domElement);
 $('#loading').classList.add('hidden');
@@ -217,6 +494,14 @@ const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.03, 260
 // Harita ölçeği: statik dünya yatayda SC kat büyür (yükseklik/insan boyu aynı kalır).
 // Tüm oyun mantığı "tasarım" koordinatında; sadece render SC ile ölçeklenir.
 const SC = 3.0;
+
+// --- KUZEY BÖLGE BÜYÜTME ---
+// Ofis + koridorlar (z>=6) SABİT; yemekhane ve kuzeyi (z<6) hafif genişler.
+// z=6 sabit nokta → koridor ağızları/kapı bağlantıları bozulmaz. Tüm kuzey
+// koordinatları (duvar/mobilya/nav/ışık/kamera/AI/sigorta) bu ikisinden geçer.
+const NXF=1.16, NZF=1.16;                 // x genişleme / z uzama faktörü (hafif)
+const NX = x => x*NXF;                     // x'i merkeze göre genişlet
+const NZ = z => z>=6 ? z : 6-(6-z)*NZF;   // z=6 güneyi sabit, kuzeyi uzat
 
 addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 
@@ -237,10 +522,87 @@ function floorTex(){ const c=mc(256,256),g=c.getContext('2d');
   for(let y=0;y<256;y+=64) for(let x=0;x<256;x+=64){ g.fillStyle=(x/64+y/64)%2?'#151515':'#c8c4bc'; g.fillRect(x,y,64,64);}
   for(let i=0;i<16000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.28})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return t; }
-function posterTex(txt,col){ const c=mc(256,320),g=c.getContext('2d'); g.fillStyle=col||'#7a1f2a'; g.fillRect(0,0,256,320);
-  g.fillStyle='rgba(0,0,0,.22)'; g.fillRect(8,8,240,304); g.fillStyle='#f0e6c8'; g.font='bold 30px Courier New'; g.textAlign='center'; g.fillText(txt||'FREDDO',128,52);
-  g.fillStyle='#3a2410'; g.beginPath(); g.arc(128,180,66,0,7); g.fill(); g.fillStyle='#ff3030'; g.beginPath(); g.arc(106,168,11,0,7); g.arc(150,168,11,0,7); g.fill();
-  g.fillStyle='#100a0a'; g.fillRect(98,206,60,24); g.fillStyle='#ddd'; for(let i=0;i<5;i++) g.fillRect(100+i*12,206,9,11);
+// --- poster çizim yardımcıları ---
+function _c(g,x,y,r){ g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
+function _e(g,x,y,rx,ry){ g.beginPath(); g.ellipse(x,y,rx,ry,0,0,7); g.fill(); }
+// başlığı poster genişliğine otomatik sığdır (gerekirse 2 satıra kaydır, sonra küçült)
+function drawTitle(g,txt,cx,topY,maxW){
+  const words=txt.split(' ');
+  function layout(px){ g.font='bold '+px+'px "Courier New",monospace'; const lines=[]; let cur='';
+    for(const w of words){ const t=cur?cur+' '+w:w; if(g.measureText(t).width<=maxW||!cur) cur=t; else { lines.push(cur); cur=w; } }
+    if(cur) lines.push(cur); return lines; }
+  let px=30, lines=layout(px);
+  while((lines.length>2 || lines.some(l=>g.measureText(l).width>maxW)) && px>12){ px--; lines=layout(px); }
+  g.font='bold '+px+'px "Courier New",monospace'; const lh=px+5; let y=topY-(lines.length-1)*lh*0.5;
+  for(const l of lines){ g.fillText(l,cx,y); y+=lh; }
+}
+function drawBear(g,cx,cy){
+  g.fillStyle='#3a2412'; _c(g,cx-40,cy-44,20); _c(g,cx+40,cy-44,20);                 // kulaklar
+  g.fillStyle='#5a3a1e'; _c(g,cx-40,cy-44,10); _c(g,cx+40,cy-44,10);
+  g.fillStyle='#14110f'; _e(g,cx,cy-46,47,12); g.fillRect(cx-30,cy-92,60,48);        // silindir şapka
+  g.fillStyle='#7a1520'; g.fillRect(cx-30,cy-58,60,10);                              // şapka bandı
+  g.fillStyle='#6b4423'; _e(g,cx,cy,62,58);                                          // kafa
+  g.fillStyle='rgba(200,110,80,0.45)'; _e(g,cx-42,cy+16,13,9); _e(g,cx+42,cy+16,13,9);
+  g.fillStyle='#d8b57e'; _e(g,cx,cy+22,37,28);                                       // burun bölgesi
+  g.fillStyle='#241812'; _e(g,cx,cy+8,13,10);                                        // burun
+  g.strokeStyle='#241812'; g.lineWidth=3; g.beginPath(); g.moveTo(cx,cy+18); g.lineTo(cx,cy+30);
+  g.moveTo(cx-16,cy+33); g.quadraticCurveTo(cx,cy+44,cx+16,cy+33); g.stroke();
+  g.fillStyle='#f0ead6'; g.fillRect(cx-9,cy+34,8,7); g.fillRect(cx+2,cy+34,8,7);     // dişler
+  g.fillStyle='#f2efe6'; _e(g,cx-24,cy-12,15,17); _e(g,cx+24,cy-12,15,17);           // gözler
+  g.fillStyle='#3a5f96'; _c(g,cx-22,cy-10,7); _c(g,cx+26,cy-10,7);
+  g.fillStyle='#0a0a12'; _c(g,cx-22,cy-9,3.5); _c(g,cx+26,cy-9,3.5);
+  g.fillStyle='#3a2412'; g.save(); g.translate(cx-24,cy-30); g.rotate(0.14); g.fillRect(-16,0,30,7); g.restore();
+  g.save(); g.translate(cx+24,cy-30); g.rotate(-0.14); g.fillRect(-14,0,30,7); g.restore();
+  g.fillStyle='#7a1520'; g.beginPath(); g.moveTo(cx,cy+56); g.lineTo(cx-22,cy+47); g.lineTo(cx-22,cy+66); g.closePath();
+  g.moveTo(cx,cy+56); g.lineTo(cx+22,cy+47); g.lineTo(cx+22,cy+66); g.closePath(); g.fill();
+  g.fillStyle='#4a0d14'; _c(g,cx,cy+56,6);                                           // papyon
+}
+function drawFox(g,cx,cy){
+  g.fillStyle='#8f2517'; g.beginPath(); g.moveTo(cx-52,cy-58); g.lineTo(cx-20,cy-34); g.lineTo(cx-58,cy-20); g.closePath();
+  g.moveTo(cx+52,cy-58); g.lineTo(cx+20,cy-34); g.lineTo(cx+58,cy-20); g.closePath(); g.fill();   // sivri kulaklar
+  g.fillStyle='#b23322'; _e(g,cx,cy-4,58,52);                                        // kafa
+  g.fillStyle='#c9c3b4'; _e(g,cx,cy+34,22,28);                                       // uzun burun
+  g.fillStyle='#1a1210'; _e(g,cx,cy+52,10,8);
+  g.fillStyle='#f2c94c'; _e(g,cx-22,cy-10,12,14); _e(g,cx+22,cy-10,12,14);           // sarı gözler
+  g.fillStyle='#111'; _c(g,cx-21,cy-8,4); _c(g,cx+23,cy-8,4);
+  g.fillStyle='#0a0a0a'; _e(g,cx+22,cy-12,16,17); g.fillRect(cx+6,cy-16,44,5);        // göz bandı (korsan)
+  g.fillStyle='#e8e2d0'; for(let i=0;i<4;i++) g.fillRect(cx-16+i*10,cy+40,7,8);       // sivri dişler
+}
+function drawChick(g,cx,cy){
+  g.fillStyle='#e9c72e'; g.beginPath(); g.moveTo(cx-14,cy-52); g.lineTo(cx-4,cy-78); g.lineTo(cx+2,cy-54);
+  g.moveTo(cx+2,cy-56); g.lineTo(cx+12,cy-80); g.lineTo(cx+20,cy-54); g.closePath(); g.fill();     // tepe tüyleri
+  g.fillStyle='#f4d84a'; _e(g,cx,cy,58,56);                                          // kafa
+  g.fillStyle='#f2efe6'; _e(g,cx-22,cy-10,17,18); _e(g,cx+22,cy-10,17,18);           // büyük gözler
+  g.fillStyle='#7a30a0'; _c(g,cx-20,cy-8,7); _c(g,cx+24,cy-8,7);
+  g.fillStyle='#111'; _c(g,cx-20,cy-8,3.5); _c(g,cx+24,cy-8,3.5);
+  g.fillStyle='#e8892a'; g.beginPath(); g.moveTo(cx-18,cy+20); g.lineTo(cx+18,cy+20); g.lineTo(cx,cy+30); g.closePath();
+  g.moveTo(cx-16,cy+30); g.lineTo(cx+16,cy+30); g.lineTo(cx,cy+40); g.closePath(); g.fill();        // gaga (açık)
+  g.fillStyle='rgba(230,120,90,0.4)'; _e(g,cx-40,cy+14,12,8); _e(g,cx+40,cy+14,12,8);
+}
+function drawPuppetFace(g,cx,cy){
+  g.fillStyle='#e8e4d8'; _e(g,cx,cy,50,62);                                          // uzun beyaz maske
+  g.fillStyle='#0a0a0a'; _e(g,cx-20,cy-12,10,14); _e(g,cx+20,cy-12,10,14);           // boş gözler
+  g.fillStyle='#5a2a8a'; g.beginPath(); g.moveTo(cx-24,cy-2); g.lineTo(cx-16,cy-2); g.lineTo(cx-20,cy+34); g.closePath();
+  g.moveTo(cx+16,cy-2); g.lineTo(cx+24,cy-2); g.lineTo(cx+20,cy+34); g.closePath(); g.fill();       // mor gözyaşları
+  g.fillStyle='#c02a4a'; _c(g,cx-30,cy+16,8); _c(g,cx+30,cy+16,8);                   // pembe yanaklar
+  g.strokeStyle='#c02040'; g.lineWidth=5; g.beginPath(); g.arc(cx,cy+6,26,0.2,Math.PI-0.2); g.stroke();  // kırmızı gülümseme
+}
+function posterTex(txt,col,kind){
+  const c=mc(256,320), g=c.getContext('2d');
+  g.fillStyle=col||'#7a1f2a'; g.fillRect(0,0,256,320);
+  const rg=g.createRadialGradient(128,150,20,128,190,190);                           // spot ışığı hissi
+  rg.addColorStop(0,'rgba(255,244,214,0.12)'); rg.addColorStop(1,'rgba(0,0,0,0.4)');
+  g.fillStyle=rg; g.fillRect(0,0,256,320);
+  g.save(); g.translate(0,20);                                                       // karakteri biraz aşağı al
+  if(kind==='fox') drawFox(g,128,190); else if(kind==='chick') drawChick(g,128,190);
+  else if(kind==='puppet') drawPuppetFace(g,128,190); else drawBear(g,128,190);
+  g.restore();
+  g.fillStyle='#f4ead0'; g.textAlign='center'; g.textBaseline='alphabetic';          // başlık (otomatik sığar)
+  g.shadowColor='rgba(0,0,0,0.65)'; g.shadowBlur=4; g.shadowOffsetY=2;
+  drawTitle(g,txt||'FREDDO',128,48,212); g.shadowColor='transparent'; g.shadowBlur=0; g.shadowOffsetY=0;
+  g.strokeStyle='rgba(244,234,208,0.5)'; g.lineWidth=4; g.strokeRect(10,10,236,300); // çerçeve
+  g.strokeStyle='rgba(0,0,0,0.4)'; g.lineWidth=1; g.strokeRect(15,15,226,290);
+  for(let i=0;i<1500;i++){ g.fillStyle='rgba(0,0,0,'+(Math.random()*0.05)+')'; g.fillRect(Math.random()*256,Math.random()*320,1,1); }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
 
 const T = { wall:wallTex(), floor:floorTex(), metal:noiseTex('#3a3f48',.25), carpet:noiseTex('#3a1a1a',.35), curtain:noiseTex('#5a1030',.3) };
@@ -259,19 +621,27 @@ const M = {
 
 /* ================= IŞIKLAR ================= */
 // Ortam + gökyarısı dolgu (elektrik açıkken parlak, kesikken karanlık)
-const ambient = new THREE.AmbientLight(0x2a3346, 0.5); scene.add(ambient);
-const hemi = new THREE.HemisphereLight(0xcfe0f0, 0x1a1e26, 0.9); scene.add(hemi);
+// Mobilde ışık sayısı azaltılır → hemi/ambient biraz güçlendirilir (odalar kararmasın)
+const ambient = new THREE.AmbientLight(0x2a3346, isMobile?0.62:0.5); scene.add(ambient);
+const hemi = new THREE.HemisphereLight(0xcfe0f0, 0x1a1e26, isMobile?1.12:0.9); scene.add(hemi);
 // Tavan lambaları (elektrikle çalışır) — powerLights[].userData.base taban şiddeti
 const powerLights=[];
 function dimLight(x,z,col,intensity,dist){ const l=new THREE.PointLight(col,intensity,(dist||10)*SC,2); l.position.set(x*SC,2.9,z*SC); scene.add(l); return l; }
 function pLight(x,z,col,intensity,dist){ const l=dimLight(x,z,col,intensity,dist); l.userData.base=intensity; powerLights.push(l); return l; }
-pLight(0,18,   0xfff0d8, 0.9, 13);   // ofis
-pLight(-3,10,  0xffe9c8, 0.8, 11);   // batı koridor
-pLight(3,10,   0xffe9c8, 0.8, 11);   // doğu koridor
-pLight(-3,1,   0xfff2e0, 0.85,13);   // yemekhane batı
-pLight(3,1,    0xfff2e0, 0.85,13);   // yemekhane doğu
-pLight(0,-7,   0xffe0b0, 1.0, 15);   // sahne
-pLight(11,0,   0xffe6c0, 0.6, 9);    // mutfak
+pLight(0,18,   0xfff0d8, 0.9, 13);   // ofis (her zaman)
+if(isMobile){
+  // MOBİL: 7 nokta ışık → 4 (ofis + tek merkez koridor + tek merkez yemekhane + sahne)
+  pLight(0,10,        0xffe9c8, 0.9, 15);   // merkez koridor (batı+doğu birleşik)
+  pLight(NX(0),NZ(1), 0xfff2e0, 0.95,16);   // merkez yemekhane (batı+doğu birleşik)
+  pLight(NX(0),NZ(-7),0xffe0b0, 1.0, 15);   // sahne
+} else {
+  pLight(-3,10,  0xffe9c8, 0.8, 11);   // batı koridor
+  pLight(3,10,   0xffe9c8, 0.8, 11);   // doğu koridor
+  pLight(NX(-3),NZ(1),   0xfff2e0, 0.85,13);   // yemekhane batı
+  pLight(NX(3),NZ(1),    0xfff2e0, 0.85,13);   // yemekhane doğu
+  pLight(NX(0),NZ(-7),   0xffe0b0, 1.0, 15);   // sahne
+  pLight(NX(11),NZ(0),   0xffe6c0, 0.6, 9);    // mutfak
+}
 const exitSign = dimLight(0,20.6,0x3a9a3a,0.45,6);   // acil çıkış tabelası (hep açık)
 const emergency = dimLight(0,17,0x8a1414,0.0,12);    // acil kırmızı (yalnız kesikken)
 
@@ -302,7 +672,7 @@ function wallZ(z0,z1,x,gap){ const th=0.2; let segs = gap? [[z0,gap[0]],[gap[1],
   for(const [a,b] of segs){ if(b-a>0.05) solid(x, (a+b)/2, th, b-a, WH); } }
 
 // Zemin + tavan (tüm bina)
-const FMINX=-21,FMAXX=14,FMINZ=-11,FMAXZ=22;
+const FMINX=-24,FMAXX=16,FMINZ=-13.5,FMAXZ=22;   // kuzey büyüdü → sınırlar genişledi
 const floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(FMAXX-FMINX, FMAXZ-FMINZ), M.floor);
 floorMesh.rotation.x=-Math.PI/2; floorMesh.position.set((FMINX+FMAXX)/2,0,(FMINZ+FMAXZ)/2); floorMesh.receiveShadow=true; world.add(floorMesh);
 const ceilMesh=new THREE.Mesh(new THREE.PlaneGeometry(FMAXX-FMINX, FMAXZ-FMINZ), M.ceil);
@@ -312,7 +682,7 @@ ceilMesh.rotation.x=Math.PI/2; ceilMesh.position.set((FMINX+FMAXX)/2,WH,(FMINZ+F
    Ofis (güney) -> Batı/Doğu koridor -> Yemekhane (merkez) -> Sahne (kuzey)
    Yan odalar: Kulis(batı), Mutfak(doğu), Malzeme dolabı(batı koridor), Tuvaletler(doğu koridor), Pirate Cove(yemekhane batı) */
 
-function poster(txt,col,x,y,z,ry){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.95,1.2), new THREE.MeshStandardMaterial({map:posterTex(txt,col),roughness:.9})); m.position.set(x,y,z); m.rotation.y=ry; world.add(m); }
+function poster(txt,col,x,y,z,ry,kind){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.95,1.2), new THREE.MeshStandardMaterial({map:posterTex(txt,col,kind),roughness:.9})); m.position.set(x,y,z); m.rotation.y=ry; world.add(m); }
 
 /* Bağlantı planı (kuzey = -Z):
    OFİS x[-5,5] z[15,21]  ── kuzeyde iki kapı: batı x[-5,-1.5], doğu x[1.5,5]
@@ -333,8 +703,8 @@ decoBox(-1.0,0.95,18.4, 0.9,0.5,0.06, new THREE.MeshStandardMaterial({color:0x0a
 const fanBlades=new THREE.Group();
 for(let i=0;i<3;i++){ const h=new THREE.Group(); h.rotation.z=i*2.094; const b=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.001,0.11),new THREE.MeshStandardMaterial({color:0x2c3038,side:THREE.DoubleSide})); b.position.x=0.17; h.add(b); fanBlades.add(h);}
 fanBlades.position.set(1.0,1.05,18.4); world.add(fanBlades);
-poster('FREDDO','#6a1f2a', -4.7,1.7,18, Math.PI/2);
-poster('ÇOCUK KULÜBÜ','#1f3a5a', 0,1.8,20.9, Math.PI);
+poster('FREDDO','#6a1f2a', -4.7,1.7,18, Math.PI/2, 'bear');
+poster('ÇOCUK KULÜBÜ','#1f3a5a', 0,1.8,20.9, Math.PI, 'chick');
 
 // --- BATI KORİDOR x[-4,-2] ---
 wallZ(6,15, -4, [9.5,11.5]);   // batı duvar (Malzeme dolabı kapısı)
@@ -351,57 +721,123 @@ colliders.push({minX:-7.7,maxX:-7.1,minZ:10.2,maxZ:10.8});
 wallX(4,8,9); wallX(4,8,12); wallZ(9,12,8);
 decoBox(6.6,0.6,10.6,0.6,1.2,0.4,new THREE.MeshStandardMaterial({color:0x9aa4ac,roughness:.4}));
 
-// --- YEMEKHANE ---
-wallX(-9,-4, 6); wallX(-2,2, 6); wallX(4,9, 6);   // güney duvar, koridor ağızları açık
-wallX(-9,9, -4, [-5,5]);      // kuzey duvar, sahne ağzı açık
-wallZ(-4,6, -9, [-1.5,1.5]);  // batı duvar, kulis kapısı
-wallZ(-4,6,  9, [-1.5,1.5]);  // doğu duvar, mutfak kapısı
+// --- YEMEKHANE --- (kuzey büyütme: NX/NZ; güney duvarı koridor ağızları x[-4,-2],[2,4] SABİT)
+wallX(NX(-9),-4, 6); wallX(-2,2, 6); wallX(4,NX(9), 6);   // güney duvar, koridor ağızları açık
+wallX(NX(-9),NX(9), NZ(-4), [NX(-5),NX(5)]);      // kuzey duvar, sahne ağzı açık
+wallZ(NZ(-4),NZ(6), NX(-9), [NZ(-1.5),NZ(1.5)]);  // batı duvar, kulis kapısı
+wallZ(NZ(-4),NZ(6),  NX(9), [NZ(-1.5),NZ(1.5)]);  // doğu duvar, mutfak kapısı
+// Masalar: hem oyuncu (colliders) hem animatronik (tableCols) çarpışır → içinden GEÇİLMEZ,
+// etrafından dolanılır. tableCols yol bulmada (losWide) da engel; ama losClear/görüşte DEĞİL
+// (masa alçak, üstünden görülür + algı dengesi bozulmasın).
+const tableCols=[];
 for(let mx=-6; mx<=6; mx+=4){ for(let mz=-2; mz<=4; mz+=3){
-  decoBox(mx,0.5,mz,1.1,0.08,1.1,M.table); decoBox(mx,0.25,mz,0.08,0.5,0.08,M.metal);
-  colliders.push({minX:mx-0.55,maxX:mx+0.55,minZ:mz-0.55,maxZ:mz+0.55});
+  decoBox(NX(mx),0.5,NZ(mz),1.1,0.08,1.1,M.table); decoBox(NX(mx),0.25,NZ(mz),0.08,0.5,0.08,M.metal);
+  const c={minX:NX(mx)-0.55,maxX:NX(mx)+0.55,minZ:NZ(mz)-0.55,maxZ:NZ(mz)+0.55};
+  colliders.push(c); tableCols.push(c);
 }}
 
 // --- SAHNE ---
-wallX(-5,5,-10); wallZ(-10,-4,-5); wallZ(-10,-4,5);
-decoBox(0,0.2,-7, 10,0.4,6, M.stage);
-colliders.push({minX:-5,maxX:5,minZ:-10,maxZ:-4}); // sahneye çıkılamaz
-decoBox(0,2,-9.7, 9.6,3.4,0.15, M.curtain);
-poster('★ FREDDO & ARKADAŞLARI ★','#2a1030', 0,2.6,-9.55, 0);
+wallX(NX(-5),NX(5),NZ(-10)); wallZ(NZ(-10),NZ(-4),NX(-5)); wallZ(NZ(-10),NZ(-4),NX(5));
+decoBox(NX(0),0.2,NZ(-7), 10*NXF,0.4,6*NZF, M.stage);
+colliders.push({minX:NX(-5),maxX:NX(5),minZ:NZ(-10),maxZ:NZ(-4)}); // sahneye çıkılamaz
+decoBox(NX(0),2,NZ(-9.7), 9.6*NXF,3.4,0.15, M.curtain);
+poster('★ FREDDO & ARKADAŞLARI ★','#2a1030', NX(0),2.6,NZ(-9.55), 0, 'bear');
 
 // --- KULİS x[-13,-9] z[-2,2] --- (batı duvarında Ödül Köşesi'ne kapı)
-wallX(-13,-9,-2); wallX(-13,-9,2); wallZ(-3,3,-13,[-1,1]);
-decoBox(-11,0.6,-1,0.5,1.2,0.5,M.metal);
-decoBox(-11,1.35,-1,0.42,0.42,0.42,new THREE.MeshStandardMaterial({color:0x6a4a2a}));
-colliders.push({minX:-11.3,maxX:-10.7,minZ:-1.3,maxZ:-0.7});
+wallX(NX(-13),NX(-9),NZ(-2)); wallX(NX(-13),NX(-9),NZ(2)); wallZ(NZ(-3),NZ(3),NX(-13),[NZ(-1),NZ(1)]);
+decoBox(NX(-11),0.6,NZ(-1),0.5,1.2,0.5,M.metal);
+decoBox(NX(-11),1.35,NZ(-1),0.42,0.42,0.42,new THREE.MeshStandardMaterial({color:0x6a4a2a}));
+colliders.push({minX:NX(-11.3),maxX:NX(-10.7),minZ:NZ(-1.3),maxZ:NZ(-0.7)});
 
 // --- ÖDÜL KÖŞESİ (Prize Corner) x[-20,-13] z[-3,3] — Puppet + müzik kutusu ---
-wallX(-20,-13,-3); wallX(-20,-13,3); wallZ(-3,3,-20);
-poster('ÖDÜL KÖŞESİ','#3a1050', -19.85,2.2,0, Math.PI/2);
+wallX(NX(-20),NX(-13),NZ(-3)); wallX(NX(-20),NX(-13),NZ(3)); wallZ(NZ(-3),NZ(3),NX(-20));
+poster('ÖDÜL KÖŞESİ','#3a1050', NX(-19.85),2.2,NZ(0), Math.PI/2, 'puppet');
 // renkli hediye kutuları
 [[-18,0x8a1030],[-16.5,0x108a4a],[-17.3,0x1050a0]].forEach(([zz,col],i)=>{
-  decoBox(-18.5,0.5+i*0.05,zz,1.0,1.0+i*0.1,1.0,new THREE.MeshStandardMaterial({color:col,roughness:.6}));
+  decoBox(NX(-18.5),0.5+i*0.05,NZ(zz),1.0,1.0+i*0.1,1.0,new THREE.MeshStandardMaterial({color:col,roughness:.6}));
 });
-// büyük hediye kutusu (Puppet'in evi)
-decoBox(-16.5,0.9,1.4, 1.8,1.8,1.8, new THREE.MeshStandardMaterial({color:0x201028,roughness:.7}));
-decoBox(-16.5,1.85,1.4, 1.9,0.15,1.9, new THREE.MeshStandardMaterial({color:0x6a1050,roughness:.5}));
+// büyük hediye kutusu (Puppet'in evi) — puppet İÇİNDE saklı, kutu azalınca çıkar
+decoBox(NX(-16.5),1.0,NZ(1.4), 2.0,2.0,2.0, new THREE.MeshStandardMaterial({color:0x1a0c22,roughness:.7}));
+// kapak — arka kenardan menteşeli grup, SAHNEYE eklenir (world ölçekli olduğundan
+// döndürünce kayma yapardı). Boyutlar dünya-birimi: kutu dünyada 2*SC geniş.
+const puppetLidHinge=new THREE.Group();
+puppetLidHinge.position.set(NX(-16.5)*SC, 2.02, (NZ(1.4)+1.0)*SC); scene.add(puppetLidHinge);
+const puppetLid=new THREE.Mesh(new THREE.BoxGeometry(2.1*SC,0.16,2.05*SC), new THREE.MeshStandardMaterial({color:0x7a1258,roughness:.5}));
+puppetLid.position.set(0,0,-1.0*SC); puppetLid.castShadow=true; puppetLidHinge.add(puppetLid);
+// kurdele düğümü (kapağın üstünde)
+const bowKnot=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8), new THREE.MeshStandardMaterial({color:0xc79bff,emissive:0x3a1050,emissiveIntensity:.4}));
+bowKnot.position.set(0,0.18,-1.0*SC); bowKnot.scale.set(1.4,0.7,1.4); puppetLidHinge.add(bowKnot);
 // müzik kutusu (küçük, parlak göstergeli)
-decoBox(-17.6,0.55,-1.6, 0.7,0.5,0.7, new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:.5,metalness:.3}));
+decoBox(NX(-17.6),0.55,NZ(-1.6), 0.7,0.5,0.7, new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:.5,metalness:.3}));
 const boxLED=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8), new THREE.MeshStandardMaterial({color:0x30ff60,emissive:0x30ff60,emissiveIntensity:2}));
-boxLED.position.set(-17.6*SC,0.85,-1.6*SC); scene.add(boxLED);
-dimLight(-16.5,0,0x5a2a7a,0.55,9); // mor loş ışık
-colliders.push({minX:-18.6,maxX:-14.6,minZ:0.4,maxZ:2.4}); // hediye kutuları engeli
+boxLED.position.set(NX(-17.6)*SC,0.85,NZ(-1.6)*SC); scene.add(boxLED);
+dimLight(NX(-16.5),NZ(0),0x5a2a7a,0.55,9); // mor loş ışık
+colliders.push({minX:NX(-18.6),maxX:NX(-14.6),minZ:NZ(0.4),maxZ:NZ(2.4)}); // hediye kutuları engeli
 // --- MUTFAK x[9,13] z[-2,2] (karanlık) ---
-wallX(9,13,-2); wallX(9,13,2); wallZ(-2,2,13);
-decoBox(11,0.5,-1,2.5,1.0,0.6,M.metal);
-colliders.push({minX:9.7,maxX:12.3,minZ:-1.3,maxZ:-0.7});
+wallX(NX(9),NX(13),NZ(-2)); wallX(NX(9),NX(13),NZ(2)); wallZ(NZ(-2),NZ(2),NX(13));
+decoBox(NX(11),0.5,NZ(-1),2.5,1.0,0.6,M.metal);
+colliders.push({minX:NX(9.7),maxX:NX(12.3),minZ:NZ(-1.3),maxZ:NZ(-0.7)});
 
 // --- PIRATE COVE (yemekhane batı köşesi, perdeli) — genişletildi, Foxo burada ---
-decoBox(-7,0.2,4, 3.8,0.4,2.8, M.stage);       // geniş platform (üst y=0.4)
-decoBox(-8.8,1.8,4, 0.14,3.4,2.8, M.curtain);
-decoBox(-5.2,1.8,4, 0.14,3.4,2.8, M.curtain);
-decoBox(-7,3.4,4, 3.7,0.3,2.8, M.curtain);      // üst perde
-poster('PIRATE COVE','#2a1030', -7,2.6,2.5, 0);
-colliders.push({minX:-8.9,maxX:-5.1,minZ:2.5,maxZ:5.4});
+decoBox(NX(-7),0.2,NZ(4), 3.8*NXF,0.4,2.8*NZF, M.stage);       // geniş platform (üst y=0.4)
+decoBox(NX(-8.8),1.8,NZ(4), 0.14,3.4,2.8*NZF, M.curtain);
+decoBox(NX(-5.2),1.8,NZ(4), 0.14,3.4,2.8*NZF, M.curtain);
+decoBox(NX(-7),3.4,NZ(4), 3.7*NXF,0.3,2.8*NZF, M.curtain);      // üst perde
+poster('PIRATE COVE','#2a1030', NX(-7),2.6,NZ(2.5), 0, 'fox');
+colliders.push({minX:NX(-8.9),maxX:NX(-5.1),minZ:NZ(2.5),maxZ:NZ(5.4)});
+
+/* ---- HAVALANDIRMA IZGARALARI (kestirme kanallar) ----
+   İki ağız: OFİS (doğu duvarı içi) ↔ KULİS. Aralarında sürünerek geçilir.
+   Ayrıca vent, animatroniklerin ofise sızdığı yol → maske ile savulur. */
+const VENTS=[
+  {n:'OFİS VENT',   x:4.9,        z:16.6,      ry:-Math.PI/2, office:true},   // ofis doğu duvarına flush, batıya (oyuncuya) bakar
+  {n:'KULİS VENT',  x:NX(-12),    z:NZ(-1.9),  ry:0,          office:false},  // kulis kuzey duvarına flush (raftan uzak), güneye (odaya) bakar
+];
+// Duvara gömülü metal havalandırma ağzı. NOT: sahneye eklenir (world DEĞİL) — world
+// (SC,1,SC) ölçekli olduğu için world çocuğu olursa geometri x/z'de ezilir + konum çift ölçeklenir.
+// Varsayılan +Z'ye bakar; ry ile duvara döndürülür.
+const M_VENT_RIM = new THREE.MeshStandardMaterial({color:0x5a616a, roughness:.5, metalness:.85});
+const M_VENT_PLATE=new THREE.MeshStandardMaterial({color:0x4a5058, roughness:.55, metalness:.8});
+const M_VENT_SLAT= new THREE.MeshStandardMaterial({color:0x424954, roughness:.42, metalness:.75}); // açık → çıtalar görünür
+const M_VENT_DARK= new THREE.MeshStandardMaterial({color:0x040406, roughness:1});
+const M_VENT_BOLT= new THREE.MeshStandardMaterial({color:0x7d848c, roughness:.35, metalness:.95});
+// Duvara FLUSH oturan metal ızgara. z=0 = duvar yüzeyi (arka plaka burada), görünür parçalar +z (odaya),
+// karanlık tünel -z (duvara girer). Sahneye eklenir (world DEĞİL — ölçek/döndürme bozulmasın).
+function ventGrate(v){
+  const grp=new THREE.Group();
+  const W=1.16, H=1.06, fT=0.10;
+  // 1) DUVAR PLAKASI — açıklıktan büyük, düz; duvara yaslanıp boşluğu kapatır (flush)
+  const plate=new THREE.Mesh(new THREE.BoxGeometry(W+0.34, H+0.34, 0.06), M_VENT_PLATE);
+  plate.position.z=-0.02; plate.receiveShadow=true; grp.add(plate);
+  // 2) RECESSED KARANLIK TÜNEL (-z, duvara girer → derinlik)
+  const depth=0.9;
+  const tunnel=new THREE.Mesh(new THREE.BoxGeometry(W-0.04,H-0.04,depth), M_VENT_DARK);
+  tunnel.position.z=-depth/2-0.05; grp.add(tunnel);
+  const inMat=new THREE.MeshStandardMaterial({color:0x1c2126, roughness:.75, metalness:.5});
+  [[0,H/2,'x'],[0,-H/2,'x'],[-W/2,0,'y'],[W/2,0,'y']].forEach(([px,py,ax])=>{
+    const g2=ax==='x'? new THREE.BoxGeometry(W,0.03,depth):new THREE.BoxGeometry(0.03,H,depth);
+    const m=new THREE.Mesh(g2,inMat); m.position.set(px,py,-depth/2-0.05); grp.add(m);
+  });
+  // 3) TAŞKIN ÇERÇEVE (+z, odaya doğru)
+  function bar(w,h,x,y){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.11), M_VENT_RIM); m.position.set(x,y,0.055); m.castShadow=true; grp.add(m); }
+  bar(W+fT*2, fT, 0,  H/2+fT/2); bar(W+fT*2, fT, 0, -H/2-fT/2);
+  bar(fT, H+fT*2, -W/2-fT/2, 0); bar(fT, H+fT*2, W/2+fT/2, 0);
+  // 4) GÖRÜNÜR PANJUR ÇITALARI (açık metal, aşağı eğik → üstten ışık yakalar, aralarından karanlık)
+  const n=6;
+  for(let i=0;i<n;i++){
+    const s=new THREE.Mesh(new THREE.BoxGeometry(W-0.07,0.095,0.07), M_VENT_SLAT);
+    s.position.set(0, H/2-0.12 - i*(H-0.2)/(n-1), 0.05);
+    s.rotation.x=-0.55; s.castShadow=true; grp.add(s);
+  }
+  // 5) köşe vidaları
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(0.032,0.032,0.06,8), M_VENT_BOLT);
+    b.rotation.x=Math.PI/2; b.position.set(sx*(W/2+fT/2), sy*(H/2+fT/2), 0.12); grp.add(b);
+  });
+  grp.position.set(v.x*SC, 0.62, v.z*SC); grp.rotation.y=v.ry; scene.add(grp);
+  return grp;
+}
+VENTS.forEach(v=>{ v.mesh=ventGrate(v); });
 
 /* ---- ELEKTRONİK KAPILAR (elektrikle çalışır) ---- */
 const doors=[];
@@ -430,6 +866,8 @@ const FUSE_SPOTS=[
   {n:'PIRATE COVE', p:[-7,0.5,5.6]}, {n:'DOĞU KORİDOR', p:[3,0.5,12.5]},
   {n:'BATI KORİDOR', p:[-3,0.5,7]},
 ];
+// Kuzey (z<6) sigorta noktalarını büyüyen haritaya taşı
+FUSE_SPOTS.forEach(s=>{ if(s.p[2]<6){ s.p[0]=NX(s.p[0]); s.p[2]=NZ(s.p[2]); } });
 // sigorta modeli (parlayan kutu)
 const fuse=new THREE.Group();
 const fuseBox=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.4,0.14), new THREE.MeshStandardMaterial({color:0x1a1a1e,roughness:.5,metalness:.4}));
@@ -449,6 +887,9 @@ const CAMV=[
   {n:'MUTFAK',       pos:[11,2.4,1.6],  look:[11,1.1,-1.5]},
   {n:'PIRATE COVE',  pos:[-7,2.4,7.5],  look:[-7,1.3,4], cove:true},
 ];
+// Koridor kameraları hariç tüm açıları büyüyen kuzeye hizala (NZ z>=6'da kimliktir)
+CAMV.forEach(c=>{ if(c.n==='BATI KORİDOR'||c.n==='DOĞU KORİDOR') return;
+  c.pos=[NX(c.pos[0]),c.pos[1],NZ(c.pos[2])]; c.look=[NX(c.look[0]),c.look[1],NZ(c.look[2])]; });
 let camIndex=0;
 
 /* ================= ANİMATRONİK MODELLERİ ================= */
@@ -674,7 +1115,7 @@ function buildAnimatronic(cfg){
   });
   g.add(bodyG,legL,legR);
 
-  g.userData={eyeWhite,glowL,glowR,mouth:maw,head,teeth,bodyG,headG,jaw,armL,armR,legL,legR,torso};
+  g.userData={eyeWhite,glowL,glowR,mouth:maw,head,teeth,bodyG,headG,jaw,armL,armR,legL,legR,torso, headY:2.0};
   scene.add(g); return g; // ölçekli dünyaya EKLENMEZ (bozulmasın); konum elle ölçeklenir
 }
 
@@ -711,12 +1152,12 @@ const CFG=[
 ];
 const A={};
 CFG.forEach(c=>{ A[c.id]=buildAnimatronic(c); });
-// sahne (platform üstü y=0.4), güneye (+Z) bakar — konumlar SC ile ölçekli
-A.bonko.position.set(-2.2*SC,0.4,-7*SC);  A.bonko.lookAt(-2.2*SC,1.4,10*SC);
-A.freddo.position.set(0,0.4,-7.4*SC);     A.freddo.lookAt(0,1.4,10*SC);
-A.chika.position.set(2.2*SC,0.4,-7*SC);   A.chika.lookAt(2.2*SC,1.4,10*SC);
+// sahne (platform üstü y=0.4), güneye (+Z) bakar — konumlar SC ile ölçekli (kuzey büyüdü → NX/NZ)
+A.bonko.position.set(NX(-2.2)*SC,0.4,NZ(-7)*SC);  A.bonko.lookAt(NX(-2.2)*SC,1.4,10*SC);
+A.freddo.position.set(NX(0)*SC,0.4,NZ(-7.4)*SC);  A.freddo.lookAt(NX(0)*SC,1.4,10*SC);
+A.chika.position.set(NX(2.2)*SC,0.4,NZ(-7)*SC);   A.chika.lookAt(NX(2.2)*SC,1.4,10*SC);
 // Foxo — genişletilmiş Pirate Cove platformunda, yemekhaneye bakar
-A.foxo.position.set(-7*SC,0.4,4*SC); A.foxo.lookAt(-7*SC,1.4,14*SC);
+A.foxo.position.set(NX(-7)*SC,0.4,NZ(4)*SC); A.foxo.lookAt(NX(-7)*SC,1.4,14*SC);
 // atmosfer + büyük haritada belirgin dursunlar diye modeller büyütüldü
 const ANIM_SCALE=1.35;
 Object.values(A).forEach(m=>{ m.userData.glowL.visible=m.userData.glowR.visible=true; m.userData.eyeWhite.emissiveIntensity=0.9; m.visible=true; m.userData.baseScale=ANIM_SCALE; m.scale.setScalar(ANIM_SCALE); });
@@ -724,46 +1165,103 @@ Object.values(A).forEach(m=>{ m.userData.glowL.visible=m.userData.glowR.visible=
 /* ---- PUPPET / MARIONETTE ---- */
 function buildPuppet(){
   const g=new THREE.Group();
-  const black=new THREE.MeshStandardMaterial({color:0x0a0a0e, roughness:.7, metalness:.1});
-  const white=new THREE.MeshStandardMaterial({color:0xf4f0ea, roughness:.4, emissive:0x151515, emissiveIntensity:.3});
-  const purple=new THREE.MeshStandardMaterial({color:0x6a1a8a, emissive:0x2a0a3a, emissiveIntensity:.4});
-  const red=new THREE.MeshStandardMaterial({color:0xd01030, emissive:0x400010, emissiveIntensity:.5});
-  // ince uzun gövde
-  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,1.5,10), black); torso.position.y=1.5; torso.castShadow=true;
-  // beyaz göğüs düğmeleri
-  for(let i=0;i<3;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), white); b.position.set(0,1.9-i*0.28,0.24); g.add(b); }
-  // maske (beyaz yüz)
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.34,18,16), white); head.position.y=2.65; head.scale.set(0.9,1.05,0.9); head.castShadow=true;
-  // gözler (kara oyuk + parlak)
-  const eyeGeo=new THREE.SphereGeometry(0.09,10,10);
-  const eyeMat=new THREE.MeshStandardMaterial({color:0x080808, emissive:0xff2a6a, emissiveIntensity:0.6});
-  const eL=new THREE.Mesh(eyeGeo,eyeMat); eL.position.set(-0.13,2.7,0.28);
-  const eR=new THREE.Mesh(eyeGeo,eyeMat); eR.position.set(0.13,2.7,0.28);
-  const glowL=glowSprite('rgba(255,40,110,0.9)',0.42); glowL.position.set(-0.13,2.7,0.33);
-  const glowR=glowSprite('rgba(255,40,110,0.9)',0.42); glowR.position.set(0.13,2.7,0.33);
-  // mor gözyaşı çizgileri
-  const tL=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.28,0.02), purple); tL.position.set(-0.13,2.5,0.31);
-  const tR=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.28,0.02), purple); tR.position.set(0.13,2.5,0.31);
-  // pembe yanaklar + kırmızı dudak
-  const chL=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,10), red); chL.position.set(-0.22,2.58,0.24);
-  const chR=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,10), red); chR.position.set(0.22,2.58,0.24);
-  const lip=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.05,0.04), red); lip.position.set(0,2.5,0.31);
-  // uzun ince kollar (sarkık)
-  const armGeo=new THREE.CylinderGeometry(0.06,0.05,1.4,8);
-  const aL=new THREE.Mesh(armGeo,black); aL.position.set(-0.34,1.3,0); aL.rotation.z=0.15;
-  const aR=new THREE.Mesh(armGeo,black); aR.position.set(0.34,1.3,0); aR.rotation.z=-0.15;
-  // ince bacaklar
-  const legGeo=new THREE.CylinderGeometry(0.07,0.05,1.0,8);
-  const lL=new THREE.Mesh(legGeo,black); lL.position.set(-0.12,0.5,0);
-  const lR=new THREE.Mesh(legGeo,black); lR.position.set(0.12,0.5,0);
-  g.add(torso,head,eL,eR,glowL,glowR,tL,tR,chL,chR,lip,aL,aR,lL,lR);
-  g.userData={glowL,glowR,eyeMat,head,aL,aR,torso};
+  const black =new THREE.MeshStandardMaterial({color:0x060608, roughness:.94, metalness:.03});
+  const white =new THREE.MeshStandardMaterial({map:T_GRIME, color:0xb4a986, roughness:.6, metalness:.02, emissive:0x090909, emissiveIntensity:.1});
+  // ÖLÜ PORSELEN — sararmış, kirli, cansız (parlak beyaz DEĞİL)
+  const maskM =new THREE.MeshStandardMaterial({map:T_GRIME, color:0xc9be98, roughness:.52, metalness:.02, emissive:0x171310, emissiveIntensity:.26});
+  const shadeM=new THREE.MeshStandardMaterial({map:T_GRIME, color:0x4a4132, roughness:.9});  // gölgeli/çürük bölge
+  const purple=new THREE.MeshStandardMaterial({color:0x2e0a44, emissive:0x180329, emissiveIntensity:.55});
+  const socketM=new THREE.MeshStandardMaterial({color:0x010102, roughness:1});
+  const crackM=new THREE.MeshStandardMaterial({color:0x080604, roughness:1});
+  const mawMat=new THREE.MeshStandardMaterial({color:0x020102, roughness:1});
+  const teethMat=new THREE.MeshStandardMaterial({map:T_GRIME, color:0xd6c9a2, roughness:.5, emissive:0x0a0806, emissiveIntensity:.05});
+
+  /* ---- GÖVDE (çok ince, uzun, konik — kukla siluet) ---- */
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.29,1.62,16), black);
+  torso.position.y=1.5; torso.castShadow=true;
+  const shoulders=new THREE.Mesh(new THREE.SphereGeometry(0.29,16,10), black);
+  shoulders.position.set(0,2.32,0); shoulders.scale.set(1.2,0.42,0.82); shoulders.castShadow=true;   // geniş çökük omuz
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.12,0.34,10), black); neck.position.set(0,2.5,0);   // uzun ince boyun
+  // beyaz dikey şeritler (Puppet imzası)
+  for(let i=-1;i<=1;i++){ const st=new THREE.Mesh(new THREE.BoxGeometry(0.03,1.52,0.02), white); st.position.set(i*0.13,1.5,0.235); g.add(st); }
+  for(let i=0;i<3;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.058,12,12), white); b.position.set(0,2.05-i*0.34,0.245); g.add(b); }
+
+  /* ---- MASKE (headG grubu — head.rotation.y ile bütün yüz döner) ---- */
+  const headG=new THREE.Group(); headG.position.y=2.66;
+  // uzun, dar, aşağı doğru sivrilen ölü maske (gaunt = tekinsiz)
+  const mask=new THREE.Mesh(new THREE.SphereGeometry(0.34,24,20), maskM);
+  mask.scale.set(0.80,1.30,0.76); mask.castShadow=true;
+  // aşağı uzayan çene bölgesi (uzun surat)
+  const jawExt=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,12), maskM); jawExt.scale.set(0.72,1.0,0.6); jawExt.position.set(0,-0.32,0.02);
+  // AĞIR KAŞ ÇIKINTISI — gözleri gölgeye gömer (asıl ürküntü)
+  const brow=new THREE.Mesh(new THREE.TorusGeometry(0.225,0.055,8,20,Math.PI), maskM);
+  brow.position.set(0,0.14,0.18); brow.rotation.set(-0.4,0,Math.PI);
+  // çökük yanaklar (çürük gölge)
+  const cheekL=new THREE.Mesh(new THREE.SphereGeometry(0.11,10,8), shadeM); cheekL.scale.set(0.66,1.25,0.35); cheekL.position.set(-0.185,-0.08,0.19);
+  const cheekR=cheekL.clone(); cheekR.position.x=0.185;
+  // DERİN, BÜYÜK, ASİMETRİK göz çukurları — içeri gömük simsiyah
+  const socL=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,14), socketM); socL.scale.set(1.05,1.75,1.25); socL.position.set(-0.135,0.055,0.12);
+  const socR=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,14), socketM); socR.scale.set(1.22,1.95,1.25); socR.position.set(0.145,0.04,0.12);   // sağ göz daha büyük = asimetri
+  // çukurun DİBİNDE küçük, uzak, cansız kırmızı parıltı (asıl ürkütücü bakış)
+  const eyeMat=new THREE.MeshStandardMaterial({color:0x0a0001, emissive:0xff0820, emissiveIntensity:0.85});
+  const eyeGeo=new THREE.SphereGeometry(0.027,12,12);
+  const eL=new THREE.Mesh(eyeGeo,eyeMat); eL.position.set(-0.135,0.01,0.23);
+  const eR=new THREE.Mesh(eyeGeo,eyeMat); eR.position.set(0.148,-0.02,0.23);   // sağ göz biraz kaymış (yanlış bakış)
+  const glowL=glowSprite('rgba(255,8,34,0.9)',0.30); glowL.position.set(-0.135,0.01,0.30);
+  const glowR=glowSprite('rgba(255,8,34,0.9)',0.30); glowR.position.set(0.148,-0.02,0.30);
+  glowL.visible=glowR.visible=false;
+  // UZUN, neredeyse siyah gözyaşı izleri (her gözden 2 iz, çeneye akan)
+  const tearGeo=new THREE.ConeGeometry(0.028,0.72,6);
+  const tL=new THREE.Mesh(tearGeo,purple); tL.position.set(-0.135,-0.32,0.235); tL.rotation.x=Math.PI;
+  const tR=new THREE.Mesh(tearGeo,purple); tR.position.set(0.148,-0.34,0.235); tR.rotation.x=Math.PI;
+  const tL2=new THREE.Mesh(new THREE.ConeGeometry(0.018,0.4,6),purple); tL2.position.set(-0.09,-0.18,0.245); tL2.rotation.set(Math.PI,0,0.18);
+  const tR2=new THREE.Mesh(new THREE.ConeGeometry(0.018,0.4,6),purple); tR2.position.set(0.10,-0.2,0.245); tR2.rotation.set(Math.PI,0,-0.18);
+  // GENİŞ, UZUN, ÇARPIK SIRITIŞ — köşeleri gözlere doğru kıvrılır, DÜZENSİZ dişler
+  const maw=new THREE.Mesh(new THREE.SphereGeometry(0.21,18,14), mawMat); maw.scale.set(1.4,0.66,0.55); maw.position.set(0,-0.17,0.15);
+  const NT=15;
+  for(let i=0;i<NT;i++){
+    const t=i/(NT-1), tx=-0.25+t*0.50;
+    const curve=Math.pow(Math.abs(tx)/0.25,1.7)*0.15;               // köşelerde yukarı kıvrım (çarpık sırıtış)
+    const cy=-0.15+curve;
+    const uh=0.045+((i*37)%5)/5*0.055;                              // DÜZENSİZ üst diş boyu
+    const ut=new THREE.Mesh(new THREE.ConeGeometry(0.016,uh,4), teethMat); ut.position.set(tx, cy+uh*0.5, 0.235); ut.rotation.set(Math.PI,0,(((i*53)%7)-3)*0.03); headG.add(ut);
+    if(i%1===0){ const lh=0.035+((i*29)%4)/4*0.05;                  // DÜZENSİZ alt diş
+      const lt=new THREE.Mesh(new THREE.ConeGeometry(0.014,lh,4), teethMat); lt.position.set(tx, cy-0.055-lh*0.4, 0.235); lt.rotation.z=(((i*17)%5)-2)*0.03; headG.add(lt); }
+  }
+  // ÇOK ÇATLAKLI kırık porselen — dallanan koyu çizgiler
+  [[0.10,0.26,0.3],[0.16,0.06,-0.45],[-0.19,0.12,0.85],[-0.09,0.30,-0.3],[0.21,-0.04,0.55],[-0.14,-0.14,1.2]].forEach(([cx,cy,rz])=>{
+    const cr=new THREE.Mesh(new THREE.BoxGeometry(0.01,0.28,0.01), crackM); cr.position.set(cx,cy,0.26); cr.rotation.z=rz; headG.add(cr);
+    const cr2=new THREE.Mesh(new THREE.BoxGeometry(0.01,0.13,0.01), crackM); cr2.position.set(cx+0.04,cy-0.12,0.26); cr2.rotation.z=rz-0.8; headG.add(cr2);
+  });
+  headG.add(mask,jawExt,brow,cheekL,cheekR,socL,socR,eL,eR,glowL,glowR,tL,tR,tL2,tR2,maw);
+
+  /* ---- KOLLAR (ÇOK UZUN, spindly — dizden aşağı sarkar; 4 uzun parmak) ---- */
+  function arm(sx){
+    const a=limbPivot(sx*0.27, 2.30, 1.9, new THREE.CylinderGeometry(0.045,0.028,1.9,10), black, -sx*0.16);
+    [-0.55,-1.0,-1.45].forEach(yy=>{ const band=new THREE.Mesh(new THREE.CylinderGeometry(0.052,0.052,0.07,10), white); band.position.y=yy; a.add(band); });
+    const hand=new THREE.Group(); hand.position.y=-1.9;
+    for(let f=0;f<4;f++){ const fin=new THREE.Mesh(new THREE.CylinderGeometry(0.017,0.008,0.34,6), white); fin.position.set(-0.06+f*0.04,-0.15,0.01); fin.rotation.x=0.18+f*0.04; hand.add(fin); }
+    a.add(hand); return a;
+  }
+  const aL=arm(-1), aR=arm(1);
+
+  /* ---- BACAKLAR (uzun, ince + sarkık ayak) ---- */
+  function leg(sx){
+    const l=limbPivot(sx*0.11, 0.72, 1.05, new THREE.CylinderGeometry(0.062,0.04,1.05,10), black, 0);
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.07,10), white); band.position.y=-0.64; l.add(band);
+    const foot=new THREE.Mesh(new THREE.SphereGeometry(0.08,10,8), black); foot.scale.set(1,0.55,1.6); foot.position.set(0,-1.05,0.06); l.add(foot);
+    return l;
+  }
+  const lL=leg(-1), lR=leg(1);
+
+  g.add(torso,shoulders,neck,headG,aL,aR,lL,lR);
+  g.userData={glowL,glowR,eyeMat,head:headG,aL,aR,torso, headY:2.66};
   scene.add(g); return g;
 }
 const puppet=buildPuppet();
 const PUP_SCALE=1.25; puppet.userData.baseScale=PUP_SCALE; puppet.scale.setScalar(PUP_SCALE);
-const PUP_HOME={x:-16.5, z:1.4};           // hediye kutusunun içi
-const MB={x:-17.6, z:-1.6};                // müzik kutusunun yeri (yanında sarmak için)
+const PUP_HOME={x:NX(-16.5), z:NZ(1.4)};   // hediye kutusunun içi (kuzey büyüdü)
+const MB={x:NX(-17.6), z:NZ(-1.6)};        // müzik kutusunun yeri (yanında sarmak için)
 puppet.position.set(PUP_HOME.x*SC, 0.05, PUP_HOME.z*SC);
 puppet.lookAt(0,2.5,0);
 
@@ -785,10 +1283,17 @@ function losClear(ax,az,bx,bz){
   for(const d of doors){ if(!d.closed) continue; const c={minX:d.x0,maxX:d.x1,minZ:d.z-0.15,maxZ:d.z+0.15}; if(segAABB(ax,az,bx,bz,c)) return false; }
   return true;
 }
-// Animatronik çarpışması: SADECE duvar + KAPALI kapı (mobilyaya takılmaz)
+// Animatronik çarpışması: duvar + KAPALI kapı + MASALAR (masaların içinden geçmez, etrafından
+// kayar). tableCols losWide'da da engel olduğundan navTarget zaten masaların çevresine yönlendirir.
 function collideActor(px,pz,cx,cz,r){
   for(let k=0;k<2;k++){
     for(const c of wallCols){ if(ptIn(cx,cz,c)) continue;
+      if(px>c.minX-r&&px<c.maxX+r&&pz>c.minZ-r&&pz<c.maxZ+r){
+        const pL=px-(c.minX-r),pR=(c.maxX+r)-px,pT=pz-(c.minZ-r),pB=(c.maxZ+r)-pz,m=Math.min(pL,pR,pT,pB);
+        if(m===pL)px=c.minX-r;else if(m===pR)px=c.maxX+r;else if(m===pT)pz=c.minZ-r;else pz=c.maxZ+r;
+      }
+    }
+    for(const c of tableCols){ if(ptIn(cx,cz,c)) continue;
       if(px>c.minX-r&&px<c.maxX+r&&pz>c.minZ-r&&pz<c.maxZ+r){
         const pL=px-(c.minX-r),pR=(c.maxX+r)-px,pT=pz-(c.minZ-r),pB=(c.maxZ+r)-pz,m=Math.min(pL,pR,pT,pB);
         if(m===pL)px=c.minX-r;else if(m===pR)px=c.maxX+r;else if(m===pT)pz=c.minZ-r;else pz=c.maxZ+r;
@@ -831,10 +1336,19 @@ const NODES=[
   {n:'BACKSTAGE', x:-11,  z:0},     // 19
   {n:'PRIZE',     x:-17,  z:0},     // 20
   {n:'COVE',      x:-7,   z:4},     // 21
+  // masa sıraları ARASI koridor (z≈2.0 şeridi) — DIN_SW/SE'den DIN_C'ye masaları kesmeden iner
+  {n:'DIN_MW',    x:-3,   z:2.55},  // 22
+  {n:'DIN_MC',    x:0,    z:2.55},  // 23
+  {n:'DIN_ME',    x:3,    z:2.55},  // 24
 ];
+// Kuzey (z<6) düğümleri büyüyen haritaya taşı; ofis+koridor (z>=6) sabit.
+// Komşu-düğüm arası düz çizgi duvarsız kalır (duvarlar da aynı NX/NZ ile taşındı).
+NODES.forEach(n=>{ if(n.z<6){ n.x=NX(n.x); n.z=NZ(n.z); } });
 const EDGES=[[0,1],[0,2],[1,3],[3,4],[4,5],[2,6],[6,7],[7,8],[4,9],[7,10],
-             [5,11],[8,12],[11,13],[12,13],[13,14],[13,15],[13,16],[16,17],
-             [15,18],[14,19],[19,20],[14,21],[21,11]];
+             [5,11],[8,12],[13,14],[13,15],[13,16],[16,17],
+             [15,18],[14,19],[19,20],[14,21],
+             // masaları kesen [11,13]/[12,13]/[21,11] KALDIRILDI → z≈2 şeridinden dolan
+             [11,22],[22,23],[23,13],[12,24],[24,23]];
 const ADJ=NODES.map(()=>[]);
 EDGES.forEach(([a,b])=>{ ADJ[a].push(b); ADJ[b].push(a); });
 // Her hedef için BFS → "n düğümündeyken t'ye gitmek için sıradaki düğüm" tablosu
@@ -850,12 +1364,18 @@ const NEXT=NODES.map((_,t)=>{
 // animatronik oraya girince duvara sürtünüp saatte 0.07 birim ilerler. Yol bulmada
 // mutlaka bu kullanılmalı; losClear sadece GÖRME (algı) için.
 const BODY_R=0.42;
+// masalar YOL BULMADA engel (görüşte değil) — bir ışın masaları da kesmemeli
+function tblClear(ax,az,bx,bz){
+  for(const c of tableCols){ if(ptIn(ax,az,c)||ptIn(bx,bz,c)) continue; if(segAABB(ax,az,bx,bz,c)) return false; }
+  return true;
+}
+function pathRay(ax,az,bx,bz){ return losClear(ax,az,bx,bz) && tblClear(ax,az,bx,bz); }
 function losWide(ax,az,bx,bz){
-  if(!losClear(ax,az,bx,bz)) return false;
   const dx=bx-ax, dz=bz-az, d=Math.hypot(dx,dz);
+  if(!pathRay(ax,az,bx,bz)) return false;
   if(d<1e-6) return true;
-  const nx=-dz/d*BODY_R, nz=dx/d*BODY_R;   // çizgiye dik kaydırma
-  return losClear(ax+nx,az+nz,bx+nx,bz+nz) && losClear(ax-nx,az-nz,bx-nx,bz-nz);
+  const nx=-dz/d*BODY_R, nz=dx/d*BODY_R;   // çizgiye dik kaydırma (gövde genişliği)
+  return pathRay(ax+nx,az+nz,bx+nx,bz+nz) && pathRay(ax-nx,az-nz,bx-nx,bz-nz);
 }
 // Bir noktaya en yakın düğüm — tercihen gövdenin gerçekten gidebileceği (yoksa düz en yakın)
 function nearestNode(x,z){
@@ -877,6 +1397,7 @@ function navTarget(px,pz,tx,tz){
 }
 // CHİKA devriyesi: ses duymadığında bu turu atar (yemekhane göbeği ortak durak)
 const CHIKA_PATH=[{x:2.2,z:-5},{x:4,z:2},{x:11,z:0},{x:4,z:2},{x:3,z:10},{x:4,z:2}];
+CHIKA_PATH.forEach(p=>{ if(p.z<6){ p.x=NX(p.x); p.z=NZ(p.z); } });   // kuzey devriye noktaları büyüdü
 
 // Fener konisi testi — bu noktaya ışık tutuyor muyuz?
 // FREDDO'yu dondurur, BONKO'yu çıldırtır: aynı alet, iki zıt sonuç.
@@ -902,10 +1423,10 @@ let noiseX=0, noiseZ=0, noiseLvl=0;
 function emitNoise(x,z,lvl){ if(lvl>=noiseLvl){ noiseX=x; noiseZ=z; noiseLvl=lvl; } }
 
 const AIS=[
-  {id:'freddo',name:'FREDDO', kind:'dark',  home:{x:0,z:-7.4},  homeY:0.4, speed:2.05},
-  {id:'bonko', name:'BONKO',  kind:'light', home:{x:-2.2,z:-7}, homeY:0.4, speed:2.30},
-  {id:'chika', name:'CHİKA',  kind:'noise', home:{x:2.2,z:-7},  homeY:0.4, speed:2.35},
-  {id:'foxo',  name:'FOXO',   kind:'cove',  home:{x:-7,z:4},    homeY:0.4, speed:2.60},
+  {id:'freddo',name:'FREDDO', kind:'dark',  home:{x:NX(0),z:NZ(-7.4)},  homeY:0.4, speed:2.05},
+  {id:'bonko', name:'BONKO',  kind:'light', home:{x:NX(-2.2),z:NZ(-7)}, homeY:0.4, speed:2.30},
+  {id:'chika', name:'CHİKA',  kind:'noise', home:{x:NX(2.2),z:NZ(-7)},  homeY:0.4, speed:2.35},
+  {id:'foxo',  name:'FOXO',   kind:'cove',  home:{x:NX(-7),z:NZ(4)},    homeY:0.4, speed:2.60},
 ].map(a=>({...a, model:A[a.id], pos:{x:a.home.x,z:a.home.z}}));
 
 function resetAI(){
@@ -985,22 +1506,31 @@ function updateAI(dt){
       const lit=litByFlash(a.pos.x,a.pos.z);
       if(lit){ if(a.frozen<=0) Audio.growl(); a.frozen=0.5; }
       else a.frozen=Math.max(0,a.frozen-dt);
-      sp *= powered? 0.55 : 1.3;
-      want = a.frozen<=0;
-      a.chasing = want;
-      a.cry-=dt; if(a.cry<=0){ a.cry=8+Math.random()*9; if(!lit) Audio.laugh(); }
+      if(masked){                     // MASKE: kendi maskesini görüp seni "içlerinden biri" sanır → yönünü şaşırır
+        tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>1.2; sp*=0.75; a.chasing=false;
+      } else {
+        sp *= powered? 0.55 : 1.3;
+        want = a.frozen<=0;
+        a.chasing = want;
+      }
+      a.cry-=dt; if(a.cry<=0){ a.cry=8+Math.random()*9; if(!lit&&!masked) Audio.laugh(); }
     }
     // ================= BONKO — IŞIĞA SALDIRIR =================
     // Sinsice yaklaşır ve birkaç adım ötende PUSUYA YATAR — ışık yakmadıkça saldırmaz.
     // Ama FREDDO seni fener yakmaya zorlar: ikisi birbirinin zıddı, seçim senin.
     else if(a.kind==='light'){
       const lit=litByFlash(a.pos.x,a.pos.z);
-      if(lit){ if(a.rage<=0){ Audio.screech(); toast('💜 BONKO IŞIĞI GÖRDÜ!'); } a.rage=6.5; }
-      else a.rage=Math.max(0,a.rage-dt);
-      if(a.rage<=0 && dist0<2.2){ a.rage=4; Audio.sting(); }   // üstüne basarsan yine atlar
-      a.chasing=a.rage>0;
-      sp *= a.chasing? 1.55 : 0.5;
-      want = a.chasing || dist0>4.0;   // öfkeli değilse 4 birim ötede bekler
+      if(masked){                     // MASKE: öfkelenmez, pusuyu tetiklemez → uzaklaşır
+        a.rage=Math.max(0,a.rage-dt*3); a.chasing=false;
+        tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>1.2; sp*=0.7;
+      } else {
+        if(lit){ if(a.rage<=0){ Audio.screech(); toast('💜 BONKO IŞIĞI GÖRDÜ!'); } a.rage=6.5; }
+        else a.rage=Math.max(0,a.rage-dt);
+        if(a.rage<=0 && dist0<2.2){ a.rage=4; Audio.sting(); }   // üstüne basarsan yine atlar
+        a.chasing=a.rage>0;
+        sp *= a.chasing? 1.55 : 0.5;
+        want = a.chasing || dist0>4.0;   // öfkeli değilse 4 birim ötede bekler
+      }
     }
     // ================= CHİKA — SES AVCISI =================
     // Görmez, DUYAR. Koşarsan haritanın öbür ucundan gelir; yürürsen ancak yakınında fark eder.
@@ -1116,8 +1646,18 @@ function updateAI(dt){
 }
 // Gerilim ambiyansı: kalp atışı tehlikeyle hızlanır + rastgele gerilim öğeleri
 function driveAmbience(dt){
+  const dg=Math.max(0.14, Math.min(1,dangerLevel));   // baseline tehdit tabanı — hiç güvende hissetme
   heartT-=dt;
   if(heartT<=0){ if(dangerLevel>0.1){ Audio.heart(); heartT=1.25-dangerLevel*0.9; } else heartT=1.0; }
+  // SÜREKLİ TEHDİT MÜZİĞİ — hep çalar, tehlikede sıklaşır/yükselir
+  musicT-=dt;
+  if(musicT<=0){
+    musicT = 2.7 - dg*1.5;                     // 2.7s (sakin) → ~1.2s (tehlikede)
+    Audio.threatPulse(dg);                     // düşük nabız (her zaman)
+    if(musicStep%2===0) Audio.tensionSwell(dg);// disonan şişme (dönüşümlü)
+    if(dg>0.34 && (musicStep%2===1)) Audio.tensionShimmer(dg); // tiz tremolo (tehlikede)
+    musicStep++;
+  }
   ambT-=dt;
   if(ambT<=0){ ambT=5+Math.random()*7; const r=Math.random();
     if(dangerLevel>0.4) Audio.pad([49,55,58][Math.floor(Math.random()*3)],2.5);
@@ -1128,18 +1668,48 @@ function driveAmbience(dt){
 }
 
 /* ================= SES ================= */
-const Audio=(()=>{ let ac=null,mas=null,hum=[];
-  function init(){ if(ac)return; try{ ac=new (window.AudioContext||window.webkitAudioContext)(); mas=ac.createGain(); mas.gain.value=.5; mas.connect(ac.destination);}catch(e){} }
+const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
+  function init(){ if(ac)return; try{ ac=new (window.AudioContext||window.webkitAudioContext)();
+    mas=ac.createGain(); mas.gain.value=.42;
+    ambGain=ac.createGain(); ambGain.gain.value=0; ambGain.connect(mas);   // dron/ambiyans için (state ile susar)
+    // LİMİTER — katmanlı yüksek sesler master'ı KLİPLEMESİN (cızırtı/distortion sebebi buydu)
+    const lim=ac.createDynamicsCompressor(); lim.threshold.value=-8; lim.knee.value=6; lim.ratio.value=14; lim.attack.value=.002; lim.release.value=.18;
+    mas.connect(lim); lim.connect(ac.destination);
+  }catch(e){} }
   function resume(){ if(ac&&ac.state==='suspended') ac.resume(); }
+  function setMaster(v){ if(mas) mas.gain.value = Math.max(0, Math.min(1, v))*0.9; }
+  // Telefon Adamı: klasik iki tonlu zil + boğuk konuşma "blip"leri (bandpass = telefon hattı)
+  function phoneRing(){ if(!ac)return; const t=ac.currentTime;
+    for(let r=0;r<2;r++){ const off=r*0.42; [0,0.1].forEach(o=>{ const osc=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      osc.type='sine'; osc.frequency.value=o?520:440; f.type='bandpass'; f.frequency.value=1000; f.Q.value=3;
+      g.gain.setValueAtTime(0,t+off+o); g.gain.linearRampToValueAtTime(.1,t+off+o+.02); g.gain.exponentialRampToValueAtTime(.0001,t+off+o+.17);
+      osc.connect(f); f.connect(g); g.connect(mas); osc.start(t+off+o); osc.stop(t+off+o+.2); }); } }
+  function phoneBlip(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(), g=ac.createGain(), f=ac.createBiquadFilter();
+    o.type='square'; o.frequency.value=150+Math.random()*230; f.type='bandpass'; f.frequency.value=1150; f.Q.value=5;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.045,t+.008); g.gain.exponentialRampToValueAtTime(.0001,t+.055);
+    o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+.07); }
+  function achievePop(){ if(!ac)return; const t=ac.currentTime; [660,880,1320].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain();
+    o.type='triangle'; o.frequency.value=fr; g.gain.setValueAtTime(.0001,t+i*.08); g.gain.linearRampToValueAtTime(.12,t+i*.08+.02); g.gain.exponentialRampToValueAtTime(.0001,t+i*.08+.3);
+    o.connect(g); g.connect(mas); o.start(t+i*.08); o.stop(t+i*.08+.32); }); }
+  function setAmbient(on){ if(!ac||!ambGain)return; const t=ac.currentTime; ambGain.gain.cancelScheduledValues(t); ambGain.gain.setValueAtTime(Math.max(.0001,ambGain.gain.value),t); ambGain.gain.linearRampToValueAtTime(on?0.85:0.0, t+0.4); }
   function tone(f,d,ty,v){ if(!ac)return; const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.type=ty||'sine'; o.frequency.value=f; o.connect(g); g.connect(mas); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v||.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.start(t); o.stop(t+d+.02); }
   function noise(d,v,ff){ if(!ac)return; const n=Math.floor(ac.sampleRate*d),buf=ac.createBuffer(1,n,ac.sampleRate),da=buf.getChannelData(0); for(let i=0;i<n;i++)da[i]=Math.random()*2-1; const s=ac.createBufferSource(); s.buffer=buf; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=ff||1000; const g=ac.createGain(); g.gain.value=v||.2; s.connect(f); f.connect(g); g.connect(mas); s.start(); }
-  function startHum(){ if(!ac||hum.length)return; const hg=ac.createGain(); hg.gain.value=.04; hg.connect(mas); [52,78].forEach(fr=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=fr;const g=ac.createGain();g.gain.value=.5;o.connect(g);g.connect(hg);o.start();hum.push(o);}); }
-  // Gerilim ambiyansı: düşük dron + yavaş LFO ile nefes alan karanlık ped
+  function startHum(){ if(!ac||hum.length)return; const hg=ac.createGain(); hg.gain.value=.04; hg.connect(ambGain); [52,78].forEach(fr=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=fr;const g=ac.createGain();g.gain.value=.5;o.connect(g);g.connect(hg);o.start();hum.push(o);}); }
+  // Gerilim ambiyansı: düşük dron + yavaş LFO ile nefes alan karanlık ped (ambGain üzerinden → state ile susar)
   function startAmbience(){ startHum(); if(!ac||hum.length>3)return;
-    const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=34; g.gain.value=.06; o.connect(g); g.connect(mas);
+    const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=34; g.gain.value=.06; o.connect(g); g.connect(ambGain);
     const lfo=ac.createOscillator(), lg=ac.createGain(); lfo.type='sine'; lfo.frequency.value=.07; lg.gain.value=.03; lfo.connect(lg); lg.connect(g.gain);
-    const o2=ac.createOscillator(), g2=ac.createGain(); o2.type='sawtooth'; o2.frequency.value=51; g2.gain.value=.018; const f2=ac.createBiquadFilter(); f2.type='lowpass'; f2.frequency.value=200; o2.connect(f2); f2.connect(g2); g2.connect(mas);
-    o.start(); lfo.start(); o2.start(); hum.push(o,lfo,o2); }
+    const o2=ac.createOscillator(), g2=ac.createGain(); o2.type='sawtooth'; o2.frequency.value=51; g2.gain.value=.018; const f2=ac.createBiquadFilter(); f2.type='lowpass'; f2.frequency.value=200; o2.connect(f2); f2.connect(g2); g2.connect(ambGain);
+    // KARANLIK MİNÖR DRON KATMANI — iki hafif akortsuz saw yavaş vuruşur (sürekli tekinsizlik)
+    const d1=ac.createOscillator(), d2=ac.createOscillator(), dg=ac.createGain(), df=ac.createBiquadFilter();
+    d1.type='sawtooth'; d2.type='sawtooth'; d1.frequency.value=43.65; d2.frequency.value=43.65*1.031; // ~minör 2'li vuruş
+    df.type='lowpass'; df.frequency.value=240; dg.gain.value=.03; d1.connect(df); d2.connect(df); df.connect(dg); dg.connect(ambGain);
+    // çok yavaş "nefes alan" yüksek gerginlik dokusu (kısık)
+    const air=ac.createOscillator(), ag=ac.createGain(), af=ac.createBiquadFilter(), alfo=ac.createOscillator(), alg=ac.createGain();
+    air.type='sawtooth'; air.frequency.value=196; af.type='bandpass'; af.frequency.value=520; af.Q.value=6; ag.gain.value=.006;
+    alfo.type='sine'; alfo.frequency.value=.05; alg.gain.value=.006; alfo.connect(alg); alg.connect(ag.gain);
+    air.connect(af); af.connect(ag); ag.connect(ambGain);
+    o.start(); lfo.start(); o2.start(); d1.start(); d2.start(); air.start(); alfo.start(); hum.push(o,lfo,o2,d1,d2,air,alfo); }
   // yavaş korku pedi (rastgele nota)
   function pad(freq,dur){ if(!ac)return; const t=ac.currentTime; const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
     o.type='sawtooth'; o2.type='sawtooth'; o.frequency.value=freq; o2.frequency.value=freq*1.006; f.type='lowpass'; f.frequency.value=520;
@@ -1197,11 +1767,121 @@ const Audio=(()=>{ let ac=null,mas=null,hum=[];
     [523,659,784,1047].forEach((fr,i)=>{ const off=i*0.18, o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.value=fr;
       g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.2,t+off+.02); g.gain.exponentialRampToValueAtTime(.0001,t+off+1.1);
       o.connect(g); g.connect(mas); o.start(t+off); o.stop(t+off+1.15); }); }
-  return {init,resume,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
-          laugh,growl,clang,screech,foxRun,bang,hourBell,chime6}; })();
+  // --- PUPPET ---
+  // Müzik kutusu ninnisi (Pop Goes the Weasel benzeri). health 0..1: düşükse pesleşir/kirlenir.
+  const LULLA=[659,784,880,784,659,587,523,587,659,784,880,988,880,784,659,587];
+  function lullaby(i,health){ if(!ac)return; const t=ac.currentTime;
+    const det=0.55+0.45*health, f=LULLA[((i%LULLA.length)+LULLA.length)%LULLA.length]*det;
+    const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain();
+    o.type='triangle'; o2.type='sine'; o.frequency.value=f; o2.frequency.value=f*2.002;
+    const dur=0.30+ (1-health)*0.25;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(0.05*(0.5+health*0.5),t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); o2.connect(g); g.connect(mas); o.start(t); o2.start(t); o.stop(t+dur+.05); o2.stop(t+dur+.05);
+    if(health<0.45) noise(.05,.02*(0.45-health)*4,1400);   // kirli tık
+  }
+  // Nefesli fısıltı — puppet yaklaşırken
+  function whisper(){ if(!ac)return; const t=ac.currentTime;
+    const n=Math.floor(ac.sampleRate*0.95),buf=ac.createBuffer(1,n,ac.sampleRate),da=buf.getChannelData(0);
+    for(let i=0;i<n;i++){ const env=Math.sin(Math.PI*i/n); da[i]=(Math.random()*2-1)*env*env; }
+    const s=ac.createBufferSource(); s.buffer=buf;
+    const f=ac.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(650,t); f.frequency.linearRampToValueAtTime(1900,t+.9); f.Q.value=7;
+    const g=ac.createGain(); g.gain.value=.14; s.connect(f); f.connect(g); g.connect(mas); s.start();
+  }
+  // Puppet kutudan çıkarken — disonan şişen akor
+  function puppetRise(){ if(!ac)return; const t=ac.currentTime;
+    [55,98,138.6,146.8].forEach(fr=>{ const o=ac.createOscillator(),g=ac.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(fr,t); o.frequency.linearRampToValueAtTime(fr*1.5,t+2.6);
+      const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=700;
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.07,t+1.8); g.gain.exponentialRampToValueAtTime(.0001,t+2.8);
+      o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+2.9); });
+    noise(2.2,.05,500);
+  }
+  // Puppet jumpscare çığlığı — katmanlı, sert (ama limiter sayesinde artık klipslemez)
+  function puppetScream(){ if(!ac)return; const t=ac.currentTime;
+    [1150,1550,2050,780].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain();
+      o.type=i<3?'sawtooth':'square'; o.frequency.setValueAtTime(fr*0.65,t); o.frequency.linearRampToValueAtTime(fr*1.18,t+.22); o.frequency.linearRampToValueAtTime(fr*0.45,t+1.15);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.12,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.35);
+      o.connect(g); g.connect(mas); o.start(t); o.stop(t+1.4); });
+    noise(1.0,.28,3600); noise(1.0,.18,700);   // static yumuşatıldı (cızırtı azaldı)
+    const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(28,t+.55);
+    g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.0001,t+.8); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.85);
+  }
+  // Ana dörtlü jumpscare — mekanik/hayvani kükreme + metal çığlık (puppet'ten farklı, sert)
+  function animScream(){ if(!ac)return; const t=ac.currentTime;
+    // bozuk düşük kükreme
+    [110,146,175].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.setValueAtTime(fr*1.3,t); o.frequency.linearRampToValueAtTime(fr*0.6,t+.5); o.frequency.linearRampToValueAtTime(fr*0.9,t+1.1);
+      f.type='lowpass'; f.frequency.value=900; f.Q.value=6;
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.13,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.2);
+      o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+1.25); });
+    // metalik çığlık üstü
+    [1300,1900,2600].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='square';
+      o.frequency.setValueAtTime(fr*0.8,t); o.frequency.linearRampToValueAtTime(fr*1.25,t+.18); o.frequency.linearRampToValueAtTime(fr*0.5,t+.9);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.07,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
+      o.connect(g); g.connect(mas); o.start(t); o.stop(t+1.05); });
+    noise(.9,.26,3200); noise(.9,.16,600);
+    // sub darbe
+    const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(32,t+.5);
+    g.gain.setValueAtTime(.36,t); g.gain.exponentialRampToValueAtTime(.0001,t+.75); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.8);
+  }
+  // ---- KORKU / GERİLİM MÜZİĞİ ---- (puppet tehdidiyle tırmanır)
+  // Düşük ürkütücü bas nabız — minör hareket
+  function dreadBass(freq){ if(!ac)return; const t=ac.currentTime;
+    const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+    o.type='sawtooth'; o2.type='sine'; o.frequency.value=freq; o2.frequency.value=freq*0.5;
+    f.type='lowpass'; f.frequency.value=380; f.Q.value=4;
+    o.connect(f); o2.connect(g); f.connect(g); g.connect(mas);
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.10,t+.05); g.gain.exponentialRampToValueAtTime(.0001,t+.9);
+    o.start(t); o2.start(t); o.stop(t+.95); o2.stop(t+.95);
+  }
+  // Keskin disonan yaylı çalgı darbesi (yaklaşınca)
+  function dreadStab(freq){ if(!ac)return; const t=ac.currentTime;
+    [freq,freq*1.19,freq*1.5].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.value=fr*(1+i*0.004); f.type='bandpass'; f.frequency.value=fr*1.5; f.Q.value=3;
+      o.connect(f); f.connect(g); g.connect(mas);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.6);
+      o.start(t); o.stop(t+.65); });
+  }
+  // ---- SÜREKLİ TEHDİT MÜZİĞİ ---- (hep çalar, tehlikeyle tırmanır; ambGain → ölünce/menüde susar)
+  // Düşük ürkütücü nabız — baseline gerginlik (danger 0'da bile hafif atar)
+  function threatPulse(danger){ if(!ac||!ambGain)return; const t=ac.currentTime;
+    const f=[41,43.6,38.9,36.7][Math.floor(Math.random()*4)];
+    const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),flt=ac.createBiquadFilter();
+    o.type='sine'; o2.type='triangle'; o.frequency.value=f; o2.frequency.value=f*2.01;
+    flt.type='lowpass'; flt.frequency.value=180+danger*320;
+    o.connect(flt); o2.connect(flt); flt.connect(g); g.connect(ambGain);
+    const v=0.06+danger*0.12, dur=0.7+danger*0.35;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(v,t+.07); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.start(t); o2.start(t); o.stop(t+dur+.1); o2.stop(t+dur+.1);
+  }
+  // Disonan yaylı şişme — minör 2'li küme, yavaş kabarır (tekinsiz atmosfer)
+  function tensionSwell(danger){ if(!ac||!ambGain)return; const t=ac.currentTime;
+    const root=[82,87,92,98][Math.floor(Math.random()*4)];
+    [root, root*1.06, root*1.5].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.value=fr*(1+i*0.003); f.type='lowpass'; f.frequency.value=360+danger*640;
+      o.connect(f); f.connect(g); g.connect(ambGain);
+      const dur=2.6+Math.random()*2.2, v=0.018+danger*0.045;
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(v,t+dur*0.5); g.gain.linearRampToValueAtTime(.0001,t+dur);
+      o.start(t); o.stop(t+dur+.1); });
+  }
+  // Tiz titreşen tremolo — yaklaşan tehlike (yalnız danger yüksekken)
+  function tensionShimmer(danger){ if(!ac||!ambGain||danger<0.32)return; const t=ac.currentTime;
+    const f=1100+Math.random()*500, o=ac.createOscillator(),g=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain(),flt=ac.createBiquadFilter();
+    o.type='sawtooth'; o.frequency.value=f; lfo.type='square'; lfo.frequency.value=13+danger*12; lg.gain.value=0.55;
+    flt.type='bandpass'; flt.frequency.value=f; flt.Q.value=9;
+    lfo.connect(lg); lg.connect(g.gain); o.connect(flt); flt.connect(g); g.connect(ambGain);
+    const v=(danger-0.32)*0.06, dur=1.6;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(v,t+.45); g.gain.linearRampToValueAtTime(.0001,t+dur);
+    o.start(t); lfo.start(t); o.stop(t+dur+.1); lfo.stop(t+dur+.1);
+  }
+  return {init,resume,setMaster,setAmbient,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
+          phoneRing,phoneBlip,achievePop,
+          laugh,growl,clang,screech,foxRun,bang,hourBell,chime6,
+          lullaby,whisper,puppetRise,puppetScream,animScream,dreadBass,dreadStab,
+          threatPulse,tensionSwell,tensionShimmer}; })();
 
 /* ================= DURUM ================= */
-const S={MENU:0,PLAY:1,DEAD:2,CAMS:3,JUMP:4,WIN:5}; let state=S.MENU;
+const S={MENU:0,PLAY:1,DEAD:2,CAMS:3,JUMP:4,WIN:5,VENT:6,ENDING:7}; let state=S.MENU;
 let jumpT=0, nearBox=false;
 
 /* ================= SAAT / GECE ================= */
@@ -1210,22 +1890,212 @@ const NIGHT_HOURS=6;    // 12:00 → 06:00
 let night=1, selNight=1, clockT=0, lastHour=0;
 // Gece zorluk tablosu: kim kaçıncı saniyede uyanır + hız/kutu/algı/Foxo eşiği
 const NIGHT_CFG={
-  1:{wake:{bonko:26, chika:58, freddo:100, foxo:9e9}, sm:0.80, box:1.30, detect:10, coveStep:18},
-  2:{wake:{bonko:18, chika:38, freddo:66,  foxo:120}, sm:0.90, box:1.45, detect:11, coveStep:14},
-  3:{wake:{bonko:12, chika:26, freddo:44,  foxo:70},  sm:1.00, box:1.60, detect:12, coveStep:11},
-  4:{wake:{bonko:8,  chika:18, freddo:30,  foxo:45},  sm:1.10, box:1.75, detect:13, coveStep:9},
-  5:{wake:{bonko:5,  chika:11, freddo:18,  foxo:26},  sm:1.20, box:1.95, detect:14, coveStep:7.5},
-  6:{wake:{bonko:3,  chika:7,  freddo:10,  foxo:15},  sm:1.35, box:2.20, detect:15, coveStep:6},
+  1:{wake:{bonko:26, chika:58, freddo:100, foxo:9e9}, sm:0.80, box:0.95, detect:10, coveStep:18},
+  2:{wake:{bonko:18, chika:38, freddo:66,  foxo:120}, sm:0.90, box:1.05, detect:11, coveStep:14},
+  3:{wake:{bonko:12, chika:26, freddo:44,  foxo:70},  sm:1.00, box:1.18, detect:12, coveStep:11},
+  4:{wake:{bonko:8,  chika:18, freddo:30,  foxo:45},  sm:1.10, box:1.32, detect:13, coveStep:9},
+  5:{wake:{bonko:5,  chika:11, freddo:18,  foxo:26},  sm:1.20, box:1.48, detect:14, coveStep:7.5},
+  6:{wake:{bonko:3,  chika:7,  freddo:10,  foxo:15},  sm:1.35, box:1.65, detect:15, coveStep:6},
 };
-function ncfg(){ return NIGHT_CFG[night]||NIGHT_CFG[6]; }
+// ÖZEL GECE: 4 karakterin agresifliği 0..20; oyun içi değerlere ölçeklenir
+let customMode=false;
+const custom={freddo:10, bonko:10, chika:10, foxo:10};
+// 0..20 → uyanma saniyesi (yüksek AI = erken uyanır) ve hız çarpanı
+function cnWake(ai){ const lv=custom[ai]; if(lv<=0) return 9e9; return Math.max(3, 150 - lv*7.2); } // lv20≈6s, lv1≈143s
+function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,custom.foxo); }
+function ncfg(){
+  if(!customMode) return NIGHT_CFG[night]||NIGHT_CFG[6];
+  const mx=cnLevelMax();
+  // Genel yoğunluğu en agresif karaktere göre ölçekle; uyanma saatleri cnWake ile ezilir
+  return {
+    wake:{ freddo:cnWake('freddo'), bonko:cnWake('bonko'), chika:cnWake('chika'), foxo:cnWake('foxo') },
+    sm: 0.78 + mx*0.030,          // hareket çarpanı (lv20 ≈ 1.38)
+    box: 0.95 + mx*0.04,          // müzik kutusu tükenme hızı (yavaşlatıldı)
+    detect: 9 + mx*0.32,          // algı menzili
+    coveStep: Math.max(5.5, 19 - custom.foxo*0.72), // Foxo'ya özel
+    custom:true,
+  };
+}
 function clockHour(){ return Math.min(NIGHT_HOURS, Math.floor(clockT/HOUR_SEC)); }
 function clockText(){ const h=clockHour(); return (h===0?12:h)+':00'; }
 
 /* ================= KAYIT ================= */
 const SAVE_KEY='gb3d_save_v1';
-let save={maxNight:1, best:0};
-try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save=s; }catch(e){}
+let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[]};
+try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save={...save,...s}; }catch(e){}
+if(!Array.isArray(save.ach)) save.ach=[];
 function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+/* ================= AYARLAR ================= */
+const SET_KEY='gb3d_set_v1';
+const SET={ vol:0.42, scare:1, shake:1, hallu:1 };
+try{ const s=JSON.parse(localStorage.getItem(SET_KEY)); if(s) Object.assign(SET,s); }catch(e){}
+function saveSet(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SET)); }catch(e){} }
+function applySet(){
+  Audio.setMaster(SET.vol);
+  $('#setVol').value=Math.round(SET.vol*100); $('#setVolVal').textContent=Math.round(SET.vol*100)+'%';
+  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu);
+}
+function segSel(sel,val){ document.querySelectorAll(sel+' button').forEach(b=>b.classList.toggle('sel', parseFloat(b.dataset.v)===val)); }
+function openSettings(){ applySet(); $('#setPanel').classList.add('show'); }
+function closeSettings(){ $('#setPanel').classList.remove('show'); }
+$('#setBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume(); openSettings(); });
+$('#setClose').addEventListener('click',e=>{ e.stopPropagation(); closeSettings(); });
+$('#setVol').addEventListener('input',e=>{ SET.vol=e.target.value/100; $('#setVolVal').textContent=Math.round(SET.vol*100)+'%'; Audio.setMaster(SET.vol); saveSet(); });
+[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu']].forEach(([sel,key])=>{
+  document.querySelectorAll(sel+' button').forEach(b=> b.addEventListener('click',e=>{ e.stopPropagation();
+    SET[key]=parseFloat(b.dataset.v); segSel(sel,SET[key]); saveSet(); }));
+});
+
+/* ================= HALÜSİNASYON (zararsız korkular) ================= */
+const Hallu=(()=>{
+  const face=$('#halluFace'), txt=$('#halluText'), shade=$('#halluShade');
+  const MSG=['BEN GELİYORUM','SAKLAN','ARKANDA','06:00','KAÇAMAZSIN','O SENİ GÖRÜYOR','GERİ DÖN','SUS'];
+  let anims=[], nextT=8+Math.random()*8;
+  function buildFace(){
+    const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d');
+    g.fillStyle='#14141c'; g.beginPath(); g.ellipse(256,272,148,188,0,0,7); g.fill();           // koyu kafa (screen blend ile hafif görünür)
+    g.beginPath(); g.moveTo(150,120); g.lineTo(196,210); g.lineTo(110,205); g.closePath();       // kulaklar
+    g.moveTo(362,120); g.lineTo(316,210); g.lineTo(402,205); g.closePath(); g.fill();
+    for(const ex of [198,314]){                                                                   // parlayan gözler
+      const grd=g.createRadialGradient(ex,236,2,ex,236,48);
+      grd.addColorStop(0,'#fff'); grd.addColorStop(.22,'#ffe0d6'); grd.addColorStop(.5,'#d0161d'); grd.addColorStop(1,'rgba(40,0,0,0)');
+      g.fillStyle=grd; g.beginPath(); g.arc(ex,236,48,0,7); g.fill();
+      g.fillStyle='#100'; g.beginPath(); g.arc(ex,236,11,0,7); g.fill();
+    }
+    g.fillStyle='#e8e2d0';                                                                        // sırıtan dişler
+    const gw=150; for(let i=0;i<9;i++){ const x=256-gw/2+i*(gw/8); g.fillRect(x-8,362,16,28); }
+    face.style.backgroundImage='url('+c.toDataURL()+')';
+  }
+  function faceFlash(danger){
+    face.style.backgroundPosition=(50+(Math.random()*24-12))+'% '+(48+(Math.random()*16-8))+'%';
+    face.style.backgroundSize=(78+Math.random()*40)+'%';
+    anims.push({node:face,t:0,dur:0.11+Math.random()*0.24,peak:0.5+danger*0.42});
+    Audio.whisper(); Audio.noise(.14,.07,1900);
+  }
+  function glitch(){
+    txt.textContent=MSG[Math.floor(Math.random()*MSG.length)];
+    txt.style.left=(50+(Math.random()*16-8))+'%';
+    anims.push({node:txt,t:0,dur:0.34+Math.random()*0.4,peak:0.85,jit:true});
+    Audio.noise(.2,.08,1400); Audio.whisper();
+  }
+  function sweep(){
+    const dir=Math.random()<0.5;
+    anims.push({node:shade,t:0,dur:0.7+Math.random()*0.5,peak:0.95,x0:dir?-42:100,x1:dir?100:-42});
+    Audio.noise(.35,.05,600);
+  }
+  function update(dt, danger, canSchedule){
+    // aktif animasyonları ilerlet
+    for(let i=anims.length-1;i>=0;i--){ const a=anims[i]; a.t+=dt;
+      const p=a.t/a.dur; const env=p>=1?0:Math.sin(Math.PI*p)*a.peak;
+      if(a.x0!==undefined) a.node.style.left=(a.x0+(a.x1-a.x0)*Math.min(1,p))+'%';
+      a.node.style.opacity=(a.jit?env*(0.55+Math.random()*0.45):env).toFixed(3);
+      if(p>=1){ a.node.style.opacity='0'; anims.splice(i,1); }
+    }
+    if(!canSchedule) return;
+    nextT-=dt;
+    if(nextT<=0){
+      nextT=Math.max(4, (16-danger*9)*(0.6+Math.random()*0.8));   // tehlike arttıkça sıklaşır
+      if(Math.random() < 0.32+danger*0.5){
+        const r=Math.random();
+        if(r<0.42) sweep();
+        else if(r<0.74) glitch();
+        else faceFlash(danger);
+      }
+    }
+  }
+  function reset(){ anims=[]; face.style.opacity=txt.style.opacity=shade.style.opacity='0'; nextT=8+Math.random()*8; }
+  return {buildFace,update,reset};
+})();
+Hallu.buildFace();
+$('#setBtn').classList.remove('hidden');   // boot'ta menü açık → ayar erişilebilir
+
+/* ================= BAŞARIMLAR ================= */
+const ACH=[
+  {id:'night1',    ico:'🌙', n:'İLK VARDİYA',    d:'Bir geceyi atlat.'},
+  {id:'night6',    ico:'💀', n:'FAZLA MESAİ',    d:'Gece 6\'yı bitir.'},
+  {id:'box_master',ico:'🎵', n:'KUTU USTASI',    d:'Müzik kutusunu hiç %20 altına düşürmeden bir gece geçir.'},
+  {id:'no_batt',   ico:'🔦', n:'IŞIK TASARRUFU', d:'Feneri hiç bitirmeden bir gece geçir.'},
+  {id:'puppet_esc',ico:'🎭', n:'İP CAMBAZI',     d:'Puppet kutudan çıktığı bir geceyi sağ atlat.'},
+  {id:'no_door',   ico:'🚪', n:'KAPISIZ',        d:'Hiç kapı kapatmadan bir gece geçir.'},
+  {id:'vent3',     ico:'🪜', n:'VANTİLATÖR FARESİ',d:'Bir gecede 3 kez havalandırmaya gir.'},
+  {id:'legend20',  ico:'★',  n:'EFSANE',         d:'20/20/20/20 Özel Gece\'yi bitir.'},
+];
+const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0};
+function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; }
+let achQueue=[], achShowing=false, achPopT=0;
+function unlockAch(id){ if(save.ach.includes(id)) return; save.ach.push(id); saveGame();
+  const a=ACH.find(x=>x.id===id); if(a){ achQueue.push(a); if(!achShowing) showNextAch(); } }
+function showNextAch(){ if(!achQueue.length){ achShowing=false; return; }
+  achShowing=true; const a=achQueue.shift();
+  $('#achPop .aName').textContent=a.ico+' '+a.n; $('#achPop').classList.add('show'); Audio.achievePop();
+  if(navigator.vibrate) navigator.vibrate([40,40,80]); achPopT=2.8; }
+function evalAch(){
+  if(!customMode){ unlockAch('night1'); if(night>=6) unlockAch('night6'); }
+  if(customMode && CN_CHARS.every(c=>custom[c.id]===20)) unlockAch('legend20');
+  if(runStats.boxMin>=20) unlockAch('box_master');
+  if(!runStats.battDied)  unlockAch('no_batt');
+  if(runStats.pptOut)     unlockAch('puppet_esc');
+  if(!runStats.doorUsed)  unlockAch('no_door');
+  if(runStats.ventUsed>=3)unlockAch('vent3');
+}
+function renderAch(){ const el=$('#achList'); el.innerHTML='';
+  ACH.forEach(a=>{ const unl=save.ach.includes(a.id); const row=document.createElement('div');
+    row.className='achRow'+(unl?' unl':'');
+    row.innerHTML='<div class="ico">'+a.ico+'</div><div class="txt"><div class="n">'+(unl?a.n:'???')+'</div><div class="d">'+a.d+'</div></div>'+(unl?'<div style="margin-left:auto;color:#c9a227;font-size:18px">✓</div>':'');
+    el.appendChild(row); });
+  $('#achCount').textContent=save.ach.length+' / '+ACH.length;
+}
+$('#achBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume(); renderAch(); $('#achPanel').classList.add('show'); });
+$('#achClose').addEventListener('click',e=>{ e.stopPropagation(); $('#achPanel').classList.remove('show'); });
+$('#achBtn').classList.remove('hidden');
+
+/* ================= TELEFON ADAMI ================= */
+const PHONE={
+  1:['Selam, selam! Hoş geldin dostum. İlk gecen, değil mi? Merak etme, alışırsın.',
+     'Feneri idareli kullan — pili biterken köşede sıkışma. Kapılar 7 saniye kapalı kalıp kendi açılır; kalkan değil, zaman kazandırır.',
+     'İlk gece genelde sakindir. Yine de... arkanı kollamayı unutma.'],
+  2:['Yine buradasın, güzel. Sana Ödül Köşesi\'ndeki o müzik kutusundan bahsetmem lazım.',
+     'Kutuyu kurulu tut. Boşalırsa içindeki şey uyanır — inan bana, uyanmasını istemezsin. %55 üstünde tutmaya çalış.',
+     'Kameradan da kurabilirsin, ama elektrik kesikse bizzat yanına gideceksin.'],
+  3:['İşler kızışıyor. Dinle: mor olan ışığı görürse çıldırıyor — ona sakın fener tutma.',
+     'Kahverengi olansa tam tersi, ışıkta donuyor. Sarı olan görmez ama DUYAR — koşarsan üstüne gelir, sessiz ol.',
+     'Aynı alet, zıt sonuç. Kafanı çalıştır.'],
+  4:['Hâlâ dayanıyorsun, helal. Tilkiyi kameradan gözden kaçırma, yoksa koridorda koşarak gelir.',
+     'Havalandırma iyi bir kestirme ama içinde bir ses duyarsan hemen maskeni tak.',
+     'Az kaldı... galiba.'],
+  5:['Ben... pek iyi hissetmiyorum dostum. Bu gece hepsi birden üstüne gelecek gibi.',
+     'Kapıya değil, harekete güven. Kutuyu kur, ışığı akıllı kullan, durma.',
+     'Başaracaksın. Başarmak zorundasın.'],
+  6:['Bu fazla mesai... normalde kimse buraya kadar gelmez.',
+     'Sana anlatacak pek bir şeyim kalmadı. Bildiğin her şeyi kullan, her şeyi.',
+     'Güneşi görürsen, benim için de gördün say. İyi şanslar.'],
+};
+const PHONE_CUSTOM=['Kayıt yok, kural yok — ayarları sen seçtin.','Bu senin canavarın. Bol şans; buna ihtiyacın olacak.'];
+let phoneActive=false, phoneLines=[], phoneIdx=0, phoneShown=0, phoneCharAcc=0, phoneHold=0, phoneRingT=0;
+function startPhone(){
+  phoneLines = customMode? PHONE_CUSTOM : (PHONE[night]||PHONE[6]);
+  phoneIdx=0; phoneShown=0; phoneCharAcc=0; phoneHold=0; phoneRingT=1.4; phoneActive=true;
+  $('#phoneText').textContent=''; $('#phone').classList.add('show'); Audio.phoneRing();
+}
+function endPhone(){ phoneActive=false; $('#phone').classList.remove('show'); }
+$('#phoneSkip').addEventListener('click',e=>{ e.stopPropagation(); endPhone(); Audio.click(); });
+function updatePhone(dt){
+  if(!phoneActive) return;
+  if(phoneRingT>0){ phoneRingT-=dt; if(phoneRingT<=0) Audio.phoneBlip(); return; }
+  const line=phoneLines[phoneIdx]||'';
+  if(phoneShown<line.length){
+    phoneCharAcc+=dt; const cps=34;
+    while(phoneCharAcc>1/cps && phoneShown<line.length){ phoneCharAcc-=1/cps; phoneShown++; if(phoneShown%3===0) Audio.phoneBlip(); }
+    $('#phoneText').textContent=line.slice(0,phoneShown);
+    if(phoneShown>=line.length) phoneHold=2.2;   // satır tamamlandı → bekleme başlat
+  } else {
+    phoneHold-=dt;
+    if(phoneHold<=0){ phoneIdx++;
+      if(phoneIdx>=phoneLines.length) endPhone();
+      else { phoneShown=0; phoneCharAcc=0; Audio.phoneBlip(); } }
+  }
+}
 const player={ x:0, z:19.7, yaw:Math.PI, pitch:-0.05 }; // ofiste, kuzeye bak (yaw=PI -> -Z)
 const EYE=1.62;
 let flashOn=false, battery=100, running=false;
@@ -1238,8 +2108,160 @@ function resetPowerTimer(){ powerTimer=randRange(100,190); } // elektrik kesinti
 let musicBox=100, puppetOut=false, winding=false;
 const puppetPos={x:PUP_HOME.x, z:PUP_HOME.z};
 let boxTuneTimer=0;
-let dangerLevel=0, heartT=0, ambT=5;
+// Puppet dehşet sistemi: kutu azaldıkça uyanır (stage), <15'te kutudan çıkıp avlar
+let puppetStage=0, lullaIdx=0, lullaT=0, whisperT=0, pRoseAnnounced=false, puppetVigOp=0;
+let puppetNavT=0, pntx=0, pntz=0;   // stalk yol bulma ara noktası
+let puppetJump=false;
+let dreadT=0, dreadStep=0;          // gerilim müziği ritmi
+function pStalkSpeed(){ return customMode? (1.9+cnLevelMax()*0.05) : (2.0+(night-1)*0.16); }
+let dangerLevel=0, heartT=0, ambT=5, musicT=0, musicStep=0;
+// Maske (Freddo maskesi) — takınca Freddo/Bonko seni yok sayar; oksijen/dayanma sayacı var
+let masked=false, maskCharge=100;
+// Vent — kestirme sürünme + ofise sızan "vent crawler" tehdidi
+let ventCrawler=0;     // >0 iken vent'te biri var, maske takılmazsa süre bitince saldırır
+let ventCrawlerT=0;    // sonraki tehdit için geri sayım
+let ventFrom=null, ventTo=null, ventT=0;   // sürünme animasyonu
 function inOffice(){ return player.x>=-5 && player.x<=5 && player.z>=15 && player.z<=21; }
+function nearVent(){ for(const v of VENTS){ if(Math.hypot(player.x-v.x, player.z-v.z)<1.7) return v; } return null; }
+
+/* ================= ÇOK OYUNCU (P2P — PeerJS oda kodu, host-relay yıldız topoloji) =================
+   M1 = bağlantı temeli + oyuncu görünürlüğü: aynı haritada birbirinizi gerçek zamanlı görürsünüz
+   (avatar + fener). AI/gece/kutu M2'de host-otoriteli gelecek. Tek oyunculu tamamen bozulmadan. */
+const Net=(()=>{
+  let peer=null, host=false, active=false, started=false, myId=null, code=null, myName='Bekçi';
+  let conns=[];                 // host: misafir bağlantıları; misafir: [host bağlantısı]
+  const remotes={};             // id -> {name,x,z,yaw,f, tx,tz,tyaw, obj}
+  let poseT=0;
+  const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function genCode(){ let s=''; for(let i=0;i<5;i++) s+=CH[Math.floor(Math.random()*CH.length)]; return s; }
+  function peerId(c){ return 'gb3d-v1-'+c; }
+  function nameVal(){ const v=(($('#mpNameIn').value||'').trim()).slice(0,10); return v || ('Bekçi'+Math.floor(10+Math.random()*89)); }
+  function status(m){ $('#mpStatus').textContent=m; }
+  function roomView(){ $('#mpHome').classList.add('hidden'); $('#mpRoom').classList.remove('hidden'); }
+
+  /* ---- uzak oyuncu avatarı (basit aydınlık figür + ad etiketi) ---- */
+  function nameSprite(txt){ const c=mc(256,64), g=c.getContext('2d');
+    g.fillStyle='rgba(0,10,20,0.55)'; g.fillRect(0,0,256,64);
+    g.fillStyle='#bfe0ff'; g.font='bold 34px "Courier New",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText((txt||'?').slice(0,10),128,34);
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false})); sp.scale.set(1.5,0.38,1); return sp; }
+  function buildAvatar(nm){
+    const g=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.30,1.05,12), new THREE.MeshStandardMaterial({color:0x22303f,emissive:0x0e2c48,emissiveIntensity:.5,roughness:.7})); body.position.y=0.95;
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.23,14,12), new THREE.MeshStandardMaterial({color:0x2c3c4c,emissive:0x14304a,emissiveIntensity:.5})); head.position.y=1.6;
+    const fl=glowSprite('rgba(255,238,190,0.85)',0.7); fl.position.set(0,1.5,0.45); fl.visible=false;
+    const tag=nameSprite(nm); tag.position.y=2.15;
+    g.add(body,head,fl,tag); g.userData={fl,tag}; scene.add(g); return g;
+  }
+  function ensureRemote(id,nm){ if(id===myId||id==null) return null;
+    if(!remotes[id]) remotes[id]={name:nm||'?',x:0,z:19.7,yaw:Math.PI,tx:0,tz:19.7,tyaw:Math.PI,f:0,obj:buildAvatar(nm||'?')};
+    return remotes[id]; }
+  function removeRemote(id){ const r=remotes[id]; if(r&&r.obj) scene.remove(r.obj); delete remotes[id]; }
+  function applyPose(d){ if(d.id===myId) return; const r=ensureRemote(d.id,d.name); if(!r)return; r.tx=d.x; r.tz=d.z; r.tyaw=d.yaw; r.f=d.f; }
+
+  /* ---- host: bağlantı + relay ---- */
+  function roster(){ const l=[{id:'H',name:myName,host:true}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name}); }); return l; }
+  function broadcast(m,except){ conns.forEach(c=>{ if(c.open && c._pid!==except){ try{c.send(m);}catch(e){} } }); }
+  function hookHostConn(c){
+    c.on('open',()=>{});
+    c.on('data',d=>{
+      if(d.t==='hello'){ c._pid=c.peer; c._name=(d.name||'Bekçi').slice(0,10); ensureRemote(c.peer,c._name);
+        try{ c.send({t:'welcome',yourId:c.peer,roster:roster(),started}); }catch(e){}
+        broadcast({t:'roster',roster:roster()}); refreshList();
+        if(started){ try{c.send({t:'start',night:selNight});}catch(e){} }
+      } else if(d.t==='pose'){ applyPose(d); broadcast(d,d.id); }
+    });
+    c.on('close',()=>{ removeRemote(c.peer); conns=conns.filter(x=>x!==c); broadcast({t:'roster',roster:roster()}); broadcast({t:'leave',id:c.peer}); refreshList(); });
+    conns.push(c);
+  }
+  function startHost(){
+    if(typeof Peer==='undefined'){ status('bağlantı kütüphanesi yüklenmedi (internet?)'); return; }
+    host=true; myName=nameVal(); myId='H'; code=genCode();
+    $('#mpCode').textContent=code; roomView(); status('oda açılıyor…'); $('#mpStart').classList.remove('hidden'); $('#mpWait').classList.add('hidden');
+    peer=new Peer(peerId(code));
+    peer.on('open',()=>{ active=true; status('oda hazır — kodu paylaş, arkadaşların katılsın'); refreshList(); });
+    peer.on('connection',hookHostConn);
+    peer.on('error',e=>{ status('hata: '+e.type); });
+  }
+  /* ---- misafir: host'a bağlan ---- */
+  function hookGuestConn(c){ conns=[c];
+    c.on('open',()=>{ active=true; try{c.send({t:'hello',name:myName});}catch(e){} status('bağlandı ✓ — host\'un başlatması bekleniyor'); });
+    c.on('data',d=>{
+      if(d.t==='welcome'){ myId=d.yourId; applyRoster(d.roster); if(d.started){ /* devam eden oturuma katıl */ } }
+      else if(d.t==='roster'){ applyRoster(d.roster); }
+      else if(d.t==='pose'){ applyPose(d); }
+      else if(d.t==='start'){ beginSession(d.night); }
+      else if(d.t==='leave'){ removeRemote(d.id); }
+    });
+    c.on('close',()=>{ status('bağlantı koptu'); });
+    c.on('error',()=>{ status('bağlantı hatası'); });
+  }
+  function join(codeIn){
+    if(typeof Peer==='undefined'){ status('bağlantı kütüphanesi yüklenmedi (internet?)'); return; }
+    codeIn=(codeIn||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
+    if(codeIn.length<5){ status('5 haneli oda kodunu gir'); return; }
+    host=false; myName=nameVal(); code=codeIn;
+    $('#mpCode').textContent=codeIn; roomView(); $('#mpStart').classList.add('hidden'); $('#mpWait').classList.remove('hidden'); status('bağlanıyor…');
+    peer=new Peer();
+    peer.on('open',()=>{ const c=peer.connect(peerId(codeIn),{reliable:true}); if(!c){ status('bağlanılamadı'); return; } hookGuestConn(c); });
+    peer.on('error',e=>{ status('hata: '+e.type+(e.type==='peer-unavailable'?' — oda kodu yanlış?':'')); });
+  }
+
+  function applyRoster(list){ const ids=new Set();
+    list.forEach(p=>{ if(p.id!==myId){ ids.add(p.id); const r=ensureRemote(p.id,p.name); if(r) r.name=p.name; } });
+    for(const id in remotes){ if(!ids.has(id)) removeRemote(id); }
+    renderList(list);
+  }
+  function refreshList(){ renderList(roster()); }
+  function renderList(list){ const el=$('#mpList'); if(!el) return; el.innerHTML='';
+    list.forEach(p=>{ const d=document.createElement('div'); d.className='mpPlayer'+(p.host?' host':'');
+      d.innerHTML='<span class="dot"></span><span>'+(p.name||'?')+'</span>'+(p.host?'<span class="tag">HOST</span>':''); el.appendChild(d); });
+    const n=list.length; $('#mpStatus') && null;
+  }
+
+  /* ---- oturum başlat (host butonu / misafir 'start' aldı) ---- */
+  function hostStart(){ if(!host){ return; } started=true; broadcast({t:'start',night:selNight}); beginSession(selNight); }
+  function beginSession(night){
+    active=true; started=true;
+    $('#mpPanel').classList.remove('show');
+    selNight=night||1; customMode=false;
+    startGame();   // startGame mpOn()'u görüp gece/kutu/AI tehdidini atlar, telefonu geçer
+  }
+
+  /* ---- her frame: uzakları interpolasyonla ilerlet + pozunu yayınla ---- */
+  function tick(dt){
+    if(!active) return;
+    for(const id in remotes){ const r=remotes[id]; if(!r.obj) continue;
+      const k=Math.min(1,dt*12);
+      r.x+=(r.tx-r.x)*k; r.z+=(r.tz-r.z)*k;
+      let dy=r.tyaw-r.yaw; while(dy>Math.PI)dy-=2*Math.PI; while(dy<-Math.PI)dy+=2*Math.PI; r.yaw+=dy*k;
+      r.obj.position.set(r.x*SC,0,r.z*SC); r.obj.rotation.y=r.yaw;
+      r.obj.userData.fl.visible=!!r.f;
+      r.obj.visible=(state===S.PLAY||state===S.CAMS);
+    }
+    if(started && (state===S.PLAY||state===S.CAMS)){
+      poseT-=dt; if(poseT<=0){ poseT=0.066;
+        const p={t:'pose',id:myId,x:+player.x.toFixed(2),z:+player.z.toFixed(2),yaw:+player.yaw.toFixed(2),f:flashOn?1:0};
+        if(host) broadcast(p); else if(conns[0]&&conns[0].open){ try{conns[0].send(p);}catch(e){} }
+      }
+    }
+  }
+  function leave(){ try{ if(peer) peer.destroy(); }catch(e){} peer=null; conns=[]; active=false; started=false; host=false; myId=null;
+    for(const id in remotes) removeRemote(id);
+    $('#mpRoom').classList.add('hidden'); $('#mpHome').classList.remove('hidden'); $('#mpStart').classList.add('hidden'); $('#mpWait').classList.add('hidden'); status(''); }
+
+  /* ---- lobi butonları ---- */
+  $('#mpBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume();
+    $('#mpHome').classList.remove('hidden'); $('#mpRoom').classList.add('hidden'); $('#mpPanel').classList.add('show');
+    if(typeof Peer==='undefined') status('⚠ çevrimiçi kütüphane yüklenemedi — internet gerekli'); });
+  $('#mpHostBtn').addEventListener('click',e=>{ e.stopPropagation(); startHost(); });
+  $('#mpJoinBtn').addEventListener('click',e=>{ e.stopPropagation(); join($('#mpCodeIn').value); });
+  $('#mpStart').addEventListener('click',e=>{ e.stopPropagation(); hostStart(); });
+  $('#mpCopy').addEventListener('click',e=>{ e.stopPropagation(); try{ navigator.clipboard.writeText(code||''); status('kod kopyalandı ✓'); }catch(_){}});
+  $('#mpBack').addEventListener('click',e=>{ e.stopPropagation(); leave(); $('#mpPanel').classList.remove('show'); });
+
+  return { tick, leave, isPlaying:()=>active&&started, active:()=>active };
+})();
 
 /* Yön: yaw 0 => +Z (güney). Kuzeye bakmak için yaw=PI. */
 function dirVec(){ return new THREE.Vector3(Math.sin(player.yaw)*Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw)*Math.cos(player.pitch)); }
@@ -1257,6 +2279,8 @@ const REGIONS=[
   {n:'SAHNE ÖNÜ',       x:[-5,5],    z:[-4,-1]},
   {n:'YEMEKHANE',       x:[-9,9],    z:[-4,6]},
 ];
+// Kuzey (güney sınırı z<6 olan) oda kutularını büyüyen haritaya hizala
+REGIONS.forEach(r=>{ if(r.z[0]<6){ r.x=[NX(r.x[0]),NX(r.x[1])]; r.z=[NZ(r.z[0]),NZ(r.z[1])]; } });
 function roomName(){ for(const r of REGIONS){ if(player.x>=r.x[0]&&player.x<=r.x[1]&&player.z>=r.z[0]&&player.z<=r.z[1]) return r.n; } return 'PİZZACI'; }
 
 /* ================= ÇARPIŞMA ================= */
@@ -1288,13 +2312,17 @@ function collide(px,pz){
 /* ================= GİRİŞ ================= */
 const keys={};
 addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
-  if(state===S.MENU){ startGame(); return; }
+  if(state===S.ENDING){ endingTap(); return; }
+  if(state===S.VENT) return;
+  if(state===S.MENU){ if($('#cnPanel').classList.contains('show')||$('#setPanel').classList.contains('show')||$('#achPanel').classList.contains('show')||$('#mpPanel').classList.contains('show')) return; startGame(); return; }
   if(state===S.DEAD || state===S.WIN){ toMenu(); return; }
   if(state===S.CAMS){ if(k==='c'||k==='escape') closeCamera(); else if(k==='arrowleft')cycleCam(-1); else if(k==='arrowright')cycleCam(1); else if(k===' '){ e.preventDefault(); startWind(); } return; }
   keys[k]=true;
   if(k==='f') toggleFlash();
   if(k==='e') interactDoor();
   if(k==='c') openCamera();
+  if(k==='q'||k==='m') toggleMask();
+  if(k==='r') enterVent();
   if(k===' '){ e.preventDefault(); startWind(); }
   if(k==='shift') running=true;
 });
@@ -1331,11 +2359,14 @@ renderer.domElement.addEventListener('touchend',endTouch); renderer.domElement.a
 
 $('#flashBtn').addEventListener('click',toggleFlash);
 $('#runBtn').addEventListener('click',()=>{ running=!running; $('#runBtn').classList.toggle('on',running); });
-$('#menu').addEventListener('click',()=>startGame());
+$('#menu').addEventListener('click',()=>{ customMode=false; startGame(); });
 $('#dead').addEventListener('click',toMenu);
 $('#win').addEventListener('click',toMenu);
+$('#ending').addEventListener('click',endingTap);
 $('#actBtn').addEventListener('click',interactDoor);
 $('#camBtn').addEventListener('click',openCamera);
+$('#maskBtn').addEventListener('click',toggleMask);
+$('#ventBtn').addEventListener('click',enterVent);
 $('#camClose').addEventListener('click',closeCamera);
 $('#camPrev').addEventListener('click',()=>cycleCam(-1));
 $('#camNext').addEventListener('click',()=>cycleCam(1));
@@ -1346,7 +2377,36 @@ addEventListener('mouseup',stopWind);
 windBtn.addEventListener('touchstart',e=>{e.preventDefault(); startWind();},{passive:false});
 windBtn.addEventListener('touchend',e=>{e.preventDefault(); stopWind();},{passive:false});
 
-function toggleFlash(){ if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?'AÇIK':'KAPALI'; Audio.click(); }
+function toggleFlash(){ if(masked) return; if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?'AÇIK':'KAPALI'; Audio.click(); }
+
+// --- MASKE ---
+function toggleMask(){
+  if(state!==S.PLAY) return;
+  if(!masked){
+    if(maskCharge<8){ toast('🎭 MASKE YOK — nefes al'); Audio.tone(160,.12,'square',.15); return; }
+    masked=true; flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
+    $('#maskOv').classList.add('show'); $('#maskBtn').classList.add('on');
+    Audio.noise(.25,.14,500); Audio.tone(120,.2,'sawtooth',.12);
+  } else setMaskOff();
+}
+function setMaskOff(){ masked=false; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on'); Audio.noise(.18,.1,600); }
+
+// --- VENT (kestirme sürünme) ---
+function enterVent(){
+  if(state!==S.PLAY) return;
+  const v=nearVent(); if(!v) return;
+  const other=VENTS.find(o=>o!==v);
+  ventFrom={x:player.x,z:player.z}; ventTo={x:other.x,z:other.z}; ventT=0; runStats.ventUsed++;   // 🏆 vent kullanımı
+  state=S.VENT; masked=false; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on'); flashOn=false;
+  hidePlayUI(); $('#ventDark').classList.add('show');
+  Audio.noise(.6,.12,700); toast('🪜 VENT KANALI — SÜRÜNÜYORSUN');
+}
+function finishVent(){
+  player.x=ventTo.x; player.z=ventTo.z;
+  // çıkışta yakınında KOVALAYAN varsa kaçış yok
+  for(const a of AIS){ if(a.awake && a.chasing && Math.hypot(a.pos.x-player.x,a.pos.z-player.z)<2.6){ state=S.PLAY; startJump(a.model,a.name); return; } }
+  state=S.PLAY; $('#ventDark').classList.remove('show'); showPlayUI(); Audio.noise(.2,.1,600);
+}
 
 // --- kısa mesaj ---
 let toastT=0;
@@ -1355,6 +2415,7 @@ function toast(msg){ const el=$('#toast'); el.textContent=msg; el.style.opacity=
 // --- KAPI ---
 function interactDoor(){
   if(state!==S.PLAY) return;
+  if(masked){ toast('🎭 MASKE TAKILIYKEN KAPI KULLANILMAZ'); Audio.tone(160,.1,'square',.12); return; }
   if(!nearDoor){ return; }
   if(!powered){ toast('⚡ GÜÇ YOK — KAPI ÇALIŞMIYOR'); Audio.tone(120,.15,'square',.2); return; }
   if(nearDoor.closed){                       // elle erken aç
@@ -1365,7 +2426,7 @@ function interactDoor(){
       toast('⏳ KAPI ISINIYOR — '+Math.ceil(nearDoor.cool)+'s');
       Audio.tone(140,.12,'square',.18); return;
     }
-    nearDoor.closed=true; nearDoor.closeT=DOOR_TIME;
+    nearDoor.closed=true; nearDoor.closeT=DOOR_TIME; runStats.doorUsed=true;   // 🏆 kapı kapatıldı
     toast(nearDoor.name+' KAPANDI — '+DOOR_TIME+'s');
   }
   Audio.tone(110,.15,'square',.25); Audio.noise(.2,.15,600);
@@ -1376,6 +2437,7 @@ function interactDoor(){
 function openCamera(){
   if(state===S.CAMS){ closeCamera(); return; }
   if(state!==S.PLAY) return;
+  if(masked){ toast('🎭 MASKE TAKILIYKEN KAMERA AÇILMAZ'); Audio.tone(200,.1,'square',.15); return; }
   if(!inOffice()){ toast('📹 KAMERA SADECE OFİSTE KULLANILIR'); Audio.tone(200,.1,'square',.15); return; }
   if(!powered){ toast('⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR'); Audio.tone(160,.12,'square',.18); return; }
   state=S.CAMS; $('#tablet').classList.add('show'); $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam();
@@ -1403,53 +2465,165 @@ function renderNights(){
     b.addEventListener('click',e=>{
       e.stopPropagation();
       if(locked){ Audio.init(); Audio.resume(); Audio.tone(150,.12,'square',.15); return; }
-      selNight=n; renderNights(); startGame();
+      selNight=n; customMode=false; renderNights(); startGame();
     });
     el.appendChild(b);
   }
 }
 selNight=save.maxNight; renderNights();
 
-function startGame(){ Audio.init(); Audio.resume(); Audio.startAmbience();
+/* ---- ÖZEL GECE PANELİ ---- */
+const CN_CHARS=[{id:'freddo',n:'🐻 FREDDO'},{id:'bonko',n:'💜 BONKO'},{id:'chika',n:'🐤 CHİKA'},{id:'foxo',n:'🦊 FOXO'}];
+function buildCnRows(){
+  const box=$('#cnRows'); box.innerHTML='';
+  CN_CHARS.forEach(c=>{
+    const row=document.createElement('div'); row.className='cnRow';
+    row.innerHTML=`<span class="cnName">${c.n}</span><input type="range" class="cnRange" min="0" max="20" value="${custom[c.id]}" data-id="${c.id}"><span class="cnVal">${custom[c.id]}</span>`;
+    const rng=row.querySelector('.cnRange'), val=row.querySelector('.cnVal');
+    rng.addEventListener('input',()=>{ custom[c.id]=+rng.value; val.textContent=rng.value; updateCnStar(); Audio.tone(400+ +rng.value*30,.03,'square',.05); });
+    box.appendChild(row);
+  });
+  updateCnStar();
+}
+function updateCnStar(){
+  const all20 = CN_CHARS.every(c=>custom[c.id]===20);
+  $('#cnStar').textContent = all20? '★ 20/20/20/20 — EFSANE MOD ★' : '';
+}
+function openCustom(){ $('#menu').classList.add('hidden'); $('#cnPanel').classList.add('show'); buildCnRows(); Audio.click(); }
+function closeCustom(){ $('#cnPanel').classList.remove('show'); refreshMenu(); $('#menu').classList.remove('hidden'); Audio.click(); }
+$('#cnBack').addEventListener('click',closeCustom);
+$('#cnGo').addEventListener('click',()=>{ if(CN_CHARS.every(c=>custom[c.id]===0)){ toast('En az bir karakter seç'); return; } customMode=true; $('#cnPanel').classList.remove('show'); startGame(); });
+document.querySelectorAll('.cnPre').forEach(b=>b.addEventListener('click',()=>{
+  const [f,bo,ch,fo]=b.dataset.p.split(',').map(Number);
+  custom.freddo=f; custom.bonko=bo; custom.chika=ch; custom.foxo=fo; buildCnRows(); Audio.click();
+}));
+$('#customBtn').addEventListener('click',e=>{ e.stopPropagation(); openCustom(); });
+function refreshMenu(){ $('#customBtn').classList.toggle('hidden', !save.beat6); }
+refreshMenu();
+
+function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Audio.startAmbience(); Audio.setAmbient(true);
+  Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show');
+  resetRunStats();
   night=selNight; clockT=0; lastHour=0;
+  masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
+  ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null;
+  $('#ventDark').classList.remove('show'); $('#ventWarn').classList.add('hidden');
+  $('#maskBtn').classList.remove('hidden'); $('#maskBox').classList.remove('hidden');
   player.x=0; player.z=19.7; player.yaw=Math.PI; player.pitch=-0.05; battery=100; flashOn=false; running=false;
   powered=true; fuseActive=false; fuse.visible=false; resetPowerTimer();
   doors.forEach(d=>{ d.closed=false; d.closeT=0; d.cool=0; });
   musicBox=100; puppetOut=false; winding=false; puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z;
-  puppet.position.set(PUP_HOME.x*SC,0.05,PUP_HOME.z*SC); puppet.scale.setScalar(puppet.userData.baseScale||1);
+  puppetStage=0; lullaIdx=0; lullaT=0; whisperT=0; pRoseAnnounced=false; puppetVigOp=0; puppetJump=false; puppetNavT=0; dreadT=0; dreadStep=0;
+  $('#puppetVig').style.opacity='0'; $('#puppetWarn').style.opacity='0';
+  puppet.position.set(PUP_HOME.x*SC,-2.05,PUP_HOME.z*SC); puppet.scale.setScalar(puppet.userData.baseScale||1);   // kutunun içinde saklı
+  puppetLidHinge.rotation.x=0;   // kapak kapalı
+  if(puppet.userData.aL){ puppet.userData.aL.rotation.set(0,0,0.12); puppet.userData.aR.rotation.set(0,0,-0.12); puppet.userData.head.rotation.set(0,0,0); }
   resetAI();
   state=S.PLAY;
   $('#runBtn').classList.remove('on');
-  toast('🕐 12:00 — GECE '+night+' BAŞLADI');
+  toast(Net.isPlaying()? '👥 ÇOK OYUNCU — birlikte keşfet' : (customMode? '🌙 12:00 — ÖZEL GECE BAŞLADI' : ('🕐 12:00 — GECE '+night+' BAŞLADI')));
   $('#menu').classList.add('hidden'); $('#dead').classList.add('hidden'); $('#win').classList.add('hidden'); $('#tablet').classList.remove('show');
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
   $('#flashBtn').classList.remove('hidden','on'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden'); $('#windBtn').classList.add('hidden');
   if(isMobile) joyZone.classList.remove('hidden');
   $('#flashState').textContent='KAPALI';
+  if(Net.isPlaying()){
+    // MP keşif: tek-oyunculu tehdit mekaniği UI'ları gizli, saat/kutu/elektrik yok
+    $('#boxWrap').classList.add('hidden'); $('#windBtn').classList.add('hidden');
+    $('#maskBtn').classList.add('hidden'); $('#maskBox').classList.add('hidden');
+    $('#powerStat').classList.add('hidden'); $('#ventBtn').classList.add('hidden');
+    lastHour=0;
+  } else {
+    startPhone();   // 📞 geceye özel Telefon Adamı brifingi (tek oyunculu)
+  }
 }
-function toMenu(){ state=S.MENU; $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
+function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden');
   $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
   $('#boxWrap').classList.add('hidden'); $('#windBtn').classList.add('hidden');
-  $('#dead').classList.add('hidden'); $('#win').classList.add('hidden');
-  renderNights(); $('#menu').classList.remove('hidden'); }
+  $('#maskBtn').classList.add('hidden'); $('#maskBox').classList.add('hidden'); $('#maskOv').classList.remove('show');
+  $('#ventBtn').classList.add('hidden'); $('#ventDark').classList.remove('show'); $('#ventWarn').classList.add('hidden');
+  $('#puppetVig').style.opacity='0'; $('#puppetWarn').style.opacity='0'; puppetVigOp=0;
+  $('#dead').classList.add('hidden'); $('#win').classList.add('hidden'); $('#ending').classList.remove('show');
+  renderNights(); refreshMenu(); $('#menu').classList.remove('hidden'); }
 
 // 06:00 — gece atlatıldı
 function winNight(){
-  if(state===S.WIN) return;
-  state=S.WIN; winding=false; running=false; flashOn=false; flash.intensity=0;
-  hidePlayUI(); Audio.chime6();
+  if(state===S.WIN||state===S.ENDING) return;
+  Audio.setAmbient(false);
+  winding=false; running=false; flashOn=false; flash.intensity=0; masked=false;
+  $('#maskOv').classList.remove('show'); hidePlayUI();
+  evalAch();   // 🏆 gece atlatıldı → başarımları değerlendir
   if(navigator.vibrate) navigator.vibrate([80,60,80,60,180]);
+
+  // ÖZEL GECE bitti
+  if(customMode){
+    state=S.WIN; Audio.chime6();
+    const score=custom.freddo+custom.bonko+custom.chika+custom.foxo;
+    if(score>save.cnBest){ save.cnBest=score; } saveGame();
+    const legend = CN_CHARS.every(c=>custom[c.id]===20);
+    $('#winTitle').textContent = legend? '★ EFSANE ★' : 'ÖZEL GECE BİTTİ';
+    $('#winTitle').style.color = legend? '#ffd76a':'#3fae5a';
+    $('#winTitle').style.textShadow = legend? '0 0 26px #ffd76a':'0 0 22px #3fae5a';
+    $('#winSub').textContent = 'Zorluk puanı '+score+'/80'+(legend?' — resmen delisin.':'');
+    $('#win').classList.remove('hidden');
+    return;
+  }
+
   if(night>save.best) save.best=night;
   if(night+1>save.maxNight) save.maxNight=Math.min(6,night+1);
+  const first6 = night>=6 && !save.beat6;
+  if(night>=6) save.beat6=true;
   saveGame();
   selNight=Math.min(6, Math.max(selNight, night+1));
+  // Gece 6 İLK kez bitti → final sahnesi (özel geceyi de açar)
+  if(first6){ startEnding(); return; }
+  state=S.WIN; Audio.chime6();
   const done = night>=6;
+  $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
   $('#winTitle').textContent = done? 'HEPSİ BİTTİ' : 'GECE ATLATILDI';
-  $('#winSub').textContent  = done? 'Gece 6\'yı da bitirdin — pizzacı senindir.' : ('Gece '+night+' bitti — GECE '+(night+1)+' AÇILDI');
+  $('#winSub').textContent  = done? 'Gece 6\'yı da bitirdin — 🌙 ÖZEL GECE açık.' : ('Gece '+night+' bitti — GECE '+(night+1)+' AÇILDI');
   $('#win').classList.remove('hidden');
+}
+
+/* ================= FİNAL SAHNESİ ================= */
+const END_LINES=[
+  'Altı gece. Altı gece boyunca karanlıkta nefesini tuttun.',
+  'Güneş doğuyor. Vardiya bitti.',
+  'Masanın üzerinde bir zarf: haftalık maaşın.',
+  '$120.50 — bir hafta uykusuzluğun, korkunun karşılığı.',
+  'Freddo ve arkadaşları yeniden sahnedeki yerine döndü.',
+  'Sanki hiçbir şey olmamış gibi. Hep gülümsüyorlar.',
+  'Ama sen artık gülüşlerinin ardındakini biliyorsun.',
+  '— PİZZACI SENİNDİR —',
+];
+let endStep=0, endT=0;
+function startEnding(){
+  state=S.ENDING; endStep=0; endT=0;
+  $('#endText').innerHTML=''; $('#endFade').style.opacity='1'; $('#endFade').style.transition='opacity 3s';
+  $('#endCheck').classList.remove('in'); $('#endTap').classList.remove('in');
+  $('#ending').classList.add('show');
+  setTimeout(()=>{ $('#endFade').style.opacity='0'; }, 200);
+  Audio.chime6();
+}
+function endingStep(dt){
+  endT-=dt;
+  if(endT<=0 && endStep<END_LINES.length){
+    const d=document.createElement('div'); d.textContent=END_LINES[endStep];
+    $('#endText').appendChild(d); requestAnimationFrame(()=>d.classList.add('in'));
+    if(endStep===3) setTimeout(()=>$('#endCheck').classList.add('in'), 400);
+    endStep++; endT=2.6;
+    if(endStep>=END_LINES.length) setTimeout(()=>$('#endTap').classList.add('in'), 1600);
+  }
+}
+function endingTap(){
+  if(state!==S.ENDING) return;
+  if(endStep<END_LINES.length){ endT=0; endStep=END_LINES.length;   // atla: kalanları dök
+    END_LINES.slice($('#endText').children.length).forEach(t=>{ const d=document.createElement('div'); d.textContent=t; d.classList.add('in'); $('#endText').appendChild(d); });
+    $('#endCheck').classList.add('in'); $('#endTap').classList.add('in'); return; }
+  $('#ending').classList.remove('show'); toMenu();
 }
 
 /* ================= ELEKTRİK / SİGORTA ================= */
@@ -1477,25 +2651,47 @@ function hidePlayUI(){
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#windBtn').classList.add('hidden'); $('#powerStat').classList.add('hidden');
   $('#boxWrap').classList.add('hidden'); joyZone.classList.add('hidden');
+  $('#maskBtn').classList.add('hidden'); $('#ventBtn').classList.add('hidden'); $('#ventWarn').classList.add('hidden');
+  $('#puppetWarn').style.opacity='0'; endPhone();
+}
+function showPlayUI(){
+  $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
+  $('#flashBtn').classList.remove('hidden'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
+  $('#maskBtn').classList.remove('hidden'); $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden');
+  if(isMobile) joyZone.classList.remove('hidden');
 }
 let jumpModel=null, jumpName='???';
 function startJump(model,name){
   if(state===S.JUMP||state===S.DEAD) return;
   jumpModel=model; jumpName=name||'???'; state=S.JUMP; winding=false; jumpT=0;
-  Audio.tone(950,.7,'sawtooth',.45); Audio.tone(520,.7,'sawtooth',.3); Audio.noise(.9,.5,3500);
-  if(navigator.vibrate) navigator.vibrate([300,60,300]);
+  puppetJump=(model===puppet);
+  $('#puppetVig').style.opacity='0'; $('#puppetWarn').style.opacity='0';
+  if(puppetJump){ Audio.puppetScream(); Audio.noise(.4,.2,2200); }
+  else { Audio.animScream(); }
+  if(navigator.vibrate) navigator.vibrate(puppetJump?[500,50,300,50,600]:[450,50,250,50,450]);
   hidePlayUI();
   const u=model.userData; if(u.glowL){ u.glowL.visible=u.glowR.visible=true; }
-  if(u.eyeMat) u.eyeMat.emissiveIntensity=2.6; else if(u.eyeWhite) u.eyeWhite.emissiveIntensity=2.6;
-  if(u.jaw) u.jaw.rotation.x=0.95;   // ağzı ardına kadar açık son görüntün
+  if(u.eyeMat) u.eyeMat.emissiveIntensity=puppetJump?4.2:2.6; else if(u.eyeWhite) u.eyeWhite.emissiveIntensity=3.4;
+  if(u.jaw) u.jaw.rotation.x=1.0;   // ağzı ardına kadar açık son görüntün
+  if(puppetJump && u.aL){ u.aL.rotation.set(-2.3,0,0); u.aR.rotation.set(-2.3,0,0); u.head.rotation.set(0.32,0,0); }  // kollar fırlar, maske öne
 }
-function onDead(){ state=S.DEAD; if(jumpModel) jumpModel.scale.setScalar(jumpModel.userData.baseScale||1); $('#jumpFlash').style.opacity='0';
-  $('#deadWho').textContent=jumpName+' seni yakaladı';
-  $('#deadWhen').textContent='Gece '+night+' • '+clockText()+' — 06:00\'a '+Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC)+' saat kalmıştı';
+function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpModel.scale.setScalar(jumpModel.userData.baseScale||1); $('#jumpFlash').style.opacity='0';
+  nearLight.intensity=0.25; nearLight.distance=3.5; nearLight.color.setHex(0x9099aa);   // jumpscare ışığını sıfırla
+  $('#puppetVig').style.opacity='0';
+  $('#deadWho').textContent = puppetJump? 'PUPPET seni müzik kutusuna soktu' : (jumpName+' seni yakaladı');
+  puppetJump=false;
+  const hoursLeft=Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC);
+  const TIPS=['💡 CHİKA sesi duyar — koşmak onu üstüne çeker, yürü.','💡 FREDDO ışıkta DONAR — üstünde fener tut.',
+    '💡 BONKO ışığı görürse ÇILDIRIR — ona asla fener tutma!','💡 FOXO\'yu kamerada izlemezsen koşarak gelir.',
+    '💡 Müzik kutusunu %55 üstünde tut, yoksa Puppet kutudan çıkar.','💡 Vent\'te ses varsa MASKE tak — sızanı geri çeker.',
+    '💡 Kapı 7s kapalı kalır sonra açılır; zaman kazandırır, kalkan değil.','💡 Elektrik kesilirse Ödül Köşesi\'ne gidip kutuyu elle kur.'];
+  $('#deadWhen').innerHTML='Gece '+(customMode?'ÖZEL':night)+' • '+clockText()+'\'da yakalandın'
+    +(customMode?'':' — 06:00\'a '+hoursLeft+' saat kalmıştı')
+    +'<br><span style="color:#8a7a5a;font-size:13px">'+TIPS[Math.floor(Math.random()*TIPS.length)]+'</span>';
   $('#dead').classList.remove('hidden'); }
 
 /* ================= GÜNCELLEME ================= */
-let stepTimer=0;
+let stepTimer=0, flickT=randRange(8,20), flickActive=0, lightFlick=1;
 function update(dt){
   fanBlades.rotation.y += (powered?dt*12:dt*1);
   // ışıkları elektriğe göre yumuşat
@@ -1503,6 +2699,12 @@ function update(dt){
   ambient.intensity += ((powered?0.5:0.06)-ambient.intensity)*k;
   hemi.intensity    += ((powered?0.9:0.0)-hemi.intensity)*k;
   powerLights.forEach(l=> l.intensity += ((powered?l.userData.base:0)-l.intensity)*k);
+  // ışık titremesi (elektrik açıkken ara sıra kısa kararma → tekinsiz atmosfer)
+  if(powered && (state===S.PLAY||state===S.CAMS)){
+    if(flickActive>0){ flickActive-=dt; lightFlick=(Math.random()<0.5)?0.12:0.95; if(flickActive<=0){ flickActive=0; lightFlick=1; } }
+    else { lightFlick=1; flickT-=dt; if(flickT<=0){ flickT=randRange(9,24); flickActive=0.14+Math.random()*0.26; Audio.tone(2600,.02,'square',.025); } }
+    powerLights.forEach(l=> l.intensity*=lightFlick); ambient.intensity*=(0.4+lightFlick*0.6);
+  }
   emergency.intensity += ((powered?0:0.55)-emergency.intensity)*k;
   // animatronik göz nabzı (karanlıkta daha belirgin)
   const pulse=0.7+Math.sin(perf*0.003)*0.3;
@@ -1513,19 +2715,58 @@ function update(dt){
   if(fuseActive){ fuseHalo.material.opacity=0.55+Math.sin(perf*0.006)*0.4; fuseLight.intensity=1.2+Math.sin(perf*0.006)*0.7; fuse.rotation.y+=dt*1.6; }
   // toast solması
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('#toast').style.opacity='0'; }
+  // halüsinasyonlar (aktif anim her durumda ilerler; yeni tetik yalnız PLAY + ayar açıkken)
+  Hallu.update(dt, Math.min(1,dangerLevel), state===S.PLAY && SET.hallu>0);
+  // 📞 Telefon Adamı + 🏆 başarım pop zamanlayıcısı
+  if(state===S.PLAY||state===S.CAMS) updatePhone(dt);
+  if(achPopT>0){ achPopT-=dt; if(achPopT<=0){ $('#achPop').classList.remove('show'); setTimeout(showNextAch,450); } }
 
   // === JUMPSCARE animasyonu ===
   if(state===S.JUMP && jumpModel){
     jumpT+=dt;
-    camera.position.set(player.x*SC+(Math.random()-0.5)*0.25, EYE+(Math.random()-0.5)*0.25, player.z*SC+(Math.random()-0.5)*0.25);
-    const dj=dirVec();
-    jumpModel.position.set(player.x*SC+dj.x*0.95, 0.35+Math.sin(jumpT*45)*0.12, player.z*SC+dj.z*0.95);
-    jumpModel.scale.setScalar((jumpModel.userData.baseScale||1)*(1.25+Math.sin(jumpT*32)*0.15));
-    jumpModel.lookAt(camera.position.x,2.4,camera.position.z);
-    camera.lookAt(jumpModel.position.x,1.7,jumpModel.position.z);
+    const u=jumpModel.userData;
+    const s=(u.baseScale||1)*(puppetJump?1.72:1.42);   // ikisi de dev
+    const hy=(u.headY||2.0)*s;                     // modelin kafasının ölçekli yüksekliği
+    // Kamera oyuncunun yerinde sabit; sert ama sönümlenen sarsıntı (pitch/yaw'a bağlı DEĞİL)
+    const shake=(puppetJump?0.24:0.21)*Math.max(0,1-jumpT*0.65)*SET.shake;
+    const cx=player.x*SC+(Math.random()-0.5)*shake, cy=EYE+(Math.random()-0.5)*shake, cz=player.z*SC+(Math.random()-0.5)*shake;
+    camera.position.set(cx,cy,cz);
+    // Oyuncunun YATAY bakış yönü (pitch YOK) — model tam karşıda belirir
+    const fx=Math.sin(player.yaw), fz=Math.cos(player.yaw);
+    const dist=(puppetJump?1.5:1.95)-Math.min(puppetJump?0.22:0.35,jumpT*0.55);      // saldırırken üstüne gelir
+    // jumpscare ışığı — modelin yüzünü aydınlat (yoksa koyu renkli animatronikler kara kütle olur)
+    nearLight.position.set(cx,cy,cz); nearLight.intensity=0.85; nearLight.distance=5.0; nearLight.color.setHex(puppetJump?0xff88aa:0xffe0cc);
+    // Modeli, kafası göz hizasına oturacak biçimde yerleştir (ayaklar aşağıda kalır)
+    const my=cy-hy+0.05+Math.sin(jumpT*(puppetJump?40:36))*(puppetJump?0.05:0.05);
+    jumpModel.position.set(cx+fx*dist, my, cz+fz*dist);
+    jumpModel.scale.setScalar(s*(1+Math.sin(jumpT*(puppetJump?34:30))*(puppetJump?0.06:0.055)));
+    // Model DİK dursun, yalnız yaw ile kameraya dönsün (kendi y seviyesine bak)
+    jumpModel.lookAt(cx, my, cz);
+    // Çene takırtısı (dörtlü) + kafa sarsıntısı (ikisi)
+    if(u.jaw) u.jaw.rotation.x = 0.6+Math.abs(Math.sin(jumpT*30))*0.55;
+    const hg=u.headG||u.head; if(hg){ hg.rotation.z=Math.sin(jumpT*42)*0.08; hg.rotation.x=Math.sin(jumpT*36)*0.05; }
+    // Kamera modelin YÜZÜNE baksın (kafa yüksekliği) — açı artık stabil
+    camera.lookAt(jumpModel.position.x, my+hy, jumpModel.position.z);
     flash.intensity=0;
-    $('#jumpFlash').style.opacity = Math.random()<0.5?'0.6':'0';
-    if(jumpT>1.35){ onDead(); }
+    $('#jumpFlash').style.opacity = (SET.scare*(puppetJump? ((Math.floor(jumpT*30)%2)?0.82:0.18) : ((Math.floor(jumpT*26)%2)?0.8:0.1))).toFixed(2);
+    if(jumpT>(puppetJump?1.65:1.4)){ onDead(); }
+    return;
+  }
+
+  // === VENT SÜRÜNME ANİMASYONU ===
+  if(state===S.VENT){
+    ventT+=dt;
+    const p=Math.min(1, ventT/2.6);
+    const cx=ventFrom.x+(ventTo.x-ventFrom.x)*p, cz=ventFrom.z+(ventTo.z-ventFrom.z)*p;
+    const bob=Math.sin(ventT*11)*0.05;
+    camera.position.set(cx*SC, 0.72+bob, cz*SC);
+    const dx=ventTo.x-ventFrom.x, dz=ventTo.z-ventFrom.z;
+    camera.lookAt((cx+dx*0.3)*SC, 0.6+bob, (cz+dz*0.3)*SC);
+    flash.intensity=0;
+    if(ventT>0.5 && Math.random()<dt*3) Audio.step();
+    // dünyayı canlı tut (MP keşifte AI/saat yok)
+    if(!Net.isPlaying()){ updateAI(dt); clockT+=dt; }
+    if(p>=1){ finishVent(); }
     return;
   }
 
@@ -1544,43 +2785,120 @@ function update(dt){
     }
   }
 
-  // === SAAT: 12:00 → 06:00 ===
-  if(state===S.PLAY || state===S.CAMS){
+  // === SAAT: 12:00 → 06:00 === (çok oyunculu M1 keşif modunda saat/gece yok)
+  if((state===S.PLAY || state===S.CAMS) && !Net.isPlaying()){
     clockT+=dt;
     const h=clockHour();
     if(h!==lastHour){ lastHour=h; Audio.hourBell(); if(h<NIGHT_HOURS) toast('🕐 SAAT '+clockText()); }
     if(clockT>=NIGHT_HOURS*HOUR_SEC){ winNight(); return; }
   }
 
-  // === MÜZİK KUTUSU + PUPPET (PLAY ve CAMS'de) ===
-  if(state===S.PLAY || state===S.CAMS){
+  // === MÜZİK KUTUSU + PUPPET (PLAY ve CAMS'de) === (MP'de yok)
+  if((state===S.PLAY || state===S.CAMS) && !Net.isPlaying()){
     nearBox = Math.hypot(player.x-MB.x, player.z-MB.z) < 1.9;
     // Kurma: kameradan (Ödül Köşesi + elektrik) VEYA kutunun yanında (her zaman)
     const canWind = winding && ((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox));
     if(canWind) musicBox=Math.min(100, musicBox+dt*34);
     else musicBox=Math.max(0, musicBox-dt*ncfg().box); // geceye göre hızlanır
+    if(musicBox<runStats.boxMin) runStats.boxMin=musicBox;   // 🏆 en düşük kutu seviyesi
     // KUR butonu görünürlüğü
     $('#windBtn').classList.toggle('hidden', !((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)));
-    // melodisi (kuruluyken)
-    if(musicBox>0){ boxTuneTimer-=dt; if(boxTuneTimer<=0){ boxTuneTimer=0.5; Audio.tone([1047,988,880,784][Math.floor(Math.random()*4)],0.25,'sine',0.05*(musicBox/100)); } }
-    // puppet evde; süzülerek sallanır, kutu azaldıkça gözleri parlar
-    const pf=Math.sin(perf*0.0012);
-    puppet.position.set(PUP_HOME.x*SC, 0.05+pf*0.07, PUP_HOME.z*SC); puppet.scale.setScalar(puppet.userData.baseScale||1);
-    if(puppet.userData.aL){ puppet.userData.aL.rotation.x=pf*0.14; puppet.userData.aR.rotation.x=-pf*0.14;
-      puppet.userData.head.rotation.y=Math.sin(perf*0.0007)*0.35; }
-    puppet.userData.glowL.visible=puppet.userData.glowR.visible=(musicBox<45);
-    puppet.userData.eyeMat.emissiveIntensity = musicBox<45? (0.6+(45-musicBox)/45*1.6):0.5;
-    // BİTTİ → anında jumpscare + ölüm
+
+    const u=puppet.userData, pbase=puppet.userData.baseScale||1;
+    // ---- KADEME (kutu seviyesine göre) ----
+    // >=55 uyuyor | 35-55 kıpırdıyor | 15-35 doğruluyor | <15 KUTUDAN ÇIKTI (avlıyor)
+    const prevOut=puppetOut;
+    // Histerezis: <15'te çıkar, ancak kutu 55'e KURULUNCA geri döner (yoksa hemen kaçar)
+    if(!puppetOut){ if(musicBox<15) puppetOut=true; }
+    else { if(musicBox>55) puppetOut=false; }
+    puppetStage = puppetOut?3 : (musicBox>=55?0 : musicBox>=35?1 : 2);
+
+    // ---- NİNNİ / FISILTI SESLERİ ----
+    const health=musicBox/100;
+    if(canWind && musicBox>0){ lullaT-=dt; if(lullaT<=0){ lullaT=0.34; Audio.lullaby(lullaIdx++, Math.max(.15,health)); } }
+    else if(musicBox>0 && musicBox<60){ lullaT-=dt; if(lullaT<=0){ lullaT=0.5+(1-health)*0.2; Audio.lullaby(lullaIdx++, health); } } // kendi başına detune çalar
+    if(puppetStage>=2){ whisperT-=dt; if(whisperT<=0){ whisperT=puppetOut? (0.9+Math.random()*0.9) : (2.2+Math.random()*2); Audio.whisper(); } }
+    // kutudan yeni çıkış anı
+    if(puppetOut && !prevOut){ runStats.pptOut=true; Audio.puppetRise(); toast('🎭 PUPPET KUTUDAN ÇIKTI!'); if(navigator.vibrate) navigator.vibrate([120,60,120,60,200]);
+      puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z; pRoseAnnounced=true; }
+    else if(puppetStage>=2 && !pRoseAnnounced){ Audio.puppetRise(); pRoseAnnounced=true; }
+    else if(puppetStage<2) pRoseAnnounced=false;
+    if(prevOut && !puppetOut){ toast('🎵 PUPPET KUTUYA DÖNDÜ'); }
+
+    // ---- GÖZLER / DEHŞET ATMOSFERİ ----
+    const dread = puppetOut? 1 : Math.max(0, (55-musicBox)/40);   // 0..1
+    puppetVigOp += ((puppetOut? 0.72+Math.sin(perf*0.006)*0.14 : dread*0.5) - puppetVigOp)*Math.min(1,dt*4);
+    $('#puppetVig').style.opacity = puppetVigOp.toFixed(3);
+    u.glowL.visible=u.glowR.visible=(musicBox<48);
+    u.eyeMat.emissiveIntensity = 0.5 + dread*2.2 + (puppetOut? Math.abs(Math.sin(perf*0.02))*1.3 : 0);
+    // puppet tehlikesi kalp atışını da besler
+    if(dread>0.2) dangerLevel=Math.max(dangerLevel, 0.3+dread*0.7);
+
+    if(puppetOut){
+      // ================= AVLANMA =================
+      const sp=pStalkSpeed()*(state===S.CAMS?1.15:1.0);   // kameraya bakarken biraz daha hızlı (klasik ceza)
+      puppetNavT-=dt;
+      if(puppetNavT<=0 || Math.hypot(pntx-puppetPos.x,pntz-puppetPos.z)<0.35){
+        puppetNavT=0.3; const nt=navTarget(puppetPos.x,puppetPos.z,player.x,player.z); pntx=nt[0]; pntz=nt[1];
+      }
+      const dx=pntx-puppetPos.x, dz=pntz-puppetPos.z, d=Math.hypot(dx,dz);
+      if(d>0.01){ const stp=Math.min(sp*dt,d); let nx=puppetPos.x+dx/d*stp, nz=puppetPos.z+dz/d*stp;
+        [nx,nz]=collideActor(nx,nz,puppetPos.x,puppetPos.z,0.4); puppetPos.x=nx; puppetPos.z=nz; }
+      // süzülerek gelir (yerden hafif havada, sallanır), kollar öne uzanır, maske eğik
+      const gy=0.55+Math.sin(perf*0.004)*0.12;
+      puppet.position.set(puppetPos.x*SC, gy, puppetPos.z*SC);
+      puppet.scale.setScalar(pbase*1.06);
+      puppet.lookAt(player.x*SC, gy+u.headY*pbase*0.5, player.z*SC);
+      if(u.aL){ u.aL.rotation.x=-1.15+Math.sin(perf*0.006)*0.12; u.aR.rotation.x=-1.15-Math.sin(perf*0.006)*0.12; u.aL.rotation.z=0; u.aR.rotation.z=0; u.head.rotation.set(0.18,0,Math.sin(perf*0.003)*0.12); }
+      // ulaştı → JUMPSCARE
+      const dp=Math.hypot(player.x-puppetPos.x, player.z-puppetPos.z);
+      if(dp<1.4) startJump(puppet,'PUPPET');
+    } else {
+      // ================= KUTUNUN İÇİNDE (kademeye göre yükselir) =================
+      const pf=Math.sin(perf*0.0012);
+      const emerge=puppetStage/2;                        // 0 gizli (kutu içinde) → 1 yarı çıkmış
+      const by=-2.05 + emerge*2.05 + pf*0.05;            // kutu içinde saklı → çıkış eşiği
+      puppet.position.set(PUP_HOME.x*SC, by, PUP_HOME.z*SC);
+      puppet.scale.setScalar(pbase);
+      puppet.lookAt(player.x*SC, by+u.headY*pbase, player.z*SC);   // maske kutudan oyuncuya döner
+      if(u.aL){ const reach=emerge*0.55;
+        u.aL.rotation.x=pf*0.12-reach; u.aR.rotation.x=-pf*0.12-reach;
+        u.aL.rotation.z=0.12-emerge*0.1; u.aR.rotation.z=-0.12+emerge*0.1;
+        u.head.rotation.set(emerge*0.12, Math.sin(perf*0.0009)*0.3, 0); }
+    }
+    // kutu kapağı: puppet çıktıkça/çıkınca açılır (menteşe grubu)
+    const lidOpen = puppetOut? 1 : (puppetStage/2)*0.9;
+    puppetLidHinge.rotation.x += ((-lidOpen*1.55) - puppetLidHinge.rotation.x)*Math.min(1,dt*4);
+
+    // ---- GERİLİM MÜZİĞİ (puppet tehdidiyle tırmanır) ----
+    if(dread>0.28 || puppetOut){
+      dreadT-=dt;
+      if(dreadT<=0){
+        const prox = puppetOut? 1-Math.min(1,Math.hypot(player.x-puppetPos.x,player.z-puppetPos.z)/22) : 0;
+        dreadT = puppetOut? (0.7-prox*0.35) : (1.3-dread*0.5);   // yaklaştıkça hızlanır
+        const motif=[110,116.5,110,98,92.5,98];
+        Audio.dreadBass(motif[dreadStep%motif.length]);
+        if(puppetOut && dreadStep%2===0) Audio.dreadStab([220,233,277,246][dreadStep%4]);
+        dreadStep++;
+      }
+    } else dreadT=0;
+
+    // ---- UYARI YAZISI + KUTU 0 ----
+    const pw=$('#puppetWarn');
+    if(puppetOut){ pw.textContent='🎭 PUPPET GELİYOR — MÜZİK KUTUSUNU KUR!'; pw.style.opacity=(0.6+Math.abs(Math.sin(perf*0.006))*0.4).toFixed(2); }
+    else if(puppetStage>=2){ pw.textContent='🎭 PUPPET UYANIYOR...'; pw.style.opacity='0.85'; }
+    else pw.style.opacity='0';
+    // BİTTİ → anında jumpscare
     if(musicBox<=0) startJump(puppet,'PUPPET');
   }
 
   // Animatronik yapay zekası (uyanma + kovalama) + gerilim ambiyansı
-  if(state===S.PLAY || state===S.CAMS){ updateAI(dt); driveAmbience(dt); }
+  if((state===S.PLAY || state===S.CAMS) && !Net.isPlaying()){ updateAI(dt); driveAmbience(dt); }
 
-  // MENÜ / ÖLÜM / KAZANMA kamerası
-  if(state===S.MENU || state===S.DEAD || state===S.WIN){
-    camera.position.set(Math.sin(perf*0.0003)*1.2*SC,1.7,3.5*SC); camera.lookAt(0,1.5,-7*SC);
-    flash.intensity=0; return;
+  // MENÜ / ÖLÜM / KAZANMA / FİNAL kamerası
+  if(state===S.MENU || state===S.DEAD || state===S.WIN || state===S.ENDING){
+    camera.position.set(Math.sin(perf*0.0003)*1.2*SC,1.7,4.2*SC); camera.lookAt(0,1.5,NZ(-7)*SC);
+    flash.intensity=0; if(state===S.ENDING) endingStep(dt); return;
   }
   // KAMERA (tablet) modu
   if(state===S.CAMS){
@@ -1592,16 +2910,52 @@ function update(dt){
   }
 
   // === PLAY ===
+  const MP=Net.isPlaying();   // çok oyunculu keşif → sim tehditleri (elektrik/vent/AI) devre dışı
   // elektrik zamanlayıcısı / sigorta toplama
-  if(powered){ powerTimer-=dt; if(powerTimer<=0) blackout(); }
+  if(powered && !MP){ powerTimer-=dt; if(powerTimer<=0) blackout(); }
   else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ; if(Math.hypot(dx,dz)<1.1) restorePower(); }
+
+  // === MASKE sayacı ===
+  if(masked){
+    maskCharge=Math.max(0, maskCharge-dt*13);
+    if(maskCharge<=0){ setMaskOff(); toast('🎭 MASKE BİTTİ — NEFES AL'); }
+    $('#maskBtn').classList.toggle('spent', maskCharge<20);
+  } else {
+    maskCharge=Math.min(100, maskCharge+dt*9);
+    $('#maskBtn').classList.remove('spent');
+  }
+
+  // === VENT CRAWLER tehdidi (ofise sızma) === (MP keşif modunda kapalı)
+  if(MP){ /* MP: vent crawler yok */ }
+  else if(ventCrawler>0){
+    ventCrawler-=dt;
+    $('#ventWarn').classList.remove('hidden');
+    if(masked){                       // maske → geri çekilir
+      ventCrawler=0; $('#ventWarn').classList.add('hidden'); ventCrawlerT=randRange(40,70);
+      toast('🎭 VENT\'TEKİ GERİ ÇEKİLDİ'); Audio.growl();
+    } else if(ventCrawler<=0){         // süre doldu, maske yok → saldırı
+      $('#ventWarn').classList.add('hidden');
+      const awakeOnes=AIS.filter(a=>a.awake); const who=awakeOnes.length? awakeOnes[Math.floor(Math.random()*awakeOnes.length)] : AIS[1];
+      startJump(who.model, who.name); return;
+    }
+  } else {
+    ventCrawlerT-=dt;
+    const cfg=ncfg();
+    // yüksek gecelerde daha sık; sadece ofiste ve en az bir animatronik uyanıkken
+    if(ventCrawlerT<=0 && inOffice() && AIS.some(a=>a.awake)){
+      ventCrawler = customMode? Math.max(2.2, 5.0 - cnLevelMax()*0.12) : Math.max(2.4, 5.4 - night*0.5);
+      Audio.creak(); Audio.noise(.5,.13,700); if(navigator.vibrate) navigator.vibrate([60,40,60]);
+      toast('🪜 VENT\'TE BİR SES...');
+    }
+  }
 
   // hareket girişi
   let ix=0, iz=0;
   if(keys['w']) iz-=1; if(keys['s']) iz+=1; if(keys['a']) ix-=1; if(keys['d']) ix+=1;
   if(moveVec.x||moveVec.y){ ix+=moveVec.x; iz+=moveVec.y; }
   const len=Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
-  const speed=(running?4.4:2.6);
+  if(masked) running=false;
+  const speed=masked? 1.7 : (running?4.4:2.6);   // maskeliyken görüşün kısıtlı, yavaşsın
   const fwd=new THREE.Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw));
   const right=new THREE.Vector3(-Math.cos(player.yaw),0,Math.sin(player.yaw));
   let nx=player.x + (fwd.x*(-iz)+right.x*ix)*speed*dt;
@@ -1625,13 +2979,18 @@ function update(dt){
     ab.style.opacity = (!nearDoor.closed && nearDoor.cool>0)? '0.5' : '1';
   } else ab.classList.add('hidden');
 
+  // yakın vent ağzı → "VENT'E GİR" butonu
+  const vb=$('#ventBtn'); const nv=nearVent();
+  if(nv && !masked){ vb.classList.remove('hidden'); vb.textContent='🪜 '+nv.n+'\'E GİR'; }
+  else vb.classList.add('hidden');
+
   // kamera (birinci şahıs) — konum SC ölçekli, bakış yönü (d) ölçeksiz
-  const bob=Math.sin(walkBob)*0.035*(moved>0.001?1:0);
+  const bob=Math.sin(walkBob)*0.035*(moved>0.001?1:0)*SET.shake;
   camera.position.set(player.x*SC, EYE+bob, player.z*SC);
   const d=dirVec(); camera.lookAt(player.x*SC+d.x, EYE+bob+d.y, player.z*SC+d.z);
 
   // fener
-  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?7:5.5)); if(battery<=0){ flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }
+  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?7:5.5)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }
   else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*2.2); }
   const targetInt = (flashOn&&battery>0)? (5.5+Math.random()*0.6*(battery<15?4:0.3)) : 0;
   flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
@@ -1645,7 +3004,9 @@ function hud(){ $('#roomName').textContent=roomName(); $('#battFill').style.widt
   $('#battFill').style.filter = battery<15? 'saturate(1.5) brightness(1.2)':'none';
   // saat / gece
   const ct=$('#clockTime'); ct.textContent=clockText(); ct.className=clockHour()>=5?'dawn':'';
-  $('#nightLbl').textContent='GECE '+night;
+  $('#nightLbl').textContent=customMode? 'ÖZEL' : ('GECE '+night);
+  $('#maskFill').style.width=maskCharge+'%';
+  $('#maskFill').style.filter = maskCharge<20? 'saturate(1.6) brightness(1.2)':'none';
   $('#clockFill').style.width=Math.min(100, clockT/(NIGHT_HOURS*HOUR_SEC)*100)+'%';
   const ps=$('#powerStat');
   if(powered){ ps.textContent='⚡ ELEKTRİK: AÇIK'; ps.className='pw-on'; }
@@ -1653,15 +3014,28 @@ function hud(){ $('#roomName').textContent=roomName(); $('#battFill').style.widt
   // müzik kutusu
   $('#boxFill').style.width=musicBox+'%';
   const bl=$('#boxLabel');
-  if(puppetOut){ bl.textContent='🎵 PUPPET DIŞARIDA! OFİSTE KUR!'; bl.className='box-danger'; }
+  if(puppetOut){ bl.textContent='🎭 PUPPET GELİYOR! KUTUYU KUR!'; bl.className='box-danger'; }
+  else if(puppetStage>=2){ bl.textContent='🎭 PUPPET UYANIYOR — '+Math.ceil(musicBox)+'%'; bl.className='box-danger'; }
   else if(musicBox<35){ bl.textContent='🎵 MÜZİK KUTUSU '+Math.ceil(musicBox)+'% — AZALIYOR'; bl.className='box-warn'; }
   else { bl.textContent='🎵 MÜZİK KUTUSU '+Math.ceil(musicBox)+'%'; bl.className='box-ok'; }
 }
 
 /* ================= DÖNGÜ ================= */
 let last=performance.now(), perf=0;
+// ADAPTİF ÇÖZÜNÜRLÜK: saniyede bir FPS ölç; düşükse çözünürlüğü kıs, yüksekse geri aç.
+let fpsAcc=0, fpsN=0, rsCool=1.5;
+function adaptRes(dt){
+  fpsAcc+=dt; fpsN++; rsCool-=dt;
+  if(fpsAcc<1) return;
+  const fps=fpsN/fpsAcc; fpsAcc=0; fpsN=0;
+  if(rsCool>0) return;
+  if(fps<48 && renderScale>RS_MIN){ renderScale=Math.max(RS_MIN, renderScale-0.12); renderer.setPixelRatio(renderScale); rsCool=2.2; }
+  else if(fps>57 && renderScale<RS_MAX){ renderScale=Math.min(RS_MAX, renderScale+0.08); renderer.setPixelRatio(renderScale); rsCool=3; }
+}
 function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   update(dt); if(state===S.PLAY||state===S.CAMS) hud();
+  Net.tick(dt);
+  adaptRes(dt);
   renderer.render(scene,camera); requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
