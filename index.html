@@ -1789,7 +1789,7 @@ const BAS_ENTRY={x:-70, z:20}, BAS_EXIT={x:-70, z:20};// bodrum giriş = çıkı
 let inBasement=false, basUnlocked=false;
 let basTransT=0, basTransDir=0, basSwapDone=false;   // merdiven iniş/çıkış fade animasyonu
 let hatchArmed=true, basLockNoted=false;             // merdivene BASINCA otomatik geç (zonu terk edince yeniden kurulur)
-let basTaskGiven=false, basTaskActive=false, basTaskDone=false, basTaskT=0, basTaskWin=0;
+let basTaskDone=false;   // bodrum vana bonusu tamamlandı mı (opsiyonel)
 const bWallMat = new THREE.MeshStandardMaterial({map:T.wall, bumpMap:T.wallBump, bumpScale:0.6, color:0x565258, roughness:.98, metalness:.03});
 const bFloorMat= new THREE.MeshStandardMaterial({map:T.floor, bumpMap:T.floorBump, bumpScale:0.5, color:0x34343a, roughness:.9, metalness:.06, envMapIntensity:.3});
 const bWH=3.6;
@@ -1913,8 +1913,7 @@ function startBasTrans(dir){ if(basTransT>0) return; basTransDir=dir; basTransT=
 function toggleBasement(){ if(state!==S.PLAY||downed||basTransT>0) return;
   if(inBasement){ if(nearExitDown()) startBasTrans(-1); return; }        // merdivenle çık
   if(nearHatchUp()){ if(!basUnlocked){ toast('🔒 BODRUM KİLİTLİ — 1. gecede kapalı'); Audio.tone(120,.15,'square',.2); return; } startBasTrans(1); } }  // merdivenle in
-function resetBasement(){ inBasement=false; basStatic.visible=false; basTaskGiven=false; basTaskActive=false; basTaskDone=false; basTaskWin=0;
-  basTaskT=randRange(40,80);
+function resetBasement(){ inBasement=false; basStatic.visible=false; basTaskDone=false;
   basPts.forEach(p=>{ p.done=false; p.glow.color.setHex(0xff5020); p.glow.emissive.setHex(0xff5020); });
   BAS_AIS.forEach((a,i)=>{ a.x=a.home.x; a.z=a.home.z; a.chasing=false; a.model.scale.setScalar(a.model.userData.baseScale||1.5); a.model.rotation.set(0,0,0); if(a.eyeMat) a.eyeMat.emissiveIntensity=1.1; });
   $('#basTask').classList.remove('show','urgent'); $('#basBtn').classList.add('hidden'); }
@@ -2702,7 +2701,6 @@ function resetPowerTimer(){ powerTimer=randRange(100,190); } // elektrik kesinti
 // Müzik kutusu / Puppet
 let musicBox=100, puppetOut=false, winding=false;
 const puppetPos={x:PUP_HOME.x, z:PUP_HOME.z};
-let boxTuneTimer=0;
 // Puppet dehşet sistemi: kutu azaldıkça uyanır (stage), <15'te kutudan çıkıp avlar
 let puppetStage=0, lullaIdx=0, lullaT=0, whisperT=0, pRoseAnnounced=false, puppetVigOp=0;
 let puppetNavT=0, pntx=0, pntz=0;   // stalk yol bulma ara noktası
