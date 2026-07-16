@@ -150,6 +150,31 @@
   #achPop .aTtl{font-size:11px;color:#c9a227;font-weight:bold;letter-spacing:1px;}
   #achPop .aName{font-size:16px;color:#ffe9a8;font-weight:bold;}
 
+  /* Mağaza */
+  #mktBtn{position:fixed;top:14px;right:118px;z-index:45;width:44px;height:44px;border-radius:11px;
+    background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:1px solid rgba(255,255,255,.18);
+    color:#7fd0ff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  #mktPanel{position:fixed;inset:0;z-index:57;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center 40%,rgba(10,14,22,.96),#000 80%);padding:20px;}
+  #mktPanel.show{display:flex;}
+  #mktPanel h2{color:#5aa0e0;font-size:min(32px,7vw);letter-spacing:2px;margin-bottom:4px;}
+  #mktPanel .setSub{color:#7a828c;font-size:13px;margin-bottom:16px;text-align:center;}
+  #mktGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;width:min(560px,94vw);max-height:62vh;overflow-y:auto;padding:4px;}
+  .mktCard{border-radius:10px;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:8px 6px;text-align:center;cursor:pointer;position:relative;}
+  .mktCard.locked{opacity:.55;cursor:default;}
+  .mktCard.equipped{border-color:#7fd0ff;box-shadow:0 0 14px rgba(90,180,255,.5);}
+  .mktAv{width:44px;height:56px;margin:0 auto 6px;position:relative;}
+  .mktAv .cap{position:absolute;left:8px;right:8px;top:0;height:11px;border-radius:6px 6px 0 0;}
+  .mktAv .face{position:absolute;left:12px;right:12px;top:8px;height:18px;border-radius:50%;}
+  .mktAv .body{position:absolute;left:6px;right:6px;top:24px;bottom:0;border-radius:8px 8px 5px 5px;}
+  .mktName{font-size:11px;font-weight:bold;color:#dfe4ea;}
+  .mktReq{font-size:9px;color:#7a828c;line-height:1.2;margin-top:2px;min-height:2.2em;}
+  .mktCard.locked .mktReq{color:#c9772a;}
+  .mktLock{position:absolute;top:4px;right:6px;font-size:12px;}
+  .mktTag{position:absolute;top:4px;left:6px;font-size:9px;font-weight:bold;color:#7fd0ff;}
+  #mktClose{margin-top:18px;font-family:'Courier New',monospace;font-weight:bold;font-size:15px;color:#fff;
+    background:linear-gradient(#2a2f38,#161a20);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 26px;cursor:pointer;}
+
   /* Telefon Adamı */
   #phone{position:fixed;left:50%;bottom:15%;transform:translateX(-50%);z-index:24;width:min(600px,90vw);
     background:rgba(8,10,14,.86);border:1px solid rgba(120,160,220,.35);border-radius:12px;padding:11px 14px 26px 52px;
@@ -191,6 +216,13 @@
     background:linear-gradient(#2a2f38,#161a20);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 26px;cursor:pointer;}
   /* uzak oyuncu ad etiketi (3D üstünde) */
   #mpTag{position:fixed;z-index:19;pointer-events:none;font-family:'Courier New',monospace;font-size:12px;color:#bfe0ff;text-shadow:0 1px 4px #000;display:none;}
+  /* skin seçici */
+  #mpSkinPick{margin-top:16px;}
+  .mpSkinLbl{color:#8a929c;font-size:13px;margin-bottom:8px;}
+  #mpSkins{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .mpSkin{width:40px;height:40px;border-radius:9px;border:2px solid rgba(255,255,255,.18);cursor:pointer;position:relative;}
+  .mpSkin.sel{border-color:#fff;box-shadow:0 0 12px rgba(255,255,255,.5);transform:scale(1.08);}
+  .mpSkin .cap{position:absolute;left:6px;right:6px;top:5px;height:10px;border-radius:4px 4px 0 0;}
 
   /* Saat / gece */
   #clockBox{margin-top:7px;}
@@ -330,6 +362,15 @@
 </div>
 <div id="achPop"><div class="aIco">🏆</div><div><div class="aTtl">BAŞARIM AÇILDI</div><div class="aName">—</div></div></div>
 
+<!-- Mağaza (skinler) -->
+<button id="mktBtn" class="hidden">🛒</button>
+<div id="mktPanel">
+  <h2>🛒 MAĞAZA</h2>
+  <div class="setSub">başarımlarla skin aç • <span id="mktCount">0 / 15</span> açık — birini seçip <b>KUŞAN</b></div>
+  <div id="mktGrid"></div>
+  <button id="mktClose">‹ KAPAT</button>
+</div>
+
 <!-- Telefon Adamı -->
 <div id="phone"><div id="phoneName">☎ ESKİ GECE BEKÇİSİ</div><div id="phoneText"></div><button id="phoneSkip">KAPAT ▸</button></div>
 
@@ -422,6 +463,7 @@
     <div class="mpOr">— veya —</div>
     <div id="mpJoinRow"><input id="mpCodeIn" maxlength="5" placeholder="ODA KODU" autocomplete="off"><button id="mpJoinBtn">↪ KATIL</button></div>
     <div id="mpName">Ad: <input id="mpNameIn" maxlength="10" placeholder="Bekçi"></div>
+    <div id="mpSkinPick"><div class="mpSkinLbl">👤 Görünüm (skin):</div><div id="mpSkins"></div></div>
   </div>
   <div id="mpRoom" class="hidden">
     <div id="mpCodeBox">ODA KODU: <span id="mpCode">-----</span> <button id="mpCopy">📋 KOPYALA</button></div>
@@ -1921,9 +1963,10 @@ function clockText(){ const h=clockHour(); return (h===0?12:h)+':00'; }
 
 /* ================= KAYIT ================= */
 const SAVE_KEY='gb3d_save_v1';
-let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[]};
+let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[], skin:0};
 try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save={...save,...s}; }catch(e){}
 if(!Array.isArray(save.ach)) save.ach=[];
+if(typeof save.skin!=='number') save.skin=0;
 function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 
 /* ================= AYARLAR ================= */
@@ -2130,8 +2173,34 @@ function nearVent(){ for(const v of VENTS){ if(Math.hypot(player.x-v.x, player.z
 const Net=(()=>{
   let peer=null, host=false, active=false, started=false, myId=null, code=null, myName='Bekçi';
   let conns=[];                 // host: misafir bağlantıları; misafir: [host bağlantısı]
-  const remotes={};             // id -> {name,x,z,yaw,f, tx,tz,tyaw, obj}
-  let poseT=0;
+  const remotes={};             // id -> {name,skin,x,z,yaw,f, tx,tz,tyaw, obj}
+  let poseT=0, mySkin=save.skin||0;
+  // 15 İnsan bekçi skin'i (üniforma/pantolon/şapka/ten) — her biri bir başarım/ilerlemeyle açılır
+  const SKINS=[
+    {n:'Mavi Bekçi',   shirt:0x2f6fd0, pants:0x1a2740, cap:0x1c3a6e, skin:0xd8a878, free:true,          req:'Başlangıç'},
+    {n:'Gri Bekçi',    shirt:0x8a94a0, pants:0x2a2f36, cap:0x4a5058, skin:0xe6c0a0, free:true,          req:'Başlangıç'},
+    {n:'Kırmızı',      shirt:0xc0392b, pants:0x2a1414, cap:0x7a1f18, skin:0xe0b088, ach:'night1',        req:'🌙 İlk Vardiya'},
+    {n:'Yeşil',        shirt:0x2e8b57, pants:0x14261a, cap:0x1c4a30, skin:0xc99060, night:3,             req:'Gece 3\'e ulaş'},
+    {n:'Turuncu',      shirt:0xe0862a, pants:0x3a2410, cap:0x8a5010, skin:0xb87848, ach:'no_batt',       req:'🔦 Işık Tasarrufu'},
+    {n:'Mor',          shirt:0x7a3fb0, pants:0x241432, cap:0x4a1f6e, skin:0xd8a878, ach:'no_door',       req:'🚪 Kapısız'},
+    {n:'Camgöbeği',    shirt:0x1f9aa0, pants:0x123032, cap:0x14585c, skin:0xc99060, ach:'box_master',    req:'🎵 Kutu Ustası'},
+    {n:'Pembe',        shirt:0xd85a9a, pants:0x3a1830, cap:0x8a2e60, skin:0xe6c0a0, ach:'vent3',         req:'🪜 Vantilatör Faresi'},
+    {n:'Sarı',         shirt:0xd8b830, pants:0x3a3010, cap:0x8a7018, skin:0xd8a878, night:5,             req:'Gece 5\'e ulaş'},
+    {n:'Lacivert',     shirt:0x24408a, pants:0x14203a, cap:0x162a5a, skin:0xb87848, ach:'puppet_esc',    req:'🎭 İp Cambazı'},
+    {n:'Bordo',        shirt:0x7a1f2a, pants:0x2a0e12, cap:0x4a1218, skin:0xe0b088, ach:'night6',        req:'💀 Fazla Mesai'},
+    {n:'Buz Beyazı',   shirt:0xdfe6ee, pants:0x8a94a0, cap:0xaab4c0, skin:0xd8a878, id:'beat6',          req:'Gece 6\'yı bitir'},
+    {n:'Altın',        shirt:0xe0b020, pants:0x5a4410, cap:0xb08818, skin:0xe6c0a0, ach:'legend20',      req:'★ Efsane (20/20/20/20)'},
+    {n:'Gölge',        shirt:0x1a1c22, pants:0x0c0d10, cap:0x2a2d36, skin:0x9a8878, id:'allach',         req:'Tüm 8 başarımı aç'},
+    {n:'Prizma',       shirt:0x9a3fd0, pants:0x2a1440, cap:0x3f9ad0, skin:0xe6c0a0, id:'cn80',           req:'Özel Gece 80/80'},
+  ];
+  function skinUnlocked(i){ const s=SKINS[i]; if(!s) return false;
+    if(s.free) return true;
+    if(s.ach)  return save.ach.includes(s.ach);
+    if(s.night)return save.maxNight>=s.night;
+    if(s.id==='beat6')  return !!save.beat6;
+    if(s.id==='allach') return save.ach.length>=8;
+    if(s.id==='cn80')   return save.cnBest>=80;
+    return false; }
   const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   function genCode(){ let s=''; for(let i=0;i<5;i++) s+=CH[Math.floor(Math.random()*CH.length)]; return s; }
   function peerId(c){ return 'gb3d-v1-'+c; }
@@ -2145,27 +2214,49 @@ const Net=(()=>{
     g.fillStyle='#bfe0ff'; g.font='bold 34px "Courier New",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText((txt||'?').slice(0,10),128,34);
     const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false})); sp.scale.set(1.5,0.38,1); return sp; }
-  function buildAvatar(nm){
-    const g=new THREE.Group();
-    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.30,1.05,12), new THREE.MeshStandardMaterial({color:0x22303f,emissive:0x0e2c48,emissiveIntensity:.5,roughness:.7})); body.position.y=0.95;
-    const head=new THREE.Mesh(new THREE.SphereGeometry(0.23,14,12), new THREE.MeshStandardMaterial({color:0x2c3c4c,emissive:0x14304a,emissiveIntensity:.5})); head.position.y=1.6;
-    const fl=glowSprite('rgba(255,238,190,0.85)',0.7); fl.position.set(0,1.5,0.45); fl.visible=false;
-    const tag=nameSprite(nm); tag.position.y=2.15;
-    g.add(body,head,fl,tag); g.userData={fl,tag}; scene.add(g); return g;
+  function buildAvatar(nm, skinId){
+    const s=SKINS[skinId||0]||SKINS[0]; const g=new THREE.Group();
+    const em=h=>new THREE.Color(h).multiplyScalar(0.14);   // karanlıkta seçilebilir hafif emissive
+    const shirtM=new THREE.MeshStandardMaterial({color:s.shirt, emissive:em(s.shirt), roughness:.75});
+    const pantsM=new THREE.MeshStandardMaterial({color:s.pants, emissive:em(s.pants), roughness:.85});
+    const skinM =new THREE.MeshStandardMaterial({color:s.skin,  emissive:0x140c06, emissiveIntensity:.2, roughness:.7});
+    const capM  =new THREE.MeshStandardMaterial({color:s.cap,   emissive:em(s.cap), roughness:.6});
+    const legGeo=new THREE.CylinderGeometry(0.10,0.085,0.74,8);
+    const lL=new THREE.Mesh(legGeo,pantsM); lL.position.set(-0.12,0.37,0);
+    const lR=new THREE.Mesh(legGeo,pantsM); lR.position.set( 0.12,0.37,0);
+    const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.21,0.25,0.72,10), shirtM); torso.position.y=1.12;
+    const belt=new THREE.Mesh(new THREE.CylinderGeometry(0.235,0.235,0.09,10), pantsM); belt.position.y=0.78;
+    const armGeo=new THREE.CylinderGeometry(0.065,0.055,0.6,8);
+    const aL=new THREE.Mesh(armGeo,shirtM); aL.position.set(-0.3,1.16,0); aL.rotation.z=0.16;
+    const aR=new THREE.Mesh(armGeo,shirtM); aR.position.set(0.28,1.12,0.14); aR.rotation.set(-0.7,0,-0.1);   // sağ kol öne (fener tutar)
+    const hL=new THREE.Mesh(new THREE.SphereGeometry(0.066,8,6),skinM); hL.position.set(-0.36,0.87,0.02);
+    const hR=new THREE.Mesh(new THREE.SphereGeometry(0.066,8,6),skinM); hR.position.set(0.30,0.92,0.42);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.185,14,12),skinM); head.position.y=1.66; head.scale.set(1,1.12,1);
+    const eyeM=new THREE.MeshStandardMaterial({color:0x0a0a0a});
+    const eL=new THREE.Mesh(new THREE.SphereGeometry(0.026,8,8),eyeM); eL.position.set(-0.07,1.68,0.15);
+    const eR=new THREE.Mesh(new THREE.SphereGeometry(0.026,8,8),eyeM); eR.position.set( 0.07,1.68,0.15);
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(0.2,12,8,0,Math.PI*2,0,Math.PI/2),capM); dome.position.y=1.79;
+    const brim=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.035,0.19),capM); brim.position.set(0,1.78,0.17);
+    const flB=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.035,0.16,8), new THREE.MeshStandardMaterial({color:0x2a2a2a,metalness:.5,roughness:.4}));
+    flB.position.set(0.30,0.94,0.5); flB.rotation.x=Math.PI/2;
+    const fl=glowSprite('rgba(255,238,190,0.9)',0.55); fl.position.set(0.30,0.96,0.72); fl.visible=false;
+    const tag=nameSprite(nm); tag.position.y=2.12;
+    g.add(lL,lR,torso,belt,aL,aR,hL,hR,head,eL,eR,dome,brim,flB,fl,tag);
+    g.userData={fl,tag,skin:skinId||0}; scene.add(g); return g;
   }
-  function ensureRemote(id,nm){ if(id===myId||id==null) return null;
-    if(!remotes[id]) remotes[id]={name:nm||'?',x:0,z:19.7,yaw:Math.PI,tx:0,tz:19.7,tyaw:Math.PI,f:0,obj:buildAvatar(nm||'?')};
+  function ensureRemote(id,nm,skin){ if(id===myId||id==null) return null;
+    if(!remotes[id]) remotes[id]={name:nm||'?',skin:skin||0,x:0,z:19.7,yaw:Math.PI,tx:0,tz:19.7,tyaw:Math.PI,f:0,obj:buildAvatar(nm||'?',skin||0)};
     return remotes[id]; }
   function removeRemote(id){ const r=remotes[id]; if(r&&r.obj) scene.remove(r.obj); delete remotes[id]; }
-  function applyPose(d){ if(d.id===myId) return; const r=ensureRemote(d.id,d.name); if(!r)return; r.tx=d.x; r.tz=d.z; r.tyaw=d.yaw; r.f=d.f; }
+  function applyPose(d){ if(d.id===myId) return; const r=ensureRemote(d.id,d.name,d.skin); if(!r)return; r.tx=d.x; r.tz=d.z; r.tyaw=d.yaw; r.f=d.f; }
 
   /* ---- host: bağlantı + relay ---- */
-  function roster(){ const l=[{id:'H',name:myName,host:true}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name}); }); return l; }
+  function roster(){ const l=[{id:'H',name:myName,skin:mySkin,host:true}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name,skin:c._skin||0}); }); return l; }
   function broadcast(m,except){ conns.forEach(c=>{ if(c.open && c._pid!==except){ try{c.send(m);}catch(e){} } }); }
   function hookHostConn(c){
     c.on('open',()=>{});
     c.on('data',d=>{
-      if(d.t==='hello'){ c._pid=c.peer; c._name=(d.name||'Bekçi').slice(0,10); ensureRemote(c.peer,c._name);
+      if(d.t==='hello'){ c._pid=c.peer; c._name=(d.name||'Bekçi').slice(0,10); c._skin=d.skin||0; ensureRemote(c.peer,c._name,c._skin);
         try{ c.send({t:'welcome',yourId:c.peer,roster:roster(),started}); }catch(e){}
         broadcast({t:'roster',roster:roster()}); refreshList();
         if(started){ try{c.send({t:'start',night:selNight});}catch(e){} }
@@ -2185,7 +2276,7 @@ const Net=(()=>{
   }
   /* ---- misafir: host'a bağlan ---- */
   function hookGuestConn(c){ conns=[c];
-    c.on('open',()=>{ active=true; try{c.send({t:'hello',name:myName});}catch(e){} status('bağlandı ✓ — host\'un başlatması bekleniyor'); });
+    c.on('open',()=>{ active=true; try{c.send({t:'hello',name:myName,skin:mySkin});}catch(e){} status('bağlandı ✓ — host\'un başlatması bekleniyor'); });
     c.on('data',d=>{
       if(d.t==='welcome'){ myId=d.yourId; applyRoster(d.roster); if(d.started){ /* devam eden oturuma katıl */ } }
       else if(d.t==='roster'){ applyRoster(d.roster); }
@@ -2208,15 +2299,37 @@ const Net=(()=>{
   }
 
   function applyRoster(list){ const ids=new Set();
-    list.forEach(p=>{ if(p.id!==myId){ ids.add(p.id); const r=ensureRemote(p.id,p.name); if(r) r.name=p.name; } });
+    list.forEach(p=>{ if(p.id!==myId){ ids.add(p.id); const r=ensureRemote(p.id,p.name,p.skin); if(r) r.name=p.name; } });
     for(const id in remotes){ if(!ids.has(id)) removeRemote(id); }
     renderList(list);
   }
   function refreshList(){ renderList(roster()); }
+  function hex6(n){ return (n>>>0).toString(16).padStart(6,'0'); }
+  function renderSkins(){ const el=$('#mpSkins'); if(!el) return; el.innerHTML='';
+    // lobide yalnız AÇIK skinler seçilebilir (kilitliler Mağaza'dan açılır)
+    SKINS.forEach((s,i)=>{ if(!skinUnlocked(i)) return; const b=document.createElement('div'); b.className='mpSkin'+(i===mySkin?' sel':'');
+      b.style.background='#'+hex6(s.shirt); b.title=s.n;
+      b.innerHTML='<div class="cap" style="background:#'+hex6(s.cap)+'"></div>';
+      b.addEventListener('click',e=>{ e.stopPropagation(); mySkin=i; save.skin=i; saveGame(); renderSkins(); });
+      el.appendChild(b); });
+    const hint=document.createElement('div'); hint.style.cssText='width:100%;color:#5a6470;font-size:11px;margin-top:6px'; hint.textContent='🛒 daha fazla skin için Mağaza (başarımlar)'; el.appendChild(hint);
+  }
+  function renderMarket(){ const el=$('#mktGrid'); if(!el) return; el.innerHTML=''; let unl=0;
+    SKINS.forEach((s,i)=>{ const ok=skinUnlocked(i); if(ok) unl++; const eq=(i===mySkin&&ok);
+      const card=document.createElement('div'); card.className='mktCard'+(ok?'':' locked')+(eq?' equipped':'');
+      card.innerHTML='<div class="mktAv"><div class="cap" style="background:#'+hex6(s.cap)+'"></div><div class="face" style="background:#'+hex6(s.skin)+'"></div><div class="body" style="background:#'+hex6(s.shirt)+'"></div></div>'
+        +'<div class="mktName">'+s.n+'</div>'
+        +'<div class="mktReq">'+(ok?(eq?'✓ kuşanıldı':'kuşanmak için tıkla'):s.req)+'</div>'
+        +(ok?'':'<div class="mktLock">🔒</div>')+(eq?'<div class="mktTag">SEÇİLİ</div>':'');
+      if(ok) card.addEventListener('click',()=>equip(i));
+      el.appendChild(card); });
+    const c=$('#mktCount'); if(c) c.textContent=unl+' / '+SKINS.length;
+  }
+  function equip(i){ if(!skinUnlocked(i)) return; mySkin=i; save.skin=i; saveGame(); renderMarket(); renderSkins(); Audio.click(); }
   function renderList(list){ const el=$('#mpList'); if(!el) return; el.innerHTML='';
     list.forEach(p=>{ const d=document.createElement('div'); d.className='mpPlayer'+(p.host?' host':'');
-      d.innerHTML='<span class="dot"></span><span>'+(p.name||'?')+'</span>'+(p.host?'<span class="tag">HOST</span>':''); el.appendChild(d); });
-    const n=list.length; $('#mpStatus') && null;
+      const sk=SKINS[p.skin||0]||SKINS[0];
+      d.innerHTML='<span class="dot" style="background:#'+hex6(sk.shirt)+';box-shadow:0 0 8px #'+hex6(sk.shirt)+'"></span><span>'+(p.name||'?')+'</span><span style="color:#6a7480;font-size:11px">'+sk.n+'</span>'+(p.host?'<span class="tag">HOST</span>':''); el.appendChild(d); });
   }
 
   /* ---- oturum başlat (host butonu / misafir 'start' aldı) ---- */
@@ -2252,13 +2365,17 @@ const Net=(()=>{
 
   /* ---- lobi butonları ---- */
   $('#mpBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume();
-    $('#mpHome').classList.remove('hidden'); $('#mpRoom').classList.add('hidden'); $('#mpPanel').classList.add('show');
+    $('#mpHome').classList.remove('hidden'); $('#mpRoom').classList.add('hidden'); $('#mpPanel').classList.add('show'); renderSkins();
     if(typeof Peer==='undefined') status('⚠ çevrimiçi kütüphane yüklenemedi — internet gerekli'); });
   $('#mpHostBtn').addEventListener('click',e=>{ e.stopPropagation(); startHost(); });
   $('#mpJoinBtn').addEventListener('click',e=>{ e.stopPropagation(); join($('#mpCodeIn').value); });
   $('#mpStart').addEventListener('click',e=>{ e.stopPropagation(); hostStart(); });
   $('#mpCopy').addEventListener('click',e=>{ e.stopPropagation(); try{ navigator.clipboard.writeText(code||''); status('kod kopyalandı ✓'); }catch(_){}});
   $('#mpBack').addEventListener('click',e=>{ e.stopPropagation(); leave(); $('#mpPanel').classList.remove('show'); });
+  // Mağaza (skinler)
+  $('#mktBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume(); renderMarket(); $('#mktPanel').classList.add('show'); });
+  $('#mktClose').addEventListener('click',e=>{ e.stopPropagation(); $('#mktPanel').classList.remove('show'); });
+  $('#mktBtn').classList.remove('hidden');
 
   return { tick, leave, isPlaying:()=>active&&started, active:()=>active };
 })();
@@ -2314,7 +2431,7 @@ const keys={};
 addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
   if(state===S.ENDING){ endingTap(); return; }
   if(state===S.VENT) return;
-  if(state===S.MENU){ if($('#cnPanel').classList.contains('show')||$('#setPanel').classList.contains('show')||$('#achPanel').classList.contains('show')||$('#mpPanel').classList.contains('show')) return; startGame(); return; }
+  if(state===S.MENU){ if($('#cnPanel').classList.contains('show')||$('#setPanel').classList.contains('show')||$('#achPanel').classList.contains('show')||$('#mpPanel').classList.contains('show')||$('#mktPanel').classList.contains('show')) return; startGame(); return; }
   if(state===S.DEAD || state===S.WIN){ toMenu(); return; }
   if(state===S.CAMS){ if(k==='c'||k==='escape') closeCamera(); else if(k==='arrowleft')cycleCam(-1); else if(k==='arrowright')cycleCam(1); else if(k===' '){ e.preventDefault(); startWind(); } return; }
   keys[k]=true;
@@ -2502,7 +2619,7 @@ function refreshMenu(){ $('#customBtn').classList.toggle('hidden', !save.beat6);
 refreshMenu();
 
 function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Audio.startAmbience(); Audio.setAmbient(true);
-  Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show');
+  Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show'); $('#mktBtn').classList.add('hidden'); $('#mktPanel').classList.remove('show');
   resetRunStats();
   night=selNight; clockT=0; lastHour=0;
   masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
@@ -2538,7 +2655,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
     startPhone();   // 📞 geceye özel Telefon Adamı brifingi (tek oyunculu)
   }
 }
-function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
+function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden');
   $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
