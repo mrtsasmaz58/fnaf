@@ -814,9 +814,9 @@ const exitSign = dimLight(0,20.6,0x3a9a3a,0.45,6);   // acil çıkış tabelası
 const emergency = dimLight(0,17,0x8a1414,0.0,12);    // acil kırmızı (yalnız kesikken)
 
 // Fener (kameraya bağlı spotlight)
-const flash = new THREE.SpotLight(0xfff0cc, 0, 30, Math.PI*0.20, 0.45, 1.1);
+const flash = new THREE.SpotLight(0xfff2d4, 0, 44, Math.PI*0.25, 0.42, 1.0);   // BUFF: menzil 30→44, koni geniş, daha az sönümleme
 flash.castShadow = !isMobile;
-if(flash.castShadow){ flash.shadow.mapSize.set(2048,2048); flash.shadow.camera.near=0.2; flash.shadow.camera.far=32; flash.shadow.bias=-0.0005; flash.shadow.radius=4.5; flash.shadow.blurSamples=16; }
+if(flash.castShadow){ flash.shadow.mapSize.set(2048,2048); flash.shadow.camera.near=0.2; flash.shadow.camera.far=46; flash.shadow.bias=-0.0005; flash.shadow.radius=4.5; flash.shadow.blurSamples=16; }
 const flashTarget = new THREE.Object3D();
 scene.add(flash); scene.add(flashTarget); flash.target = flashTarget;
 // yakın çevre için zayıf ışık
@@ -1019,7 +1019,7 @@ function makeDoorway(name,x0,x1,z){
   const d={name,cx,z,x0,x1,panel,closed:false,closeT:0,cool:0,openY,closedY};
   doors.push(d); return d;
 }
-const DOOR_TIME=7;    // kapı bu kadar saniye kapalı kalır, sonra otomatik açılır
+const DOOR_TIME=9;    // kapı bu kadar saniye kapalı kalır, sonra otomatik açılır
 const DOOR_COOL=7;    // açıldıktan sonra tekrar kapatmak için bekleme
 const DOOR_FORGET=3;  // animatronik kapalı kapıda bu kadar takılırsa vazgeçer
 const GIVEUP_TIME=8;  // vazgeçince bu kadar saniye uzaklaşır
@@ -3280,9 +3280,9 @@ function update(dt){
   const d=dirVec(); camera.lookAt(player.x*SC+d.x, EYE+bob+d.y, player.z*SC+d.z);
 
   // fener
-  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?7:5.5)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }
-  else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*2.2); }
-  const targetInt = (flashOn&&battery>0)? (5.5+Math.random()*0.6*(battery<15?4:0.3)) : 0;
+  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }   // BUFF: pil daha yavaş biter
+  else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*3.0); }   // BUFF: daha hızlı şarj
+  const targetInt = (flashOn&&battery>0)? (8.0+Math.random()*0.7*(battery<15?4:0.3)) : 0;   // BUFF: daha parlak (5.5→8.0)
   flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
   flash.position.copy(camera.position);
   const fd=dirVec(); flashTarget.position.set(camera.position.x+fd.x*3, camera.position.y+fd.y*3, camera.position.z+fd.z*3);
