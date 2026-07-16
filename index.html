@@ -1703,8 +1703,13 @@ function bSolid(cx,cz,w,d,h,y){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h
 for(let gx=-84; gx<=-56; gx+=14) for(let gz=-8; gz<=16; gz+=12) bSolid(gx,gz,1.1,1.1,bWH);
 bSolid(-70,-11,10,0.3,bWH); bSolid(-70,19,8,0.3,bWH);   // kısmi bölmeler (atmosfer)
 // kırmızı acil ışıklar (basStatic içinde → grup gizliyken shader'dan düşer)
-function bLight(x,z){ const l=new THREE.PointLight(0x9a1616, 0.9, 15*SC, 2); l.position.set(x*SC,3.1,z*SC); basStatic.add(l); return l; }
+function bLight(x,z){ const l=new THREE.PointLight(0xb43030, 1.7, 20*SC, 2); l.position.set(x*SC,3.1,z*SC); basStatic.add(l); return l; }
 [[-82,-8],[-58,-8],[-82,14],[-58,14],[-70,4]].forEach(p=>bLight(p[0],p[1]));
+// soğuk beyaz tavan iş-lambaları (görüş için) + ince askı + parlayan tüp
+function bWorkLight(x,z){ const l=new THREE.PointLight(0xcfe0ff, 1.5, 26*SC, 2); l.position.set(x*SC,bWH-0.35,z*SC); basStatic.add(l);
+  const tube=new THREE.Mesh(new THREE.BoxGeometry(1.1*SC,0.09*SC,0.16*SC), new THREE.MeshStandardMaterial({color:0xdfeaff,emissive:0xbcd4ff,emissiveIntensity:1.6}));
+  tube.position.set(x*SC,bWH-0.28,z*SC); basStatic.add(tube); return l; }
+[[-77,-6],[-63,-6],[-77,10],[-63,10]].forEach(p=>bWorkLight(p[0],p[1]));
 // GÖREV VANALARI (3 adet) — yaklaşınca kapanır
 const basPts=[];
 [[-83,-6],[-57,-6],[-70,12]].forEach(p=>{
@@ -3460,7 +3465,7 @@ function update(dt){
   fanBlades.rotation.y += (powered?dt*12:dt*1);
   // ışıkları elektriğe göre yumuşat (bodrumda çok daha karanlık — kendi kırmızı acil ışıkları var)
   const k=Math.min(1,dt*5);
-  const ambT2=inBasement?0.10:(powered?0.5:0.06), hemT2=inBasement?0.06:(powered?0.9:0.0);
+  const ambT2=inBasement?0.28:(powered?0.5:0.06), hemT2=inBasement?0.22:(powered?0.9:0.0);
   ambient.intensity += (ambT2-ambient.intensity)*k;
   hemi.intensity    += (hemT2-hemi.intensity)*k;
   powerLights.forEach(l=> l.intensity += ((powered?l.userData.base:0)-l.intensity)*k);
