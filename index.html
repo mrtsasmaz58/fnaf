@@ -617,7 +617,7 @@ renderer.setPixelRatio(renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;   // hafif kısık (çok parlak olmasın)
+renderer.toneMappingExposure = 1.16;   // grade/vignette köşeleri kararttığı için hafif telafi
 // GÖLGE: mobilde tamamen kapalı (fragment shader + gölge haritası maliyeti mobilin en büyük yükü)
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -650,26 +650,64 @@ try{
 /* ================= POST-PROCESS (bloom parlaması) =================
    Parlayan gözler/fener/acil ışık/ekran bloom ile dramatik parlar → karanlık korkuda çok fark eder.
    Dinamik import (addons); yüklenmezse composer null kalır ve normal render devam eder (oyun bozulmaz). */
-let composer=null, bloomPass=null;
+let composer=null, bloomPass=null, gradePass=null;
 let gfxBloom = !isMobile;   // masaüstünde açık; mobilde ⚙ Ayarlar'dan açılabilir (perf)
+// SİNEMATİK DERECELENDİRME shader'ı (vignette + film grain + kromatik aberasyon + renk grade)
+// → OutputPass'tan SONRA (sRGB görüntü üzerinde), tek tam-ekran geçiş, ucuz ama atmosferi uçurur.
+const GradeShader = {
+  uniforms:{ tDiffuse:{value:null}, time:{value:0}, res:{value:new THREE.Vector2(1,1)},
+             vig:{value:0.62}, grain:{value:0.055}, ab:{value:0.18}, sat:{value:1.06} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    uniform sampler2D tDiffuse; uniform float time; uniform vec2 res;
+    uniform float vig, grain, ab, sat; varying vec2 vUv;
+    float rand(vec2 c){ return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453); }
+    void main(){
+      vec2 uv=vUv; vec2 d=uv-0.5; float r2=dot(d,d);
+      // KROMATİK ABERASYON — kenarlarda kırmızı/mavi ayrışması (lens hissi)
+      vec2 off=d*r2*ab;
+      vec3 col;
+      col.r=texture2D(tDiffuse, uv+off).r;
+      col.g=texture2D(tDiffuse, uv).g;
+      col.b=texture2D(tDiffuse, uv-off).b;
+      // RENK GRADE — gölgeleri soğuk (teal), parlakları sıcak (amber): klasik korku bakışı
+      float l=dot(col,vec3(0.299,0.587,0.114));
+      col=mix(vec3(l),col,sat);                                         // doygunluk
+      col*=mix(vec3(0.86,0.97,1.12), vec3(1.12,1.03,0.86), smoothstep(0.15,0.85,l)); // split-tone
+      col*=vec3(1.02,1.0,0.99);
+      // VİGNET — köşeleri karart (odak merkeze)
+      float v=1.0 - smoothstep(0.12,0.62,r2)*vig;
+      col*=v;
+      // FİLM GRAİN — animasyonlu ince gren (karanlıkta daha belirgin)
+      float g=(rand(uv*res + fract(time*1.37))-0.5)*grain*(1.0-l*0.55);
+      col+=g;
+      gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+    }`
+};
 (async()=>{
   try{
-    const [EC,RP,UBP,OP] = await Promise.all([
+    const [EC,RP,UBP,OP,SP] = await Promise.all([
       import('three/addons/postprocessing/EffectComposer.js'),
       import('three/addons/postprocessing/RenderPass.js'),
       import('three/addons/postprocessing/UnrealBloomPass.js'),
       import('three/addons/postprocessing/OutputPass.js'),
+      import('three/addons/postprocessing/ShaderPass.js'),
     ]);
     composer = new EC.EffectComposer(renderer);
     composer.setPixelRatio(renderScale); composer.setSize(innerWidth, innerHeight);
     composer.addPass(new RP.RenderPass(scene, camera));
     bloomPass = new UBP.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),
-      isMobile?0.5:0.72,    // strength (hafif kısık parlama)
-      isMobile?0.5:0.62,    // radius (yumuşak yayılım)
-      isMobile?0.9:0.84);   // threshold (yalnız parlak yerler parlar)
+      isMobile?0.55:0.9,     // strength (daha dramatik parlama)
+      isMobile?0.5:0.72,     // radius (yumuşak yayılım)
+      isMobile?0.88:0.8);    // threshold (yalnız parlak yerler parlar)
     composer.addPass(bloomPass);
-    composer.addPass(new OP.OutputPass());   // tonemapping + sRGB (composer sonunda)
-  }catch(e){ composer=null; }   // bloom yok → normal render
+    composer.addPass(new OP.OutputPass());   // tonemapping + sRGB
+    gradePass = new SP.ShaderPass(GradeShader);   // sinematik grade (en sonda)
+    gradePass.uniforms.grain.value = isMobile?0.04:0.055;
+    gradePass.uniforms.ab.value    = isMobile?0.10:0.18;
+    gradePass.material.uniforms.res.value.set(innerWidth, innerHeight);
+    composer.addPass(gradePass);
+  }catch(e){ composer=null; }   // post-process yok → normal render
 })();
 
 // Harita ölçeği: statik dünya yatayda SC kat büyür (yükseklik/insan boyu aynı kalır).
@@ -690,7 +728,7 @@ function fitViewport(){
   document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
   camera.aspect=w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);   // mevcut pixelRatio korunur (adaptif ölçekleyici yönetir)
-  if(composer){ composer.setSize(w,h); if(bloomPass) bloomPass.setSize(w,h); }
+  if(composer){ composer.setSize(w,h); if(bloomPass) bloomPass.setSize(w,h); if(gradePass) gradePass.material.uniforms.res.value.set(w,h); }
   const jb=document.getElementById('joyBase'); if(jb && jb.classList.contains('hint')) jb.style.top=(h-300)+'px';
 }
 addEventListener('resize', fitViewport);
@@ -891,7 +929,7 @@ const emergency = dimLight(0,17,0x8a1414,0.0,12);    // acil kırmızı (yalnız
 // Fener (kameraya bağlı spotlight)
 const flash = new THREE.SpotLight(0xfff2d4, 0, 44, Math.PI*0.25, 0.42, 1.0);   // BUFF: menzil 30→44, koni geniş, daha az sönümleme
 flash.castShadow = !isMobile;
-if(flash.castShadow){ flash.shadow.mapSize.set(2048,2048); flash.shadow.camera.near=0.2; flash.shadow.camera.far=46; flash.shadow.bias=-0.0005; flash.shadow.radius=4.5; flash.shadow.blurSamples=16; }
+if(flash.castShadow){ flash.shadow.mapSize.set(isMobile?2048:3072,isMobile?2048:3072); flash.shadow.camera.near=0.2; flash.shadow.camera.far=46; flash.shadow.bias=-0.0004; flash.shadow.radius=7; flash.shadow.blurSamples=24; }
 const flashTarget = new THREE.Object3D();
 scene.add(flash); scene.add(flashTarget); flash.target = flashTarget;
 // yakın çevre için zayıf ışık
@@ -1221,10 +1259,10 @@ function grimeTex(){
 }
 const T_GRIME=grimeTex();
 // Ortak malzemeler (her karakterde yeniden üretilmez → daha az shader/draw maliyeti)
-const M_ENDO  = new THREE.MeshStandardMaterial({color:0x23262b, roughness:.3, metalness:.95});  // endoskelet
+const M_ENDO  = new THREE.MeshStandardMaterial({color:0x23262b, roughness:.26, metalness:.97, envMapIntensity:1.35});  // endoskelet (parlak metal)
 const M_SOCKET= new THREE.MeshStandardMaterial({color:0x030304, roughness:1});                   // göz çukuru (kara delik)
-const M_TEETH = new THREE.MeshStandardMaterial({map:T_GRIME, color:0xcfc7ad, roughness:.5});     // dişler
-const M_BLACK = new THREE.MeshStandardMaterial({color:0x0d0d10, roughness:.7});                  // şapka/papyon
+const M_TEETH = new THREE.MeshStandardMaterial({map:T_GRIME, color:0xcfc7ad, roughness:.38, metalness:.15, envMapIntensity:.7});     // dişler (fildişi parlaklık)
+const M_BLACK = new THREE.MeshStandardMaterial({color:0x0d0d10, roughness:.55, metalness:.25, envMapIntensity:.6});                  // şapka/papyon (saten)
 
 function glowSprite(color,size){ const c=mc(64,64),g=c.getContext('2d'); const grd=g.createRadialGradient(32,32,0,32,32,32);
   grd.addColorStop(0,color); grd.addColorStop(.3,color); grd.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=grd; g.fillRect(0,0,64,64);
@@ -1258,9 +1296,9 @@ function makeHand(mat){
 }
 function buildAnimatronic(cfg){
   const g=new THREE.Group();
-  const suit   = new THREE.MeshStandardMaterial({map:T_GRIME, color:cfg.color, roughness:.88, metalness:.06});
-  const bmat   = new THREE.MeshStandardMaterial({map:T_GRIME, color:cfg.belly, roughness:.8,  metalness:.04});
-  const eyeWhite = new THREE.MeshStandardMaterial({color:cfg.eye, emissive:cfg.eye, emissiveIntensity:1, roughness:.2});
+  const suit   = new THREE.MeshStandardMaterial({map:T_GRIME, bumpMap:T_GRIME, bumpScale:0.016, color:cfg.color, roughness:.82, metalness:.08, envMapIntensity:.5});
+  const bmat   = new THREE.MeshStandardMaterial({map:T_GRIME, bumpMap:T_GRIME, bumpScale:0.012, color:cfg.belly, roughness:.72, metalness:.05, envMapIntensity:.55});
+  const eyeWhite = new THREE.MeshStandardMaterial({color:cfg.eye, emissive:cfg.eye, emissiveIntensity:1.4, roughness:.08, metalness:.15, envMapIntensity:1.0});
   const socketM  = new THREE.MeshStandardMaterial({color:0x0a0a0c, roughness:1});
 
   /* ---- GÖVDE (kalça pivotu y=0.7) ---- */
@@ -1314,8 +1352,8 @@ function buildAnimatronic(cfg){
   const eyeGeo=new THREE.SphereGeometry(0.06,10,8);
   const eyeL=new THREE.Mesh(eyeGeo, eyeWhite); eyeL.position.set(-0.18,0.44,0.46);
   const eyeR=new THREE.Mesh(eyeGeo, eyeWhite); eyeR.position.set( 0.18,0.44,0.46);
-  const glowL=glowSprite(cfg.glow,0.42); glowL.position.set(-0.18,0.44,0.50);
-  const glowR=glowSprite(cfg.glow,0.42); glowR.position.set( 0.18,0.44,0.50);
+  const glowL=glowSprite(cfg.glow,0.52); glowL.position.set(-0.18,0.44,0.50);
+  const glowR=glowSprite(cfg.glow,0.52); glowR.position.set( 0.18,0.44,0.50);
   glowL.visible=glowR.visible=false;
   headG.add(head,brow,socL,socR,eyeL,eyeR,glowL,glowR);
 
@@ -3940,6 +3978,13 @@ function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   update(dt); if(state===S.PLAY||state===S.CAMS) hud();
   Net.tick(dt);
   adaptRes(dt);
+  if(gradePass){ gradePass.material.uniforms.time.value = now*0.001;
+    // tehlikede grain + aberasyon artar (panik hissi), karanlıkta vignette güçlenir
+    const dl=Math.min(1,dangerLevel||0);
+    gradePass.material.uniforms.ab.value   = (isMobile?0.10:0.18) + dl*0.22;
+    gradePass.material.uniforms.grain.value= (isMobile?0.04:0.055)+ dl*0.05;
+    gradePass.material.uniforms.vig.value  = 0.62 + (powered?0:0.12) + dl*0.1;
+  }
   if(composer && gfxBloom) composer.render(); else renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
