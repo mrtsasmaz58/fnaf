@@ -567,7 +567,7 @@ function fitViewport(){
   document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
   camera.aspect=w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);   // mevcut pixelRatio korunur (adaptif ölçekleyici yönetir)
-  const jb=document.getElementById('joyBase'); if(jb && jb.classList.contains('hint')) jb.style.top=(h-210)+'px';
+  const jb=document.getElementById('joyBase'); if(jb && jb.classList.contains('hint')) jb.style.top=(h-300)+'px';
 }
 addEventListener('resize', fitViewport);
 addEventListener('orientationchange', ()=>{ fitViewport(); setTimeout(fitViewport,250); setTimeout(fitViewport,600); });
@@ -2293,6 +2293,10 @@ const Net=(()=>{
     return remotes[id]; }
   function removeRemote(id){ const r=remotes[id]; if(r&&r.obj) scene.remove(r.obj); delete remotes[id]; }
   function applyPose(d){ if(d.id===myId) return; const r=ensureRemote(d.id,d.name,d.skin); if(!r)return; r.tx=d.x; r.tz=d.z; r.tyaw=d.yaw; r.f=d.f; }
+  // KAPI senkronu — herkes aynı kapı durumunu görsün (arkadaşın kapatınca sende de kapansın)
+  function applyDoor(d){ const dr=doors[d.i]; if(!dr) return; dr.closed=!!d.cl; dr.closeT=d.ct||0; dr.cool=d.co||0; }
+  function sendDoor(i){ const dr=doors[i]; if(!dr) return; const m={t:'door',id:myId,i:i,cl:dr.closed?1:0,ct:dr.closeT||0,co:dr.cool||0};
+    if(host) broadcast(m); else if(conns[0]&&conns[0].open){ try{conns[0].send(m);}catch(e){} } }
 
   /* ---- host: bağlantı + relay ---- */
   function roster(){ const l=[{id:'H',name:myName,skin:mySkin,host:true}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name,skin:c._skin||0}); }); return l; }
@@ -2305,6 +2309,7 @@ const Net=(()=>{
         broadcast({t:'roster',roster:roster()}); refreshList();
         if(started){ try{c.send({t:'start',night:selNight});}catch(e){} }
       } else if(d.t==='pose'){ applyPose(d); broadcast(d,d.id); }
+      else if(d.t==='door'){ applyDoor(d); broadcast(d,d.id); }
     });
     c.on('close',()=>{ removeRemote(c.peer); conns=conns.filter(x=>x!==c); broadcast({t:'roster',roster:roster()}); broadcast({t:'leave',id:c.peer}); refreshList(); });
     conns.push(c);
@@ -2325,6 +2330,7 @@ const Net=(()=>{
       if(d.t==='welcome'){ myId=d.yourId; applyRoster(d.roster); if(d.started){ /* devam eden oturuma katıl */ } }
       else if(d.t==='roster'){ applyRoster(d.roster); }
       else if(d.t==='pose'){ applyPose(d); }
+      else if(d.t==='door'){ applyDoor(d); }
       else if(d.t==='start'){ beginSession(d.night); }
       else if(d.t==='leave'){ removeRemote(d.id); }
     });
@@ -2389,15 +2395,16 @@ const Net=(()=>{
   function tick(dt){
     if(!active) return;
     for(const id in remotes){ const r=remotes[id]; if(!r.obj) continue;
-      const k=Math.min(1,dt*12);
-      r.x+=(r.tx-r.x)*k; r.z+=(r.tz-r.z)*k;
+      const dx=r.tx-r.x, dz=r.tz-r.z, far=Math.hypot(dx,dz), k=Math.min(1,dt*14);
+      if(far>4){ r.x=r.tx; r.z=r.tz; }        // büyük boşluk (paket kaybı/ışınlama) → kaydırma yerine ışınla
+      else { r.x+=dx*k; r.z+=dz*k; }
       let dy=r.tyaw-r.yaw; while(dy>Math.PI)dy-=2*Math.PI; while(dy<-Math.PI)dy+=2*Math.PI; r.yaw+=dy*k;
       r.obj.position.set(r.x*SC,0,r.z*SC); r.obj.rotation.y=r.yaw;
       r.obj.userData.fl.visible=!!r.f;
       r.obj.visible=(state===S.PLAY||state===S.CAMS);
     }
     if(started && (state===S.PLAY||state===S.CAMS)){
-      poseT-=dt; if(poseT<=0){ poseT=0.066;
+      poseT-=dt; if(poseT<=0){ poseT=0.05;    // 20Hz (daha akıcı senkron)
         const p={t:'pose',id:myId,x:+player.x.toFixed(2),z:+player.z.toFixed(2),yaw:+player.yaw.toFixed(2),f:flashOn?1:0};
         if(host) broadcast(p); else if(conns[0]&&conns[0].open){ try{conns[0].send(p);}catch(e){} }
       }
@@ -2421,7 +2428,7 @@ const Net=(()=>{
   $('#mktClose').addEventListener('click',e=>{ e.stopPropagation(); $('#mktPanel').classList.remove('show'); });
   $('#mktBtn').classList.remove('hidden');
 
-  return { tick, leave, isPlaying:()=>active&&started, active:()=>active };
+  return { tick, leave, sendDoor, isPlaying:()=>active&&started, active:()=>active };
 })();
 
 /* Yön: yaw 0 => +Z (güney). Kuzeye bakmak için yaw=PI. */
@@ -2504,7 +2511,7 @@ let lookId=null, lookLast={x:0,y:0};
 const JOY_R=48, KNOB_C=36;   // knob azami yol / merkez ofset (base 130, knob 58)
 function isLeft(x){ return x < innerWidth*0.5; }
 // dinlenirken sol-altta görünür ipucu (analog burada demek)
-function joyHint(){ joyBase.classList.add('hint'); joyBase.style.left='34px'; joyBase.style.top=(window.innerHeight-210)+'px';
+function joyHint(){ joyBase.classList.add('hint'); joyBase.style.left='40px'; joyBase.style.top=(window.innerHeight-300)+'px';
   joyKnob.style.left=KNOB_C+'px'; joyKnob.style.top=KNOB_C+'px'; }
 function showJoy(on){ if(on){ joyBase.style.display='block'; joyHint(); } else { joyBase.style.display='none'; joyBase.classList.remove('hint'); joyId=null; moveVec={x:0,y:0}; } }
 function joyMove(cx,cy){ let dx=cx-joyC.x, dy=cy-joyC.y; const mag=Math.hypot(dx,dy); if(mag>JOY_R){dx*=JOY_R/mag;dy*=JOY_R/mag;}
@@ -2598,6 +2605,7 @@ function interactDoor(){
     nearDoor.closed=true; nearDoor.closeT=DOOR_TIME; runStats.doorUsed=true;   // 🏆 kapı kapatıldı
     toast(nearDoor.name+' KAPANDI — '+DOOR_TIME+'s');
   }
+  if(Net.isPlaying()) Net.sendDoor(doors.indexOf(nearDoor));   // çok oyuncu: kapı durumunu herkese yansıt
   Audio.tone(110,.15,'square',.25); Audio.noise(.2,.15,600);
   emitNoise(nearDoor.cx, nearDoor.z, 1.3);   // kapı gürültüsü CHİKA'yı buraya çeker
 }
@@ -3124,7 +3132,7 @@ function update(dt){
   if(moveVec.x||moveVec.y){ ix+=moveVec.x; iz+=moveVec.y; }
   const len=Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
   if(masked) running=false;
-  const speed=masked? 1.7 : (running?4.4:2.6);   // maskeliyken görüşün kısıtlı, yavaşsın
+  const speed=masked? 1.5 : (running?3.6:2.2);   // hafif nerf (çok hızlıydı); maskeliyken daha yavaş
   const fwd=new THREE.Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw));
   const right=new THREE.Vector3(-Math.cos(player.yaw),0,Math.sin(player.yaw));
   let nx=player.x + (fwd.x*(-iz)+right.x*ix)*speed*dt;
