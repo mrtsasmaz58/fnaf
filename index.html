@@ -1016,10 +1016,48 @@ const boxLED=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8), new THREE.MeshSt
 boxLED.position.set(NX(-17.6)*SC,0.85,NZ(-1.6)*SC); scene.add(boxLED);
 dimLight(NX(-16.5),NZ(0),0x5a2a7a,0.55,9); // mor loş ışık
 colliders.push({minX:NX(-18.6),maxX:NX(-14.6),minZ:NZ(0.4),maxZ:NZ(2.4)}); // hediye kutuları engeli
-// --- MUTFAK x[9,13] z[-2,2] (karanlık) ---
-wallX(NX(9),NX(13),NZ(-2)); wallX(NX(9),NX(13),NZ(2)); wallZ(NZ(-2),NZ(2),NX(13));
-decoBox(NX(11),0.5,NZ(-1),2.5,1.0,0.6,M.metal);
-colliders.push({minX:NX(9.7),maxX:NX(12.3),minZ:NZ(-1.3),maxZ:NZ(-0.7)});
+// --- MUTFAK x[9,13] z[-4,5] — BÜYÜK MUTFAK (paslanmaz tezgahlar + ocak/davlumbaz + lavabo + buzdolabı + tencere rafı) ---
+wallX(NX(9),NX(13),NZ(-4)); wallX(NX(9),NX(13),NZ(5)); wallZ(NZ(-4),NZ(5),NX(13));
+// tavan lambaları (oda derinleşti → 2 lamba daha, elektrikle söner)
+pLight(NX(10.8),NZ(-2),0xffe8c6,0.62,9); pLight(NX(10.8),NZ(3),0xffe6c0,0.55,9);
+// mutfak malzemeleri
+const kDark =new THREE.MeshStandardMaterial({color:0x191b20,roughness:.5,metalness:.6});
+const kWhite=new THREE.MeshStandardMaterial({color:0xcfd5da,roughness:.4,metalness:.3});
+const kTop  =new THREE.MeshStandardMaterial({color:0x24272d,roughness:.35,metalness:.45,envMapIntensity:.8});
+const kEmber=new THREE.MeshStandardMaterial({color:0xff5a20,emissive:0xff4a10,emissiveIntensity:1.8});
+// DOĞU DUVAR paslanmaz tezgah (uzun) + üst tabla
+decoBox(NX(12.5),0.5,NZ(0.5), 0.85,1.0,7.4*NZF, M.metal);
+decoBox(NX(12.5),1.04,NZ(0.5), 0.92,0.08,7.5*NZF, kTop);
+colliders.push({minX:NX(12.0),maxX:NX(13),minZ:NZ(-3.4),maxZ:NZ(4.4)});
+// OCAK + 4 göz (kızıl) + DAVLUMBAZ (doğu tezgahın kuzey ucu)
+decoBox(NX(12.4),1.2,NZ(-2.4), 0.72,0.34,1.5, kDark);
+[[-0.16,-2.75],[0.16,-2.75],[-0.16,-2.05],[0.16,-2.05]].forEach(([ox,zz])=>{
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.04,14), kEmber); b.position.set(NX(12.4)+ox,1.4,NZ(zz)); world.add(b); });
+decoBox(NX(12.55),2.35,NZ(-2.4), 0.95,0.55,1.8, M.metal);
+decoBox(NX(12.5),2.02,NZ(-2.4), 0.8,0.05,1.5, new THREE.MeshStandardMaterial({color:0xffbf80,emissive:0xff9a40,emissiveIntensity:.6}));
+// LAVABO (doğu tezgahın güney ucu) + musluk
+decoBox(NX(12.42),0.99,NZ(2.4), 0.5,0.16,1.1, kDark);
+decoBox(NX(12.42),1.18,NZ(2.4), 0.05,0.3,0.05, M.metal);
+decoBox(NX(12.33),1.31,NZ(2.4), 0.18,0.05,0.05, M.metal);
+// KUZEY DUVAR tezgahı + duvar rafı (tencereler)
+decoBox(NX(11),0.5,NZ(-3.55), 3.2*NXF,1.0,0.62, M.metal);
+decoBox(NX(11),1.03,NZ(-3.55), 3.3*NXF,0.08,0.68, kTop);
+colliders.push({minX:NX(9.3),maxX:NX(12.7),minZ:NZ(-4),maxZ:NZ(-3.15)});
+decoBox(NX(11),1.95,NZ(-3.72), 3.0*NXF,0.07,0.42, M.wood);
+[-1.4,-0.4,0.6,1.5].forEach((ox,i)=>{ const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.22,12), i%2?kDark:M.metal); pot.position.set(NX(11+ox),2.16,NZ(-3.68)); world.add(pot); });
+// GÜNEY tezgah + BUZDOLABI (güneydoğu köşe)
+decoBox(NX(10),0.5,NZ(4.55), 2.0*NXF,1.0,0.62, M.metal);
+decoBox(NX(10),1.03,NZ(4.55), 2.1*NXF,0.08,0.68, kTop);
+colliders.push({minX:NX(9),maxX:NX(11.1),minZ:NZ(4.1),maxZ:NZ(5)});
+decoBox(NX(12.3),1.15,NZ(4.35), 0.9,2.2,0.85, kWhite);
+decoBox(NX(12.0),1.5,NZ(4.35), 0.05,0.5,0.06, kDark); decoBox(NX(12.0),0.9,NZ(4.35), 0.05,0.5,0.06, kDark);
+colliders.push({minX:NX(11.7),maxX:NX(13),minZ:NZ(3.9),maxZ:NZ(4.9)});
+// ASILI TENCERE RAFI (tavanda ortada, yüksek → geçişi engellemez)
+decoBox(NX(11),2.55,NZ(1.2), 1.6*NXF,0.06,0.06, M.metal);
+[-0.6,0,0.6].forEach((ox)=>{ const pan=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.15,0.1,14), M.metal); pan.position.set(NX(11+ox),2.18,NZ(1.2)); world.add(pan);
+  const hn=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.28,0.02), kDark); hn.position.set(NX(11+ox),2.4,NZ(1.2)); world.add(hn); });
+// MUTFAK TABELASI — kapının yanında, yemekhaneden görünür (chika maskotu)
+poster('MUTFAK','#1f3a24', NX(9)-0.11, 1.9, NZ(2.4), -Math.PI/2, 'chick');
 
 // --- PIRATE COVE (yemekhane batı köşesi, perdeli) — genişletildi, Foxo burada ---
 decoBox(NX(-7),0.2,NZ(4), 3.8*NXF,0.4,2.8*NZF, M.stage);       // geniş platform (üst y=0.4)
@@ -1813,23 +1851,19 @@ function resetBasement(){ inBasement=false; basStatic.visible=false; basTaskGive
   basPts.forEach(p=>{ p.done=false; p.glow.color.setHex(0xff5020); p.glow.emissive.setHex(0xff5020); });
   BAS_AIS.forEach((a,i)=>{ a.x=a.home.x; a.z=a.home.z; a.chasing=false; a.model.scale.setScalar(a.model.userData.baseScale||1.5); a.model.rotation.set(0,0,0); if(a.eyeMat) a.eyeMat.emissiveIntensity=1.1; });
   $('#basTask').classList.remove('show','urgent'); $('#basBtn').classList.add('hidden'); }
-// gece görevi: süre + vana kapatma + HUD (hem üstte hem bodrumda işler)
+// BODRUM TAMAMEN KEYFİ — hiçbir zaman zorunlu değil. İnmek istersen 3 vanayı kapatmak
+// OPSİYONEL bonus (pil + başarım). İnmezsen HİÇBİR ceza yok. HUD sadece bodrumdayken görünür.
 function updateBasTask(dt){
   if(!basUnlocked || basTaskDone) return;
   const bt=$('#basTask');
-  if(!basTaskGiven){ basTaskT-=dt; if(basTaskT<=0){ basTaskGiven=true; basTaskActive=true; basTaskWin=120;
-      toast('🔻 GECE GÖREVİ: Bodruma in (Ödül Köşesi kapağı) ve 3 vanayı kapat!'); Audio.tone(660,.22,'sine',.15); if(navigator.vibrate) navigator.vibrate([100,60,100]); } return; }
-  if(!basTaskActive) return;
-  basTaskWin-=dt;
-  if(inBasement){ for(const p of basPts){ if(!p.done && Math.hypot(player.x-p.x,player.z-p.z)<1.5){
+  if(!inBasement){ bt.classList.remove('show','urgent'); return; }   // üst kattayken hiç göründürme (baskı yok)
+  for(const p of basPts){ if(!p.done && Math.hypot(player.x-p.x,player.z-p.z)<1.5){
       p.done=true; p.glow.color.setHex(0x30ff50); p.glow.emissive.setHex(0x30ff50); p.wheel.rotation.z+=1.2;
-      Audio.tone(880,.16,'sine',.14); toast('✅ VANA KAPANDI ('+basPts.filter(q=>q.done).length+'/3)'); } } }
+      Audio.tone(880,.16,'sine',.14); toast('✅ VANA KAPANDI ('+basPts.filter(q=>q.done).length+'/3)'); } }
   const done=basPts.filter(p=>p.done).length;
-  if(done>=3){ basTaskDone=true; basTaskActive=false; bt.classList.remove('show','urgent');
-    toast('🏆 BODRUM GÖREVİ TAMAM — pil dolduruldu!'); Audio.achievePop(); battery=Math.min(100,battery+40); }
-  else if(basTaskWin<=0){ basTaskActive=false; bt.classList.remove('show','urgent');
-    camMiss=Math.max(camMiss,2); camBoost=1.4; camBoostT=45; toast('⚠ BODRUM GÖREVİ BAŞARISIZ — her şey azdı!'); Audio.sting(); if(navigator.vibrate) navigator.vibrate(300); }
-  else { bt.textContent='🔻 BODRUM GÖREVİ: '+done+'/3 vana — '+Math.ceil(basTaskWin)+'s'+(inBasement?'':' (BODRUMA İN)'); bt.classList.toggle('urgent',basTaskWin<20); bt.classList.add('show'); }
+  if(done>=3){ basTaskDone=true; bt.classList.remove('show','urgent');
+    toast('🏆 BODRUM BONUSU TAMAM — pil dolduruldu! (başarım)'); Audio.achievePop(); battery=Math.min(100,battery+40); }
+  else { bt.textContent='🔻 OPSİYONEL: 3 vanayı kapat → pil bonusu ('+done+'/3)'; bt.classList.remove('urgent'); bt.classList.add('show'); }
 }
 // bodrum düşmanları (yalnız bodrumdayken)
 function updateBasement(dt){
@@ -2891,7 +2925,7 @@ const REGIONS=[
   {n:'TUVALETLER',      x:[4,8],     z:[9,12]},
   {n:'PIRATE COVE',     x:[-8.9,-5.1],z:[2.5,5.4]},
   {n:'KULİS',           x:[-13,-9],  z:[-2,2]},
-  {n:'MUTFAK',          x:[9,13],    z:[-2,2]},
+  {n:'MUTFAK',          x:[9,13],    z:[-4,5]},
   {n:'SAHNE ÖNÜ',       x:[-5,5],    z:[-4,-1]},
   {n:'YEMEKHANE',       x:[-9,9],    z:[-4,6]},
 ];
