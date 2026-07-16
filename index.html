@@ -335,7 +335,10 @@
 <!-- Çok oyunculu (P2P oda kodu) — internet gerektirir; yüklenmezse tek oyunculu çalışır -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
 </script>
 </head>
 <body>
@@ -363,6 +366,8 @@
     <div class="segBtns" id="setShake"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
   <div class="setRow"><div class="setLbl">👁️ HALÜSİNASYONLAR</div>
     <div class="segBtns" id="setHallu"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
+  <div class="setRow"><div class="setLbl">✨ BLOOM (parlama) <span style="color:#6a7480;font-size:11px">daha iyi grafik</span></div>
+    <div class="segBtns" id="setBloom"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
   <button id="setClose">‹ KAPAT</button>
 </div>
 
@@ -537,17 +542,43 @@ renderer.setPixelRatio(renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 1.15;   // biraz daha canlı/kontrastlı
 // GÖLGE: mobilde tamamen kapalı (fragment shader + gölge haritası maliyeti mobilin en büyük yükü)
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const MAXANISO = renderer.capabilities.getMaxAnisotropy();   // dokular açıyla bakınca keskin kalsın
 app.appendChild(renderer.domElement);
 $('#loading').classList.add('hidden');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x030406);
-scene.fog = new THREE.FogExp2(0x030406, 0.032);
+scene.fog = new THREE.FogExp2(0x030406, 0.030);
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.03, 260);
+
+/* ================= POST-PROCESS (bloom parlaması) =================
+   Parlayan gözler/fener/acil ışık/ekran bloom ile dramatik parlar → karanlık korkuda çok fark eder.
+   Dinamik import (addons); yüklenmezse composer null kalır ve normal render devam eder (oyun bozulmaz). */
+let composer=null, bloomPass=null;
+let gfxBloom = !isMobile;   // masaüstünde açık; mobilde ⚙ Ayarlar'dan açılabilir (perf)
+(async()=>{
+  try{
+    const [EC,RP,UBP,OP] = await Promise.all([
+      import('three/addons/postprocessing/EffectComposer.js'),
+      import('three/addons/postprocessing/RenderPass.js'),
+      import('three/addons/postprocessing/UnrealBloomPass.js'),
+      import('three/addons/postprocessing/OutputPass.js'),
+    ]);
+    composer = new EC.EffectComposer(renderer);
+    composer.setPixelRatio(renderScale); composer.setSize(innerWidth, innerHeight);
+    composer.addPass(new RP.RenderPass(scene, camera));
+    bloomPass = new UBP.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),
+      isMobile?0.55:0.85,   // strength
+      0.5,                  // radius
+      isMobile?0.9:0.82);   // threshold (yalnız parlak yerler parlar)
+    composer.addPass(bloomPass);
+    composer.addPass(new OP.OutputPass());   // tonemapping + sRGB (composer sonunda)
+  }catch(e){ composer=null; }   // bloom yok → normal render
+})();
 
 // Harita ölçeği: statik dünya yatayda SC kat büyür (yükseklik/insan boyu aynı kalır).
 // Tüm oyun mantığı "tasarım" koordinatında; sadece render SC ile ölçeklenir.
@@ -567,6 +598,7 @@ function fitViewport(){
   document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
   camera.aspect=w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);   // mevcut pixelRatio korunur (adaptif ölçekleyici yönetir)
+  if(composer){ composer.setSize(w,h); if(bloomPass) bloomPass.setSize(w,h); }
   const jb=document.getElementById('joyBase'); if(jb && jb.classList.contains('hint')) jb.style.top=(h-300)+'px';
 }
 addEventListener('resize', fitViewport);
@@ -593,21 +625,22 @@ if(isMobile){
 
 /* ================= DOKULAR ================= */
 function mc(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function aniso(t){ try{ t.anisotropy=MAXANISO; }catch(e){} return t; }
 function noiseTex(base,spec){ const c=mc(256,256),g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,256,256);
   for(let i=0;i<26000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*spec})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return t; }
-function wallTex(){ const c=mc(256,256),g=c.getContext('2d');
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return aniso(t); }
+function wallTex(){ const c=mc(512,512),g=c.getContext('2d'); g.scale(2,2);   // 512px (2x keskinlik)
   // FNAF: alt kısım kiremit kırmızısı, üst bej — burada dikey iki ton
   g.fillStyle='#6a2a2a'; g.fillRect(0,0,256,256); g.fillStyle='#c9b487'; g.fillRect(0,0,256,150);
   g.fillStyle='#3a1414'; g.fillRect(0,148,256,6);
   g.strokeStyle='rgba(0,0,0,.15)'; for(let y=0;y<256;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(256,y); g.stroke(); }
-  for(let i=0;i<8000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.12})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return t; }
-function floorTex(){ const c=mc(256,256),g=c.getContext('2d');
+  for(let i=0;i<16000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.12})`; g.fillRect(Math.random()*256,Math.random()*256,.6,.6);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return aniso(t); }
+function floorTex(){ const c=mc(512,512),g=c.getContext('2d'); g.scale(2,2);   // 512px (2x keskinlik)
   // siyah-beyaz damalı zemin (FNAF)
   for(let y=0;y<256;y+=64) for(let x=0;x<256;x+=64){ g.fillStyle=(x/64+y/64)%2?'#151515':'#c8c4bc'; g.fillRect(x,y,64,64);}
-  for(let i=0;i<16000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.28})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return t; }
+  for(let i=0;i<32000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.28})`; g.fillRect(Math.random()*256,Math.random()*256,.6,.6);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return aniso(t); }
 // --- poster çizim yardımcıları ---
 function _c(g,x,y,r){ g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
 function _e(g,x,y,rx,ry){ g.beginPath(); g.ellipse(x,y,rx,ry,0,0,7); g.fill(); }
@@ -734,7 +767,7 @@ const emergency = dimLight(0,17,0x8a1414,0.0,12);    // acil kırmızı (yalnız
 // Fener (kameraya bağlı spotlight)
 const flash = new THREE.SpotLight(0xfff0cc, 0, 30, Math.PI*0.20, 0.45, 1.1);
 flash.castShadow = !isMobile;
-if(flash.castShadow){ flash.shadow.mapSize.set(1024,1024); flash.shadow.camera.near=0.2; flash.shadow.camera.far=30; flash.shadow.bias=-0.0008; }
+if(flash.castShadow){ flash.shadow.mapSize.set(2048,2048); flash.shadow.camera.near=0.2; flash.shadow.camera.far=32; flash.shadow.bias=-0.0006; flash.shadow.radius=3; }
 const flashTarget = new THREE.Object3D();
 scene.add(flash); scene.add(flashTarget); flash.target = flashTarget;
 // yakın çevre için zayıf ışık
@@ -2015,13 +2048,14 @@ function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); 
 
 /* ================= AYARLAR ================= */
 const SET_KEY='gb3d_set_v1';
-const SET={ vol:0.42, scare:1, shake:1, hallu:1 };
+const SET={ vol:0.42, scare:1, shake:1, hallu:1, bloom: isMobile?0:1 };
 try{ const s=JSON.parse(localStorage.getItem(SET_KEY)); if(s) Object.assign(SET,s); }catch(e){}
+gfxBloom = SET.bloom!==0;   // kaydedilmiş bloom tercihini uygula
 function saveSet(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SET)); }catch(e){} }
 function applySet(){
   Audio.setMaster(SET.vol);
   $('#setVol').value=Math.round(SET.vol*100); $('#setVolVal').textContent=Math.round(SET.vol*100)+'%';
-  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu);
+  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu); segSel('#setBloom', SET.bloom);
 }
 function segSel(sel,val){ document.querySelectorAll(sel+' button').forEach(b=>b.classList.toggle('sel', parseFloat(b.dataset.v)===val)); }
 function openSettings(){ applySet(); $('#setPanel').classList.add('show'); }
@@ -2029,9 +2063,9 @@ function closeSettings(){ $('#setPanel').classList.remove('show'); }
 $('#setBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume(); openSettings(); });
 $('#setClose').addEventListener('click',e=>{ e.stopPropagation(); closeSettings(); });
 $('#setVol').addEventListener('input',e=>{ SET.vol=e.target.value/100; $('#setVolVal').textContent=Math.round(SET.vol*100)+'%'; Audio.setMaster(SET.vol); saveSet(); });
-[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu']].forEach(([sel,key])=>{
+[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu'],['#setBloom','bloom']].forEach(([sel,key])=>{
   document.querySelectorAll(sel+' button').forEach(b=> b.addEventListener('click',e=>{ e.stopPropagation();
-    SET[key]=parseFloat(b.dataset.v); segSel(sel,SET[key]); saveSet(); }));
+    SET[key]=parseFloat(b.dataset.v); segSel(sel,SET[key]); if(key==='bloom') gfxBloom=SET.bloom!==0; saveSet(); }));
 });
 
 /* ================= HALÜSİNASYON (zararsız korkular) ================= */
@@ -3198,14 +3232,15 @@ function adaptRes(dt){
   if(fpsAcc<1) return;
   const fps=fpsN/fpsAcc; fpsAcc=0; fpsN=0;
   if(rsCool>0) return;
-  if(fps<48 && renderScale>RS_MIN){ renderScale=Math.max(RS_MIN, renderScale-0.12); renderer.setPixelRatio(renderScale); rsCool=2.2; }
-  else if(fps>57 && renderScale<RS_MAX){ renderScale=Math.min(RS_MAX, renderScale+0.08); renderer.setPixelRatio(renderScale); rsCool=3; }
+  if(fps<48 && renderScale>RS_MIN){ renderScale=Math.max(RS_MIN, renderScale-0.12); renderer.setPixelRatio(renderScale); if(composer)composer.setPixelRatio(renderScale); rsCool=2.2; }
+  else if(fps>57 && renderScale<RS_MAX){ renderScale=Math.min(RS_MAX, renderScale+0.08); renderer.setPixelRatio(renderScale); if(composer)composer.setPixelRatio(renderScale); rsCool=3; }
 }
 function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   update(dt); if(state===S.PLAY||state===S.CAMS) hud();
   Net.tick(dt);
   adaptRes(dt);
-  renderer.render(scene,camera); requestAnimationFrame(loop);
+  if(composer && gfxBloom) composer.render(); else renderer.render(scene,camera);
+  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 </script>
