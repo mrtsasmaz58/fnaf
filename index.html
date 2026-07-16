@@ -301,6 +301,7 @@
     font-weight:bold;font-size:14px;color:#ffcf8a;background:rgba(24,14,4,.88);border:1px solid #c98a3f;border-radius:9px;
     padding:9px 16px;pointer-events:none;text-align:center;display:none;box-shadow:0 4px 16px rgba(0,0,0,.6);}
   #basTask.show{display:block;} #basTask.urgent{color:#ff8a6a;border-color:#e0402a;animation:blink .5s steps(1) infinite;}
+  #basFade{position:fixed;inset:0;z-index:36;pointer-events:none;background:#000;opacity:0;}
   #ventWarn{position:fixed;left:50%;top:56%;transform:translateX(-50%);z-index:26;font-size:15px;font-weight:bold;
     color:#ff6a6a;text-shadow:0 0 12px #900;letter-spacing:1px;pointer-events:none;text-align:center;animation:blink .45s steps(1) infinite;}
   #ventDark{position:fixed;inset:0;z-index:13;pointer-events:none;background:radial-gradient(ellipse 45% 55% at 50% 50%,rgba(0,0,0,0) 30%,rgba(0,0,0,.85) 88%);display:none;}
@@ -461,6 +462,7 @@
 <div id="hurtHud"></div>
 <button id="reviveBtn"></button>
 <div id="specOv"></div>
+<div id="basFade"></div>
 
 <!-- Dokunmatik kontroller -->
 <div id="joyZone" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div></div>
@@ -1680,6 +1682,7 @@ const bCol=[];                                        // bodrum duvar/kolon çar
 const HATCH={x:NX(-19), z:NZ(-2)};                    // üst kat: Ödül Köşesi'nde iniş kapağı
 const BAS_ENTRY={x:-70, z:20}, BAS_EXIT={x:-70, z:20};// bodrum giriş = çıkış (merdiven dibi)
 let inBasement=false, basUnlocked=false;
+let basTransT=0, basTransDir=0, basSwapDone=false;   // merdiven iniş/çıkış fade animasyonu
 let basTaskGiven=false, basTaskActive=false, basTaskDone=false, basTaskT=0, basTaskWin=0;
 const bWallMat = new THREE.MeshStandardMaterial({map:T.wall, bumpMap:T.wallBump, bumpScale:0.6, color:0x565258, roughness:.98, metalness:.03});
 const bFloorMat= new THREE.MeshStandardMaterial({map:T.floor, bumpMap:T.floorBump, bumpScale:0.5, color:0x34343a, roughness:.9, metalness:.06, envMapIntensity:.3});
@@ -1714,7 +1717,7 @@ const basPts=[];
   basPts.push({x:p[0],z:p[1],done:false,grp:g,glow:glowM,wheel});
 });
 // BOZUK ANİMATRONİKLER (basit ama korkunç: karanlık gövde + kırmızı göz)
-function buildBroken(tint){ const g=new THREE.Group();
+function buildBroken(tint,parent){ const g=new THREE.Group();
   const body=new THREE.MeshStandardMaterial({map:T_GRIME,color:tint,roughness:.85,metalness:.15,emissive:new THREE.Color(tint).multiplyScalar(0.04)});
   const dark=new THREE.MeshStandardMaterial({color:0x121318,roughness:.6,metalness:.7});
   const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.27,0.32,0.95,9),body); torso.position.y=1.16;
@@ -1731,11 +1734,49 @@ function buildBroken(tint){ const g=new THREE.Group();
   const lL=new THREE.Mesh(legGeo,dark); lL.position.set(-0.14,0.38,0); const lR=new THREE.Mesh(legGeo,dark); lR.position.set(0.14,0.38,0);
   g.add(torso,hip,head,jaw,eL,eR,aL,aR,lL,lR);
   g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
-  const BS=1.5; g.userData={eyeMat, baseScale:BS, headY:2.0}; g.scale.setScalar(BS); basStatic.add(g); return g; }
+  const BS=1.5; g.userData={eyeMat, baseScale:BS, headY:2.0}; g.scale.setScalar(BS); (parent||basStatic).add(g); return g; }
 const BAS_WP=[{x:-82,z:-8},{x:-58,z:-8},{x:-58,z:14},{x:-82,z:14},{x:-70,z:4}];
 const BAS_AIS=[['Bozuk BONKO',0x6a3a8a,[-84,-11]],['Bozuk FREDDO',0x5a4020,[-56,15]],['Bozuk CHİKA',0x9a8a20,[-70,-13]]]
   .map(([nm,tint,p])=>({name:nm, model:buildBroken(tint), x:p[0],z:p[1], home:{x:p[0],z:p[1]}, speed:2.0+Math.random()*0.5, wp:Math.floor(Math.random()*5), wpT:0, chasing:false, phase:Math.random()*6.28, eyeMat:null}));
 BAS_AIS.forEach(a=>a.eyeMat=a.model.userData.eyeMat);
+// ---- BODRUM MERDİVENİ (Ödül Köşesi'nde görünür iniş) ----
+(function(){ const hx=HATCH.x, hz=HATCH.z;
+  const stepM=new THREE.MeshStandardMaterial({color:0x3a3d42,roughness:.7,metalness:.5});
+  const doorway=new THREE.Mesh(new THREE.BoxGeometry(1.5*SC,2.2,0.3*SC), new THREE.MeshStandardMaterial({color:0x040406,roughness:1}));
+  doorway.position.set(hx*SC,1.1,(hz-0.55)*SC); world.add(doorway);   // karanlık merdiven ağzı
+  for(let i=0;i<5;i++){ const st=new THREE.Mesh(new THREE.BoxGeometry(1.4*SC,0.14,0.4*SC), stepM);
+    st.position.set(hx*SC, 0.16-i*0.05, (hz-0.05-i*0.34)*SC); st.castShadow=st.receiveShadow=true; world.add(st); }   // inen basamaklar
+  for(const sx of [-0.72,0.72]){ const rail=new THREE.Mesh(new THREE.BoxGeometry(0.08*SC,0.55,1.5*SC), M.metal);
+    rail.position.set((hx+sx)*SC,0.5,(hz-0.7)*SC); world.add(rail); }   // korkuluklar
+  const haz=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,8), new THREE.MeshStandardMaterial({color:0xff2010,emissive:0xff2010,emissiveIntensity:2}));
+  haz.position.set(hx*SC,2.35,(hz-0.4)*SC); world.add(haz);
+  const hl=new THREE.PointLight(0xff3020,0.55,4*SC,2); hl.position.set(hx*SC,2.2,hz*SC); scene.add(hl);
+})();
+// ---- YÜKSELEN BOZUK ANİMATRONİK (bodrumdaki bozuk ana-üçlü arada ofise çıkar; ÇOK YAVAŞ ama durmaz) ----
+const risen={ model:buildBroken(0x5a4a6a, scene), active:false, x:HATCH.x, z:HATCH.z, speed:0.82, phase:0, name:'BOZUK ANİMATRONİK', navT:0, ntx:0, ntz:0 };
+risen.model.visible=false;
+let risenT=randRange(55,100);
+function resetRisen(){ risen.active=false; risen.model.visible=false; risen.x=HATCH.x; risen.z=HATCH.z; risenT=randRange(55,100); }
+function updateRisen(dt){
+  if(!risen.active){
+    if(basUnlocked){ risenT-=dt; if(risenT<=0 && AIS.some(a=>a.awake)){
+      risen.active=true; risen.x=HATCH.x; risen.z=HATCH.z; risen.model.visible=true; risen.navT=0;
+      toast('🔻 BODRUMDAN BİR ŞEY ÇIKTI — yavaş ama durmuyor!'); Audio.growl(); Audio.noise(.6,.16,300); if(navigator.vibrate) navigator.vibrate([120,60,120]); } }
+    return;
+  }
+  risen.navT-=dt;
+  if(risen.navT<=0 || Math.hypot(risen.ntx-risen.x,risen.ntz-risen.z)<0.35){ risen.navT=0.4; const nt=navTarget(risen.x,risen.z,player.x,player.z); risen.ntx=nt[0]; risen.ntz=nt[1]; }
+  const dx=risen.ntx-risen.x, dz=risen.ntz-risen.z, d=Math.hypot(dx,dz);
+  if(d>0.02){ let nx=risen.x+dx/d*risen.speed*dt, nz=risen.z+dz/d*risen.speed*dt; [nx,nz]=collideActor(nx,nz,risen.x,risen.z,0.4); risen.x=nx; risen.z=nz; }
+  risen.phase+=dt*(2+risen.speed*2); const bob=Math.abs(Math.sin(risen.phase))*0.05;
+  risen.model.position.set(risen.x*SC, bob, risen.z*SC); risen.model.lookAt(player.x*SC,1.4,player.z*SC);
+  if(risen.eyeMat) risen.eyeMat.emissiveIntensity=2.4;
+  const dp=Math.hypot(player.x-risen.x,player.z-risen.z);
+  dangerLevel=Math.max(dangerLevel, 1-Math.min(dp,14)/14);
+  if(Math.random()<dt*0.4) Audio.robotGlitch();
+  if(dp<1.2) catchPlayer(risen.model, risen.name);
+}
+risen.eyeMat=risen.model.userData.eyeMat;
 // bodrum çarpışması (oyuncu + düşman)
 function collideBasement(px,pz,rad){ const R=rad||PR;
   for(let k=0;k<2;k++){ for(const c of bCol){ if(px>c.minX-R&&px<c.maxX+R&&pz>c.minZ-R&&pz<c.maxZ+R){
@@ -1753,9 +1794,12 @@ function exitBasement(){ inBasement=false;
   player.x=HATCH.x; player.z=HATCH.z+0.7; player.yaw=0; player.pitch=-0.05;
   basStatic.visible=false;
   toast('🔺 YUKARI ÇIKTIN'); Audio.noise(.4,.12,520); }
-function toggleBasement(){ if(state!==S.PLAY||downed) return;
-  if(inBasement){ if(nearExitDown()) exitBasement(); return; }
-  if(nearHatchUp()){ if(!basUnlocked){ toast('🔒 BODRUM KİLİTLİ — 1. gecede kapalı'); Audio.tone(120,.15,'square',.2); return; } enterBasement(); } }
+function startBasTrans(dir){ if(basTransT>0) return; basTransDir=dir; basTransT=1.5; basSwapDone=false;
+  running=false; flashOn=false; $('#flashBtn').classList.remove('on'); hidePlayUI();
+  Audio.noise(.6,.14,340); if(navigator.vibrate) navigator.vibrate([40,30,40,30,40]); }
+function toggleBasement(){ if(state!==S.PLAY||downed||basTransT>0) return;
+  if(inBasement){ if(nearExitDown()) startBasTrans(-1); return; }        // merdivenle çık
+  if(nearHatchUp()){ if(!basUnlocked){ toast('🔒 BODRUM KİLİTLİ — 1. gecede kapalı'); Audio.tone(120,.15,'square',.2); return; } startBasTrans(1); } }  // merdivenle in
 function resetBasement(){ inBasement=false; basStatic.visible=false; basTaskGiven=false; basTaskActive=false; basTaskDone=false; basTaskWin=0;
   basTaskT=randRange(40,80);
   basPts.forEach(p=>{ p.done=false; p.glow.color.setHex(0xff5020); p.glow.emissive.setHex(0xff5020); });
@@ -3101,7 +3145,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   camTask=null; camTaskT=randRange(35,55); camMiss=0; camBoost=1; camBoostT=0; camDwell=0;   // kamera görevi sıfırla
   downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show');   // yaralanma/izleyici sıfırla
   basUnlocked = customMode || night>=2;                            // BODRUM: 1. gece kilitli
-  resetBasement();                                                 // bodrum konum/görev/düşman sıfırla
+  resetBasement(); resetRisen(); basTransT=0; $('#basFade').style.opacity='0';   // bodrum + yükselen düşman sıfırla
   $('#camTask').classList.remove('show','urgent'); $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
   $('#ventDark').classList.remove('show'); $('#ventWarn').classList.add('hidden');
   $('#maskBtn').classList.remove('hidden'); $('#maskBox').classList.remove('hidden');
@@ -3130,7 +3174,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   startPhone();
 }
 function toMenu(){ state=S.MENU; customMode=false; masked=false; downed=false; exhausted=false; camTask=null; spectating=false; $('#specOv').classList.remove('show');
-  if(inBasement){ inBasement=false; basStatic.visible=false; }
+  if(inBasement){ inBasement=false; basStatic.visible=false; } risen.active=false; risen.model.visible=false; basTransT=0; $('#basFade').style.opacity='0';
   $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
   $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
   Net.leave(); Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
@@ -3382,6 +3426,7 @@ function updateDowned(dt){
 function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpModel.scale.setScalar(jumpModel.userData.baseScale||1); $('#jumpFlash').style.opacity='0';
   downed=false; $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
   if(inBasement){ inBasement=false; basStatic.visible=false; }
+  risen.active=false; risen.model.visible=false; basTransT=0; $('#basFade').style.opacity='0';
   spectating=false; $('#specOv').classList.remove('show');
   $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
   nearLight.intensity=0.25; nearLight.distance=3.5; nearLight.color.setHex(0x9099aa);   // jumpscare ışığını sıfırla
@@ -3475,6 +3520,22 @@ function update(dt){
     if(ventT>0.5 && Math.random()<dt*3) Audio.step();
     updateAI(dt); clockT+=dt;   // dünyayı canlı tut (MP co-op'ta da)
     if(p>=1){ finishVent(); }
+    return;
+  }
+
+  // === BODRUM MERDİVEN İNİŞ/ÇIKIŞ (fade + siyahken yer değiştir + adım sesleri) ===
+  if(basTransT>0 && state===S.PLAY){
+    basTransT-=dt; clockT+=dt;
+    const op=1-Math.min(1,Math.abs(basTransT-0.75)/0.75);   // 0→1→0 (ortada tam siyah)
+    $('#basFade').style.opacity=op.toFixed(2);
+    if(!basSwapDone && basTransT<=0.75){ basSwapDone=true; if(basTransDir>0) enterBasement(); else exitBasement(); }
+    // kamera oyuncunun (güncel) konumunda + hafif iniş sallanması
+    const dip=Math.sin((1.5-basTransT)*4)*0.12;
+    camera.position.set(player.x*SC, EYE-dip, player.z*SC);
+    const dv=dirVec(); camera.lookAt(player.x*SC+dv.x, EYE-dip+dv.y, player.z*SC+dv.z);
+    flash.intensity=0;
+    if(Math.random()<dt*7) Audio.step();
+    if(basTransT<=0){ $('#basFade').style.opacity='0'; showPlayUI(); }
     return;
   }
 
@@ -3660,6 +3721,7 @@ function update(dt){
   }
 
   if(!inBasement) updateCamTask(dt);   // kamera görevi (bodrumdayken donar)
+  if(!inBasement) updateRisen(dt);     // bodrumdan çıkan yavaş bozuk animatronik (üst katta)
   updateBasTask(dt);      // gece bodrum görevi (vana kapat) + kan-kaybı benzeri süre
   updateDowned(dt);       // multiplayer: yaralı kan kaybı sayacı + takım kurtarma
   if(state!==S.PLAY) return;   // bleedOut → ölüm; bu kareyi bitir
