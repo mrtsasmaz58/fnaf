@@ -542,7 +542,7 @@ renderer.setPixelRatio(renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.22;   // biraz daha canlı/kontrastlı
+renderer.toneMappingExposure = 1.1;   // hafif kısık (çok parlak olmasın)
 // GÖLGE: mobilde tamamen kapalı (fragment shader + gölge haritası maliyeti mobilin en büyük yükü)
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -589,9 +589,9 @@ let gfxBloom = !isMobile;   // masaüstünde açık; mobilde ⚙ Ayarlar'dan aç
     composer.setPixelRatio(renderScale); composer.setSize(innerWidth, innerHeight);
     composer.addPass(new RP.RenderPass(scene, camera));
     bloomPass = new UBP.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),
-      isMobile?0.6:0.95,    // strength (parlama daha belirgin)
-      isMobile?0.5:0.65,    // radius (daha yumuşak yayılım)
-      isMobile?0.88:0.8);   // threshold (yalnız parlak yerler parlar)
+      isMobile?0.5:0.72,    // strength (hafif kısık parlama)
+      isMobile?0.5:0.62,    // radius (yumuşak yayılım)
+      isMobile?0.9:0.84);   // threshold (yalnız parlak yerler parlar)
     composer.addPass(bloomPass);
     composer.addPass(new OP.OutputPass());   // tonemapping + sRGB (composer sonunda)
   }catch(e){ composer=null; }   // bloom yok → normal render
