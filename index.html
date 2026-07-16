@@ -471,7 +471,7 @@
 <!-- Çok Oyunculu Lobi -->
 <div id="mpPanel">
   <h2>👥 ÇOK OYUNCU</h2>
-  <div class="setSub">— aynı pizzacıda 1-4 kişi (oda kodu ile) —</div>
+  <div class="setSub">— aynı pizzacıda 1-4 kişi birlikte hayatta kalın (oda kodu ile) —</div>
   <div id="mpHome">
     <button class="mpBig" id="mpHostBtn">🎮 ODA KUR</button>
     <div class="mpOr">— veya —</div>
@@ -483,7 +483,7 @@
     <div id="mpCodeBox">ODA KODU: <span id="mpCode">-----</span> <button id="mpCopy">📋 KOPYALA</button></div>
     <div id="mpStatus">bağlanıyor…</div>
     <div id="mpList"></div>
-    <button id="mpStart" class="mpBig hidden">▶ KEŞFE BAŞLA</button>
+    <button id="mpStart" class="mpBig hidden">▶ GECEYİ BAŞLAT</button>
     <div id="mpWait" class="hidden">Host'un başlatması bekleniyor…</div>
   </div>
   <button id="mpBack">‹ MENÜYE DÖN</button>
@@ -2698,24 +2698,19 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   resetAI();
   state=S.PLAY;
   $('#runBtn').classList.remove('on');
-  toast(Net.isPlaying()? '👥 ÇOK OYUNCU — birlikte keşfet' : (customMode? '🌙 12:00 — ÖZEL GECE BAŞLADI' : ('🕐 12:00 — GECE '+night+' BAŞLADI')));
+  toast(Net.isPlaying()? '👥 CO-OP GECE — birlikte hayatta kalın!' : (customMode? '🌙 12:00 — ÖZEL GECE BAŞLADI' : ('🕐 12:00 — GECE '+night+' BAŞLADI')));
   $('#menu').classList.add('hidden'); $('#dead').classList.add('hidden'); $('#win').classList.add('hidden'); $('#tablet').classList.remove('show');
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
   $('#flashBtn').classList.remove('hidden','on'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden'); $('#windBtn').classList.add('hidden');
   if(isTouch){ joyZone.classList.remove('hidden'); showJoy(true); }   // sol analog joystick (dokunmatik)
   $('#flashState').textContent='KAPALI';
-  if(Net.isPlaying()){
-    // MP keşif: tek-oyunculu tehdit mekaniği UI'ları gizli, saat/kutu/elektrik yok
-    $('#boxWrap').classList.add('hidden'); $('#windBtn').classList.add('hidden');
-    $('#maskBtn').classList.add('hidden'); $('#maskBox').classList.add('hidden');
-    $('#powerStat').classList.add('hidden'); $('#ventBtn').classList.add('hidden');
-    lastHour=0;
-  } else {
-    startPhone();   // 📞 geceye özel Telefon Adamı brifingi (tek oyunculu)
-  }
+  // ÇOK OYUNCU = CO-OP GECE: tam tehdit mekanikleri AÇIK (animatronik/puppet/maske/elektrik/kutu),
+  // aynı haritada birbirinizi görürsünüz, kapılar senkron. Her oyuncu kendi tehdidini yaşar (host-relay
+  // olmadan, düşük riskli). Telefon Adamı tek-oyunculuya özel.
+  if(!Net.isPlaying()) startPhone();
 }
-function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
+function toMenu(){ state=S.MENU; customMode=false; masked=false; Net.leave(); Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden'); showJoy(false);
   $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
@@ -2941,8 +2936,7 @@ function update(dt){
     camera.lookAt((cx+dx*0.3)*SC, 0.6+bob, (cz+dz*0.3)*SC);
     flash.intensity=0;
     if(ventT>0.5 && Math.random()<dt*3) Audio.step();
-    // dünyayı canlı tut (MP keşifte AI/saat yok)
-    if(!Net.isPlaying()){ updateAI(dt); clockT+=dt; }
+    updateAI(dt); clockT+=dt;   // dünyayı canlı tut (MP co-op'ta da)
     if(p>=1){ finishVent(); }
     return;
   }
@@ -2962,16 +2956,16 @@ function update(dt){
     }
   }
 
-  // === SAAT: 12:00 → 06:00 === (çok oyunculu M1 keşif modunda saat/gece yok)
-  if((state===S.PLAY || state===S.CAMS) && !Net.isPlaying()){
+  // === SAAT: 12:00 → 06:00 === (MP co-op'ta da işler)
+  if(state===S.PLAY || state===S.CAMS){
     clockT+=dt;
     const h=clockHour();
     if(h!==lastHour){ lastHour=h; Audio.hourBell(); if(h<NIGHT_HOURS) toast('🕐 SAAT '+clockText()); }
     if(clockT>=NIGHT_HOURS*HOUR_SEC){ winNight(); return; }
   }
 
-  // === MÜZİK KUTUSU + PUPPET (PLAY ve CAMS'de) === (MP'de yok)
-  if((state===S.PLAY || state===S.CAMS) && !Net.isPlaying()){
+  // === MÜZİK KUTUSU + PUPPET (PLAY ve CAMS'de) ===
+  if(state===S.PLAY || state===S.CAMS){
     nearBox = Math.hypot(player.x-MB.x, player.z-MB.z) < 1.9;
     // Kurma: kameradan (Ödül Köşesi + elektrik) VEYA kutunun yanında (her zaman)
     const canWind = winding && ((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox));
@@ -3070,7 +3064,7 @@ function update(dt){
   }
 
   // Animatronik yapay zekası (uyanma + kovalama) + gerilim ambiyansı
-  if((state===S.PLAY || state===S.CAMS) && !Net.isPlaying()){ updateAI(dt); driveAmbience(dt); }
+  if(state===S.PLAY || state===S.CAMS){ updateAI(dt); driveAmbience(dt); }
 
   // MENÜ / ÖLÜM / KAZANMA / FİNAL kamerası
   if(state===S.MENU || state===S.DEAD || state===S.WIN || state===S.ENDING){
@@ -3087,9 +3081,8 @@ function update(dt){
   }
 
   // === PLAY ===
-  const MP=Net.isPlaying();   // çok oyunculu keşif → sim tehditleri (elektrik/vent/AI) devre dışı
-  // elektrik zamanlayıcısı / sigorta toplama
-  if(powered && !MP){ powerTimer-=dt; if(powerTimer<=0) blackout(); }
+  // elektrik zamanlayıcısı / sigorta toplama (MP co-op'ta da işler)
+  if(powered){ powerTimer-=dt; if(powerTimer<=0) blackout(); }
   else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ; if(Math.hypot(dx,dz)<1.1) restorePower(); }
 
   // === MASKE sayacı ===
@@ -3102,9 +3095,8 @@ function update(dt){
     $('#maskBtn').classList.remove('spent');
   }
 
-  // === VENT CRAWLER tehdidi (ofise sızma) === (MP keşif modunda kapalı)
-  if(MP){ /* MP: vent crawler yok */ }
-  else if(ventCrawler>0){
+  // === VENT CRAWLER tehdidi (ofise sızma) ===
+  if(ventCrawler>0){
     ventCrawler-=dt;
     $('#ventWarn').classList.remove('hidden');
     if(masked){                       // maske → geri çekilir
