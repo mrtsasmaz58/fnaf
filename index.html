@@ -47,11 +47,14 @@
   #runBtn.on{background:radial-gradient(circle at 40% 35%,#20506a,#123040);border-color:#3fae7a;}
 
   /* Joystick (dokunmatik) */
-  #joyZone{position:fixed;left:0;bottom:0;width:45%;height:60%;z-index:21;}
-  #joyBase{position:absolute;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.2);
-    background:rgba(255,255,255,.05);display:none;pointer-events:none;}
-  #joyKnob{position:absolute;width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.25);
-    border:2px solid rgba(255,255,255,.4);left:33px;top:33px;pointer-events:none;}
+  /* pointer-events:none ŞART — yoksa bu bölge dokunmayı yutar, canvas'taki joystick tetiklenmez (hareket olmaz) */
+  #joyZone{position:fixed;left:0;bottom:0;width:45%;height:60%;z-index:21;pointer-events:none;}
+  #joyBase{position:absolute;width:130px;height:130px;border-radius:50%;border:2px solid rgba(140,200,255,.4);
+    background:radial-gradient(circle,rgba(120,180,255,.12),rgba(120,180,255,.04));display:none;pointer-events:none;
+    box-shadow:0 0 20px rgba(80,140,220,.25);}
+  #joyBase.hint{display:block;opacity:.5;}
+  #joyKnob{position:absolute;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(180,220,255,.5),rgba(90,150,220,.35));
+    border:2px solid rgba(180,220,255,.7);left:36px;top:36px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.4);}
 
   /* Crosshair */
   #cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:19;pointer-events:none;
@@ -522,7 +525,9 @@ const $ = s => document.querySelector(s);
 const app = $('#app');
 
 /* ================= RENDERER / SAHNE ================= */
-const isMobile = /Mobi|Android|iPad|iPhone/i.test(navigator.userAgent);
+const isMobile = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || ((navigator.maxTouchPoints||0)>1 && /Macintosh/.test(navigator.userAgent));
+// dokunmatik cihaz (iPad masaüstü UA verse bile yakalanır) → sol analog joystick bunu kullanır
+const isTouch = (navigator.maxTouchPoints||0)>0 || ('ontouchstart' in window) || isMobile;
 const DPR = window.devicePixelRatio||1;
 const renderer = new THREE.WebGLRenderer({antialias:!isMobile, powerPreference:'high-performance'});
 // ADAPTİF ÇÖZÜNÜRLÜK: mobilde 1.0'dan başla, FPS düşükse düşür (0.6'ya kadar), yüksekse yükselt.
@@ -562,6 +567,7 @@ function fitViewport(){
   document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
   camera.aspect=w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);   // mevcut pixelRatio korunur (adaptif ölçekleyici yönetir)
+  const jb=document.getElementById('joyBase'); if(jb && jb.classList.contains('hint')) jb.style.top=(h-210)+'px';
 }
 addEventListener('resize', fitViewport);
 addEventListener('orientationchange', ()=>{ fitViewport(); setTimeout(fitViewport,250); setTimeout(fitViewport,600); });
@@ -2491,25 +2497,33 @@ addEventListener('mouseup',()=>look=null);
 
 function addLook(dyaw,dpitch){ player.yaw-=dyaw; player.pitch=Math.max(-1.1,Math.min(1.1,player.pitch-dpitch)); }
 
-// Dokunmatik: sol joystick + sağ bak
+// Dokunmatik: sol joystick (dokunulan yerde belirir) + sağ ekran = bak
 const joyZone=$('#joyZone'), joyBase=$('#joyBase'), joyKnob=$('#joyKnob');
 let joyId=null, joyC={x:0,y:0}, moveVec={x:0,y:0};
 let lookId=null, lookLast={x:0,y:0};
-function isLeft(x){ return x < innerWidth*0.45; }
+const JOY_R=48, KNOB_C=36;   // knob azami yol / merkez ofset (base 130, knob 58)
+function isLeft(x){ return x < innerWidth*0.5; }
+// dinlenirken sol-altta görünür ipucu (analog burada demek)
+function joyHint(){ joyBase.classList.add('hint'); joyBase.style.left='34px'; joyBase.style.top=(window.innerHeight-210)+'px';
+  joyKnob.style.left=KNOB_C+'px'; joyKnob.style.top=KNOB_C+'px'; }
+function showJoy(on){ if(on){ joyBase.style.display='block'; joyHint(); } else { joyBase.style.display='none'; joyBase.classList.remove('hint'); joyId=null; moveVec={x:0,y:0}; } }
+function joyMove(cx,cy){ let dx=cx-joyC.x, dy=cy-joyC.y; const mag=Math.hypot(dx,dy); if(mag>JOY_R){dx*=JOY_R/mag;dy*=JOY_R/mag;}
+  joyKnob.style.left=(KNOB_C+dx)+'px'; joyKnob.style.top=(KNOB_C+dy)+'px'; moveVec={x:dx/JOY_R, y:dy/JOY_R}; }
 renderer.domElement.addEventListener('touchstart',e=>{ if(state!==S.PLAY)return;
   for(const t of e.changedTouches){
-    if(isLeft(t.clientX) && joyId===null){ joyId=t.identifier; joyC={x:t.clientX,y:t.clientY};
-      joyBase.style.display='block'; joyBase.style.left=(t.clientX-60)+'px'; joyBase.style.top=(t.clientY-60)+'px'; joyKnob.style.left='33px'; joyKnob.style.top='33px'; }
+    if(isLeft(t.clientX) && joyId===null){ joyId=t.identifier; joyC={x:t.clientX,y:t.clientY};   // joystick dokunulan yere gelir
+      joyBase.classList.remove('hint'); joyBase.style.display='block'; joyBase.style.left=(t.clientX-65)+'px'; joyBase.style.top=(t.clientY-65)+'px';
+      joyKnob.style.left=KNOB_C+'px'; joyKnob.style.top=KNOB_C+'px'; moveVec={x:0,y:0}; }
     else if(lookId===null){ lookId=t.identifier; lookLast={x:t.clientX,y:t.clientY}; }
   }
 },{passive:true});
 renderer.domElement.addEventListener('touchmove',e=>{ if(state!==S.PLAY)return;
   for(const t of e.changedTouches){
-    if(t.identifier===joyId){ let dx=t.clientX-joyC.x, dy=t.clientY-joyC.y; const mag=Math.hypot(dx,dy),max=55; if(mag>max){dx*=max/mag;dy*=max/mag;} joyKnob.style.left=(33+dx)+'px'; joyKnob.style.top=(33+dy)+'px'; moveVec={x:dx/max, y:dy/max}; }
+    if(t.identifier===joyId){ joyMove(t.clientX,t.clientY); }
     else if(t.identifier===lookId){ addLook((t.clientX-lookLast.x)*0.004,(t.clientY-lookLast.y)*0.004); lookLast={x:t.clientX,y:t.clientY}; }
   }
 },{passive:true});
-function endTouch(e){ for(const t of e.changedTouches){ if(t.identifier===joyId){ joyId=null; moveVec={x:0,y:0}; joyBase.style.display='none'; } if(t.identifier===lookId) lookId=null; } }
+function endTouch(e){ for(const t of e.changedTouches){ if(t.identifier===joyId){ joyId=null; moveVec={x:0,y:0}; if(isTouch) joyHint(); else joyBase.style.display='none'; } if(t.identifier===lookId) lookId=null; } }
 renderer.domElement.addEventListener('touchend',endTouch); renderer.domElement.addEventListener('touchcancel',endTouch);
 
 $('#flashBtn').addEventListener('click',toggleFlash);
@@ -2681,7 +2695,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
   $('#flashBtn').classList.remove('hidden','on'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden'); $('#windBtn').classList.add('hidden');
-  if(isMobile) joyZone.classList.remove('hidden');
+  if(isTouch){ joyZone.classList.remove('hidden'); showJoy(true); }   // sol analog joystick (dokunmatik)
   $('#flashState').textContent='KAPALI';
   if(Net.isPlaying()){
     // MP keşif: tek-oyunculu tehdit mekaniği UI'ları gizli, saat/kutu/elektrik yok
@@ -2695,7 +2709,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
 }
 function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
-  $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden');
+  $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden'); showJoy(false);
   $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
   $('#boxWrap').classList.add('hidden'); $('#windBtn').classList.add('hidden');
   $('#maskBtn').classList.add('hidden'); $('#maskBox').classList.add('hidden'); $('#maskOv').classList.remove('show');
@@ -2805,7 +2819,7 @@ function hidePlayUI(){
   $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden'); $('#tablet').classList.remove('show');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#windBtn').classList.add('hidden'); $('#powerStat').classList.add('hidden');
-  $('#boxWrap').classList.add('hidden'); joyZone.classList.add('hidden');
+  $('#boxWrap').classList.add('hidden'); joyZone.classList.add('hidden'); showJoy(false);
   $('#maskBtn').classList.add('hidden'); $('#ventBtn').classList.add('hidden'); $('#ventWarn').classList.add('hidden');
   $('#puppetWarn').style.opacity='0'; endPhone();
 }
@@ -2813,7 +2827,7 @@ function showPlayUI(){
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
   $('#flashBtn').classList.remove('hidden'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#maskBtn').classList.remove('hidden'); $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden');
-  if(isMobile) joyZone.classList.remove('hidden');
+  if(isTouch){ joyZone.classList.remove('hidden'); showJoy(true); }
 }
 let jumpModel=null, jumpName='???';
 function startJump(model,name){
