@@ -1789,10 +1789,12 @@ function enterBasement(){ inBasement=true; masked=false; flashOn=false; running=
   $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
   player.x=BAS_ENTRY.x; player.z=BAS_ENTRY.z; player.yaw=Math.PI; player.pitch=-0.05;
   basStatic.visible=true;
+  if(Net.isPlaying()) Net.sendBas(true);   // takıma "bodrumdayım" bildir (izleyici takip edebilsin)
   toast('🔻 BODRUMA İNDİN — burada başka şeyler var...'); Audio.noise(.6,.16,360); if(navigator.vibrate) navigator.vibrate([90,50,90]); }
 function exitBasement(){ inBasement=false;
   player.x=HATCH.x; player.z=HATCH.z+0.7; player.yaw=0; player.pitch=-0.05;
   basStatic.visible=false;
+  if(Net.isPlaying()) Net.sendBas(false);
   toast('🔺 YUKARI ÇIKTIN'); Audio.noise(.4,.12,520); }
 function startBasTrans(dir){ if(basTransT>0) return; basTransDir=dir; basTransT=1.5; basSwapDone=false;
   running=false; flashOn=false; $('#flashBtn').classList.remove('on'); hidePlayUI();
@@ -2694,6 +2696,8 @@ const Net=(()=>{
   function applyUp(d){ const r=remotes[d.id]; if(r) r.downed=false; }
   function sendDown(){ const m={t:'down',id:myId,x:+player.x.toFixed(2),z:+player.z.toFixed(2)}; relay(m); }
   function sendUp(){ relay({t:'up',id:myId}); }
+  function sendBas(inS){ relay({t:'bas',id:myId,in:inS?1:0}); }              // bodruma in/çık → herkese bildir
+  function applyBas(id,inS){ const r=remotes[id]; if(r) r.inBas=!!inS; }
   function sendRevive(tid){ const m={t:'revive',id:tid}; if(tid===myId){ getUp(); return; } relay(m); }   // host kendine
   // en yakın YARALI uzak oyuncu (kurtarma için) — {id,dist} ya da null
   function nearestDowned(px,pz){ let best=null,bd=2.2;
@@ -2716,6 +2720,7 @@ const Net=(()=>{
       else if(d.t==='up'){ applyUp(d); broadcast(d,d.id); }
       else if(d.t==='revive'){ if(d.id===myId) getUp(); else broadcast(d); }   // hedefe ulaştır
       else if(d.t==='died'){ applyDied(d.id); broadcast(d,d.id); }
+      else if(d.t==='bas'){ applyBas(d.id,d.in); broadcast(d,d.id); }
       else if(d.t==='won'){ if(!resolved){ resolved=true; broadcast(d,d.id); teamWin(); } }
     });
     c.on('close',()=>{ removeRemote(c.peer); conns=conns.filter(x=>x!==c); broadcast({t:'roster',roster:roster()}); broadcast({t:'leave',id:c.peer}); refreshList(); });
@@ -2744,6 +2749,7 @@ const Net=(()=>{
       else if(d.t==='up'){ applyUp(d); }
       else if(d.t==='revive'){ if(d.id===myId) getUp(); }
       else if(d.t==='died'){ applyDied(d.id); }
+      else if(d.t==='bas'){ applyBas(d.id,d.in); }
       else if(d.t==='won'){ if(!resolved){ resolved=true; teamWin(); } }
       else if(d.t==='start'){ beginSession(d.night, d.custom||null); }
       else if(d.t==='leave'){ removeRemote(d.id); }
@@ -2862,7 +2868,7 @@ const Net=(()=>{
   $('#mktClose').addEventListener('click',e=>{ e.stopPropagation(); $('#mktPanel').classList.remove('show'); });
   $('#mktBtn').classList.remove('hidden');
 
-  return { tick, leave, sendDoor, sendDown, sendUp, sendRevive, nearestDowned, sendDied, sendWon, firstAlive,
+  return { tick, leave, sendDoor, sendDown, sendUp, sendRevive, nearestDowned, sendDied, sendWon, sendBas, firstAlive,
            startHostCustom, isHost:()=>host, isPlaying:()=>active&&started, active:()=>active,
            resolved:()=>resolved };
 })();
@@ -3358,6 +3364,8 @@ function enterSpectator(){ if(spectating) return; spectating=true; downed=false;
   Net.sendDied(); }
 function specCamera(dt){
   const t=Net.firstAlive();
+  // izlenen takım arkadaşı bodrumdaysa bodrum geometrisini göster (yoksa boş karanlık görünürdü)
+  basStatic.visible = !!(t && t.inBas);
   if(t){ const tx=t.x*SC, tz=t.z*SC;
     camera.position.set(tx - Math.sin(t.yaw)*2.2, 2.7, tz - Math.cos(t.yaw)*2.2);
     camera.lookAt(tx + Math.sin(t.yaw)*2, 1.4, tz + Math.cos(t.yaw)*2); }
@@ -3366,12 +3374,12 @@ function specCamera(dt){
 }
 function teamWin(){ if(state===S.WIN||state===S.ENDING) return; spectating=false;
   $('#specOv').classList.remove('show'); Audio.setAmbient(false); winding=false; running=false; flashOn=false; flash.intensity=0; masked=false;
-  $('#maskOv').classList.remove('show'); if(inBasement){ inBasement=false; basStatic.visible=false; } hidePlayUI();
+  $('#maskOv').classList.remove('show'); inBasement=false; basStatic.visible=false; hidePlayUI();
   state=S.WIN; Audio.chime6();
   $('#winTitle').textContent='👥 TAKIM ATLATTI'; $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
   $('#winSub').textContent='06:00 — en az bir bekçi hayatta kaldı, hepiniz kurtuldunuz!';
   $('#win').classList.remove('hidden'); if(navigator.vibrate) navigator.vibrate([80,60,80,60,180]); }
-function teamLose(){ if(state===S.DEAD) return; spectating=false; $('#specOv').classList.remove('show');
+function teamLose(){ if(state===S.DEAD) return; spectating=false; $('#specOv').classList.remove('show'); inBasement=false; basStatic.visible=false;
   puppetJump=false; jumpName='TAKIM'; onDead(); $('#deadWho').textContent='TÜM TAKIM ELENDİ — birlikte başaramadınız'; }
 // hangi kamera hangi animatroniği "kontrol eder"
 function camForAnimatronic(a){ if(a.id==='foxo') return 6; if(a.id==='chika') return 5; return 1; }  // COVE / MUTFAK / SAHNE
