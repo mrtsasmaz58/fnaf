@@ -2,13 +2,23 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
 <title>GECE BEKÇİSİ 3D — Pizzacı (Serbest Gezinti)</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
-  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;color:#ddd;}
+  /* Mobil tam ekran: position:fixed + dvh → adres çubuğu boşluğu/kaydırma/rubber-band olmaz */
+  html,body{position:fixed;inset:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;
+    background:#000;font-family:'Courier New',monospace;color:#ddd;}
   #app{position:fixed;inset:0;}
   canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+  /* Tam ekran butonu */
+  #fsBtn{position:fixed;top:14px;left:16px;z-index:45;width:44px;height:44px;border-radius:11px;
+    background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:1px solid rgba(255,255,255,.18);
+    color:#cfd6e0;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 
   .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:40;}
   .hidden{display:none!important;}
@@ -337,6 +347,7 @@
 <div id="cross" class="hidden"></div>
 
 <!-- Ayarlar -->
+<button id="fsBtn" class="hidden">⛶</button>
 <button id="setBtn" class="hidden">⚙</button>
 <div id="setPanel">
   <h2>⚙ AYARLAR</h2>
@@ -545,7 +556,34 @@ const NXF=1.16, NZF=1.16;                 // x genişleme / z uzama faktörü (h
 const NX = x => x*NXF;                     // x'i merkeze göre genişlet
 const NZ = z => z>=6 ? z : 6-(6-z)*NZF;   // z=6 güneyi sabit, kuzeyi uzat
 
-addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+// Sağlam yeniden boyutlama — mobilde adres çubuğu göster/gizle, döndürme, klavye
+function fitViewport(){
+  const w=Math.round(window.innerWidth), h=Math.round(window.innerHeight);
+  document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);   // mevcut pixelRatio korunur (adaptif ölçekleyici yönetir)
+}
+addEventListener('resize', fitViewport);
+addEventListener('orientationchange', ()=>{ fitViewport(); setTimeout(fitViewport,250); setTimeout(fitViewport,600); });
+if(window.visualViewport){ visualViewport.addEventListener('resize', fitViewport); }
+document.addEventListener('fullscreenchange', ()=>setTimeout(fitViewport,60));
+document.addEventListener('webkitfullscreenchange', ()=>setTimeout(fitViewport,60));
+fitViewport();
+
+// Tam ekran (mobilde tarayıcı çubuğunu gizler; iOS Safari element fullscreen desteklemez → dvh/CSS devreye girer)
+function fsElement(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
+function goFullscreen(){ const el=document.documentElement;
+  const rf=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(rf){ try{ const p=rf.call(el); if(p&&p.catch) p.catch(()=>{}); }catch(e){} } }
+function exitFullscreen(){ const ef=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  if(ef){ try{ ef.call(document); }catch(e){} } }
+function toggleFullscreen(){ if(fsElement()) exitFullscreen(); else goFullscreen(); }
+$('#fsBtn').addEventListener('click',e=>{ e.stopPropagation(); toggleFullscreen(); });
+// Mobilde İLK dokunuşta otomatik tam ekran (kullanıcı hareketi şart; touchend hiç durdurulmuyor)
+if(isMobile){
+  const fsOnce=()=>{ goFullscreen(); setTimeout(fitViewport,120); document.removeEventListener('touchend',fsOnce); };
+  document.addEventListener('touchend',fsOnce,{passive:true});
+}
 
 /* ================= DOKULAR ================= */
 function mc(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
@@ -2051,7 +2089,7 @@ const Hallu=(()=>{
   return {buildFace,update,reset};
 })();
 Hallu.buildFace();
-$('#setBtn').classList.remove('hidden');   // boot'ta menü açık → ayar erişilebilir
+$('#setBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden');   // boot'ta menü açık → ayar+tam ekran erişilebilir
 
 /* ================= BAŞARIMLAR ================= */
 const ACH=[
@@ -2619,7 +2657,7 @@ function refreshMenu(){ $('#customBtn').classList.toggle('hidden', !save.beat6);
 refreshMenu();
 
 function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Audio.startAmbience(); Audio.setAmbient(true);
-  Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show'); $('#mktBtn').classList.add('hidden'); $('#mktPanel').classList.remove('show');
+  Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show'); $('#mktBtn').classList.add('hidden'); $('#mktPanel').classList.remove('show'); $('#fsBtn').classList.add('hidden');
   resetRunStats();
   night=selNight; clockT=0; lastHour=0;
   masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
@@ -2655,7 +2693,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
     startPhone();   // 📞 geceye özel Telefon Adamı brifingi (tek oyunculu)
   }
 }
-function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
+function toMenu(){ state=S.MENU; customMode=false; masked=false; Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
   $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden');
   $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
