@@ -1779,6 +1779,8 @@ function driveAmbience(dt){
   }
   ambT-=dt;
   if(ambT<=0){ ambT=5+Math.random()*7; const r=Math.random();
+    // uyanık animatronikler arada bozuk robot arızası çıkarır (yaklaştıkça daha sık)
+    if(AIS.some(a=>a.awake) && Math.random()<0.35+dangerLevel*0.35) Audio.robotGlitch();
     if(dangerLevel>0.4) Audio.pad([49,55,58][Math.floor(Math.random()*3)],2.5);
     else if(r<0.45) Audio.creak();
     else if(r<0.75) Audio.pad([55,58,65,49][Math.floor(Math.random()*4)],4);
@@ -1807,6 +1809,32 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     o.type='square'; o.frequency.value=150+Math.random()*230; f.type='bandpass'; f.frequency.value=1150; f.Q.value=5;
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.045,t+.008); g.gain.exponentialRampToValueAtTime(.0001,t+.055);
     o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+.07); }
+  // Telefon Adamı KONUŞMASI — boğuk, telefon hattından süzülen erkek "mırıltı" hecesi (iki formant + hafif vibrato)
+  function phoneVoice(){ if(!ac)return; const t=ac.currentTime;
+    const base=92+Math.random()*46;                                  // erkek konuşma temeli
+    const o=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain(), f=ac.createBiquadFilter(), f2=ac.createBiquadFilter();
+    o.type='sawtooth'; o2.type='square'; o.frequency.value=base; o2.frequency.value=base*1.004;
+    f.type='bandpass'; f.frequency.value=480+Math.random()*380; f.Q.value=6;    // 1. formant (sesli harf)
+    f2.type='bandpass'; f2.frequency.value=1150+Math.random()*720; f2.Q.value=8;// 2. formant + telefon bandı
+    // hafif vibrato → konuşma canlılığı
+    const lfo=ac.createOscillator(), lg=ac.createGain(); lfo.type='sine'; lfo.frequency.value=5.5; lg.gain.value=base*0.03; lfo.connect(lg); lg.connect(o.frequency);
+    o.connect(f); o2.connect(f); f.connect(f2); f2.connect(g); g.connect(mas);
+    const d=0.07+Math.random()*0.05;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+.018); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.start(t); o2.start(t); lfo.start(t); o.stop(t+d+.02); o2.stop(t+d+.02); lfo.stop(t+d+.02); }
+  // Animatronik BOZUK ROBOT arızası — cızırtılı, akortsuz, düşen kesik dijital hırıltı + statik
+  function robotGlitch(){ if(!ac)return; const t=ac.currentTime;
+    const steps=3+Math.floor(Math.random()*3);
+    for(let i=0;i<steps;i++){ const off=i*(0.05+Math.random()*0.06);
+      const o=ac.createOscillator(), g=ac.createGain(), f=ac.createBiquadFilter();
+      o.type=Math.random()<.5?'square':'sawtooth';
+      const fr=90+Math.random()*270; o.frequency.setValueAtTime(fr,t+off);
+      o.frequency.linearRampToValueAtTime(fr*(0.38+Math.random()*0.5),t+off+.05);   // düşen glitch
+      f.type='bandpass'; f.frequency.value=650+Math.random()*950; f.Q.value=9;
+      o.connect(f); f.connect(g); g.connect(mas);
+      g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.055,t+off+.006); g.gain.exponentialRampToValueAtTime(.0001,t+off+.06);
+      o.start(t+off); o.stop(t+off+.08); }
+    noise(.12,.045,2200); }   // dijital cızırtı katmanı
   function achievePop(){ if(!ac)return; const t=ac.currentTime; [660,880,1320].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain();
     o.type='triangle'; o.frequency.value=fr; g.gain.setValueAtTime(.0001,t+i*.08); g.gain.linearRampToValueAtTime(.12,t+i*.08+.02); g.gain.exponentialRampToValueAtTime(.0001,t+i*.08+.3);
     o.connect(g); g.connect(mas); o.start(t+i*.08); o.stop(t+i*.08+.32); }); }
@@ -1994,7 +2022,7 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     o.start(t); lfo.start(t); o.stop(t+dur+.1); lfo.stop(t+dur+.1);
   }
   return {init,resume,setMaster,setAmbient,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
-          phoneRing,phoneBlip,achievePop,
+          phoneRing,phoneBlip,phoneVoice,robotGlitch,achievePop,
           laugh,growl,clang,screech,foxRun,bang,hourBell,chime6,
           lullaby,whisper,puppetRise,puppetScream,animScream,dreadBass,dreadStab,
           threatPulse,tensionSwell,tensionShimmer}; })();
@@ -2207,7 +2235,11 @@ function updatePhone(dt){
   const line=phoneLines[phoneIdx]||'';
   if(phoneShown<line.length){
     phoneCharAcc+=dt; const cps=34;
-    while(phoneCharAcc>1/cps && phoneShown<line.length){ phoneCharAcc-=1/cps; phoneShown++; if(phoneShown%3===0) Audio.phoneBlip(); }
+    while(phoneCharAcc>1/cps && phoneShown<line.length){ phoneCharAcc-=1/cps; phoneShown++;
+      const ch=line[phoneShown-1]||'';
+      if(ch===' '){ /* boşlukta sus */ }
+      else if('aeıioöuüAEIİOÖUÜ'.indexOf(ch)>=0) Audio.phoneVoice();   // sesli harf → konuşma hecesi
+      else if(phoneShown%2===0) Audio.phoneBlip(); }                    // sessiz harf → boğuk blip
     $('#phoneText').textContent=line.slice(0,phoneShown);
     if(phoneShown>=line.length) phoneHold=2.2;   // satır tamamlandı → bekleme başlat
   } else {
@@ -2242,6 +2274,7 @@ let masked=false, maskCharge=100;
 let ventCrawler=0;     // >0 iken vent'te biri var, maske takılmazsa süre bitince saldırır
 let ventCrawlerT=0;    // sonraki tehdit için geri sayım
 let ventFrom=null, ventTo=null, ventT=0;   // sürünme animasyonu
+let ventCool=0;    // vent kullanım/bekleme süresi (çıkıştan sonra 3 sn tekrar girilemez)
 function inOffice(){ return player.x>=-5 && player.x<=5 && player.z>=15 && player.z<=21; }
 function nearVent(){ for(const v of VENTS){ if(Math.hypot(player.x-v.x, player.z-v.z)<1.7) return v; } return null; }
 
@@ -2604,6 +2637,7 @@ function setMaskOff(){ masked=false; $('#maskOv').classList.remove('show'); $('#
 // --- VENT (kestirme sürünme) ---
 function enterVent(){
   if(state!==S.PLAY) return;
+  if(ventCool>0){ toast('🪜 VENT HAZIR DEĞİL — '+Math.ceil(ventCool)+'s'); Audio.tone(140,.12,'square',.14); return; }
   const v=nearVent(); if(!v) return;
   const other=VENTS.find(o=>o!==v);
   ventFrom={x:player.x,z:player.z}; ventTo={x:other.x,z:other.z}; ventT=0; runStats.ventUsed++;   // 🏆 vent kullanımı
@@ -2613,6 +2647,7 @@ function enterVent(){
 }
 function finishVent(){
   player.x=ventTo.x; player.z=ventTo.z;
+  ventCool=3;   // çıkıştan sonra 3 sn bekleme (spam engeli)
   // çıkışta yakınında KOVALAYAN varsa kaçış yok
   for(const a of AIS){ if(a.awake && a.chasing && Math.hypot(a.pos.x-player.x,a.pos.z-player.z)<2.6){ state=S.PLAY; startJump(a.model,a.name); return; } }
   state=S.PLAY; $('#ventDark').classList.remove('show'); showPlayUI(); Audio.noise(.2,.1,600);
@@ -2717,7 +2752,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   resetRunStats();
   night=selNight; clockT=0; lastHour=0;
   masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
-  ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null;
+  ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null; ventCool=0;
   $('#ventDark').classList.remove('show'); $('#ventWarn').classList.add('hidden');
   $('#maskBtn').classList.remove('hidden'); $('#maskBox').classList.remove('hidden');
   player.x=0; player.z=19.7; player.yaw=Math.PI; player.pitch=-0.05; battery=100; flashOn=false; running=false;
@@ -2741,8 +2776,8 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   $('#flashState').textContent='KAPALI';
   // ÇOK OYUNCU = CO-OP GECE: tam tehdit mekanikleri AÇIK (animatronik/puppet/maske/elektrik/kutu),
   // aynı haritada birbirinizi görürsünüz, kapılar senkron. Her oyuncu kendi tehdidini yaşar (host-relay
-  // olmadan, düşük riskli). Telefon Adamı tek-oyunculuya özel.
-  if(!Net.isPlaying()) startPhone();
+  // olmadan, düşük riskli). Telefon Adamı brifingi artık CO-OP'ta da her oyuncuda çalar.
+  startPhone();
 }
 function toMenu(){ state=S.MENU; customMode=false; masked=false; Net.leave(); Audio.setAmbient(false); Hallu.reset(); endPhone(); $('#setBtn').classList.remove('hidden'); $('#achBtn').classList.remove('hidden'); $('#mktBtn').classList.remove('hidden'); $('#fsBtn').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
   $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
@@ -3129,6 +3164,7 @@ function update(dt){
     $('#maskBtn').classList.remove('spent');
   }
 
+  if(ventCool>0) ventCool-=dt;   // vent bekleme süresi
   // === VENT CRAWLER tehdidi (ofise sızma) ===
   if(ventCrawler>0){
     ventCrawler-=dt;
@@ -3184,7 +3220,9 @@ function update(dt){
 
   // yakın vent ağzı → "VENT'E GİR" butonu
   const vb=$('#ventBtn'); const nv=nearVent();
-  if(nv && !masked){ vb.classList.remove('hidden'); vb.textContent='🪜 '+nv.n+'\'E GİR'; }
+  if(nv && !masked){ vb.classList.remove('hidden');
+    if(ventCool>0){ vb.textContent='🪜 VENT '+Math.ceil(ventCool)+'s'; vb.style.opacity='0.5'; }
+    else { vb.textContent='🪜 '+nv.n+'\'E GİR'; vb.style.opacity='1'; } }
   else vb.classList.add('hidden');
 
   // kamera (birinci şahıs) — konum SC ölçekli, bakış yönü (d) ölçeksiz
