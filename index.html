@@ -542,7 +542,7 @@ renderer.setPixelRatio(renderScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;   // biraz daha canlı/kontrastlı
+renderer.toneMappingExposure = 1.22;   // biraz daha canlı/kontrastlı
 // GÖLGE: mobilde tamamen kapalı (fragment shader + gölge haritası maliyeti mobilin en büyük yükü)
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -552,8 +552,25 @@ $('#loading').classList.add('hidden');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x030406);
-scene.fog = new THREE.FogExp2(0x030406, 0.030);
+scene.fog = new THREE.FogExp2(0x040507, 0.028);
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.03, 260);
+
+/* ================= ÇEVRE YANSIMASI (PMREM) =================
+   Metal/vent/endoskelet/masa yüzeyleri düz görünmesin diye KOYU bir çevre haritası.
+   Equirect canvas → PMREMGenerator (core THREE, addon gerekmez). Karanlık kalır, sadece
+   parlak metal sıcak tavan ışığı lekelerini yansıtır. Hata olursa sessiz atlanır. */
+function mc2(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+try{
+  const ec=mc2(256,128), eg=ec.getContext('2d');
+  const grad=eg.createLinearGradient(0,0,0,128);
+  grad.addColorStop(0,'#06070c'); grad.addColorStop(.44,'#0a0d15'); grad.addColorStop(.5,'#141b26'); grad.addColorStop(1,'#020204');
+  eg.fillStyle=grad; eg.fillRect(0,0,256,128);
+  for(let i=0;i<5;i++){ const x=26+i*50, rg=eg.createRadialGradient(x,24,2,x,24,28);   // sıcak tavan ışık lekeleri
+    rg.addColorStop(0,'rgba(255,226,172,0.85)'); rg.addColorStop(1,'rgba(255,226,172,0)'); eg.fillStyle=rg; eg.fillRect(x-28,0,56,56); }
+  const et=new THREE.CanvasTexture(ec); et.mapping=THREE.EquirectangularReflectionMapping; et.colorSpace=THREE.SRGBColorSpace;
+  const pmrem=new THREE.PMREMGenerator(renderer);
+  scene.environment=pmrem.fromEquirectangular(et).texture; et.dispose(); pmrem.dispose();
+}catch(e){ /* env yok → materyaller yine çalışır */ }
 
 /* ================= POST-PROCESS (bloom parlaması) =================
    Parlayan gözler/fener/acil ışık/ekran bloom ile dramatik parlar → karanlık korkuda çok fark eder.
@@ -572,9 +589,9 @@ let gfxBloom = !isMobile;   // masaüstünde açık; mobilde ⚙ Ayarlar'dan aç
     composer.setPixelRatio(renderScale); composer.setSize(innerWidth, innerHeight);
     composer.addPass(new RP.RenderPass(scene, camera));
     bloomPass = new UBP.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),
-      isMobile?0.55:0.85,   // strength
-      0.5,                  // radius
-      isMobile?0.9:0.82);   // threshold (yalnız parlak yerler parlar)
+      isMobile?0.6:0.95,    // strength (parlama daha belirgin)
+      isMobile?0.5:0.65,    // radius (daha yumuşak yayılım)
+      isMobile?0.88:0.8);   // threshold (yalnız parlak yerler parlar)
     composer.addPass(bloomPass);
     composer.addPass(new OP.OutputPass());   // tonemapping + sRGB (composer sonunda)
   }catch(e){ composer=null; }   // bloom yok → normal render
@@ -629,18 +646,48 @@ function aniso(t){ try{ t.anisotropy=MAXANISO; }catch(e){} return t; }
 function noiseTex(base,spec){ const c=mc(256,256),g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,256,256);
   for(let i=0;i<26000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*spec})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return aniso(t); }
-function wallTex(){ const c=mc(512,512),g=c.getContext('2d'); g.scale(2,2);   // 512px (2x keskinlik)
-  // FNAF: alt kısım kiremit kırmızısı, üst bej — burada dikey iki ton
+// DOKU ÇÖZÜNÜRLÜĞÜ: masaüstü 1024, mobil 512 (256'lık mantık koordinatı s ile ölçeklenir)
+const TEXRES = isMobile?512:1024;
+function wallTex(){ const R=TEXRES, s=R/256; const c=mc(R,R),g=c.getContext('2d'); g.scale(s,s);
+  // FNAF: alt kısım kiremit kırmızısı, üst bej panel
   g.fillStyle='#6a2a2a'; g.fillRect(0,0,256,256); g.fillStyle='#c9b487'; g.fillRect(0,0,256,150);
-  g.fillStyle='#3a1414'; g.fillRect(0,148,256,6);
-  g.strokeStyle='rgba(0,0,0,.15)'; for(let y=0;y<256;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(256,y); g.stroke(); }
+  // bej panelde dikey renk dalgalanması (boya tonu) — düz duvar hissini kırar
+  for(let x=0;x<256;x+=3){ g.fillStyle='rgba(90,66,32,'+(Math.random()*0.05)+')'; g.fillRect(x,0,3,150); }
+  g.fillStyle='#3a1414'; g.fillRect(0,148,256,6);                                  // derz bandı
+  g.fillStyle='rgba(255,242,214,0.18)'; g.fillRect(0,146,256,1);                    // üst highlight
+  g.strokeStyle='rgba(0,0,0,.15)'; g.lineWidth=0.5;
+  for(let y=0;y<256;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(256,y); g.stroke(); }
+  // üstten aşağı kir/rutubet akıntıları
+  for(let i=0;i<44;i++){ const x=Math.random()*256, w=1+Math.random()*3, h=18+Math.random()*80, y=Math.random()*120;
+    g.fillStyle='rgba(38,24,14,'+(0.03+Math.random()*0.06)+')'; g.fillRect(x,y,w,h); }
+  // taban/alt kiremit lekeleri
+  for(let i=0;i<70;i++){ g.fillStyle='rgba(0,0,0,'+(Math.random()*0.16)+')'; _e(g,Math.random()*256,150+Math.random()*106,3+Math.random()*11,2+Math.random()*5); }
   for(let i=0;i<16000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.12})`; g.fillRect(Math.random()*256,Math.random()*256,.6,.6);}
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return aniso(t); }
-function floorTex(){ const c=mc(512,512),g=c.getContext('2d'); g.scale(2,2);   // 512px (2x keskinlik)
-  // siyah-beyaz damalı zemin (FNAF)
-  for(let y=0;y<256;y+=64) for(let x=0;x<256;x+=64){ g.fillStyle=(x/64+y/64)%2?'#151515':'#c8c4bc'; g.fillRect(x,y,64,64);}
-  for(let i=0;i<32000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.28})`; g.fillRect(Math.random()*256,Math.random()*256,.6,.6);}
+function floorTex(){ const R=TEXRES, s=R/256; const c=mc(R,R),g=c.getContext('2d'); g.scale(s,s);
+  // siyah-beyaz damalı zemin (FNAF), fayans içi varyasyon + aşınma
+  for(let y=0;y<256;y+=64) for(let x=0;x<256;x+=64){ g.fillStyle=(x/64+y/64)%2?'#151515':'#c8c4bc'; g.fillRect(x,y,64,64);
+    g.fillStyle='rgba(0,0,0,'+(Math.random()*0.05)+')'; g.fillRect(x,y,64,64); }
+  g.strokeStyle='rgba(0,0,0,.42)'; g.lineWidth=1.5;                                 // fayans dikişleri
+  for(let p=0;p<=256;p+=64){ g.beginPath(); g.moveTo(p,0); g.lineTo(p,256); g.moveTo(0,p); g.lineTo(256,p); g.stroke(); }
+  for(let i=0;i<130;i++){ g.strokeStyle='rgba(255,255,255,'+(Math.random()*0.05)+')'; g.lineWidth=Math.random();  // çizikler/parlaklık
+    const x=Math.random()*256,y=Math.random()*256,a=Math.random()*6.28; g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(a)*22,y+Math.sin(a)*22); g.stroke(); }
+  for(let i=0;i<32000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.24})`; g.fillRect(Math.random()*256,Math.random()*256,.6,.6);}
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return aniso(t); }
+// KABARTMA (bump) HARİTALARI — fenerle derinlik/gölge yakalar (koyu=çukur, açık=çıkıntı)
+function wallBumpTex(){ const R=TEXRES, s=R/256; const c=mc(R,R),g=c.getContext('2d'); g.scale(s,s);
+  g.fillStyle='#888'; g.fillRect(0,0,256,256);
+  g.fillStyle='#2f2f2f'; g.fillRect(0,147,256,7);                                   // derz girinti
+  g.strokeStyle='rgba(34,34,34,.8)'; g.lineWidth=1;
+  for(let y=0;y<256;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(256,y); g.stroke(); }
+  for(let i=0;i<12000;i++){ const v=120+(Math.random()*80|0); g.fillStyle='rgb('+v+','+v+','+v+')'; g.fillRect(Math.random()*256,Math.random()*256,.8,.8); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return aniso(t); }
+function floorBumpTex(){ const R=TEXRES, s=R/256; const c=mc(R,R),g=c.getContext('2d'); g.scale(s,s);
+  g.fillStyle='#8c8c8c'; g.fillRect(0,0,256,256);
+  g.strokeStyle='#262626'; g.lineWidth=3;                                          // fayans dikiş çukurları
+  for(let p=0;p<=256;p+=64){ g.beginPath(); g.moveTo(p,0); g.lineTo(p,256); g.moveTo(0,p); g.lineTo(256,p); g.stroke(); }
+  for(let i=0;i<14000;i++){ const v=126+(Math.random()*68|0); g.fillStyle='rgb('+v+','+v+','+v+')'; g.fillRect(Math.random()*256,Math.random()*256,.7,.7); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return aniso(t); }
 // --- poster çizim yardımcıları ---
 function _c(g,x,y,r){ g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
 function _e(g,x,y,rx,ry){ g.beginPath(); g.ellipse(x,y,rx,ry,0,0,7); g.fill(); }
@@ -724,16 +771,18 @@ function posterTex(txt,col,kind){
   for(let i=0;i<1500;i++){ g.fillStyle='rgba(0,0,0,'+(Math.random()*0.05)+')'; g.fillRect(Math.random()*256,Math.random()*320,1,1); }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
 
-const T = { wall:wallTex(), floor:floorTex(), metal:noiseTex('#3a3f48',.25), carpet:noiseTex('#3a1a1a',.35), curtain:noiseTex('#5a1030',.3) };
+const T = { wall:wallTex(), floor:floorTex(), metal:noiseTex('#3a3f48',.25), carpet:noiseTex('#3a1a1a',.35), curtain:noiseTex('#5a1030',.3),
+            wallBump:wallBumpTex(), floorBump:floorBumpTex() };
 T.floor.repeat.set(0.25,0.25);
+T.floorBump.repeat.set(0.25,0.25);   // bump map, zemin map'iyle aynı tekrar hizası
 
 const M = {
-  wall:  new THREE.MeshStandardMaterial({map:T.wall, roughness:.95, metalness:.03}),
-  floor: new THREE.MeshStandardMaterial({map:T.floor, roughness:.7, metalness:.05}),
+  wall:  new THREE.MeshStandardMaterial({map:T.wall, bumpMap:T.wallBump, bumpScale:0.7, roughness:.95, metalness:.03}),
+  floor: new THREE.MeshStandardMaterial({map:T.floor, bumpMap:T.floorBump, bumpScale:0.5, roughness:.6, metalness:.12, envMapIntensity:.5}),
   ceil:  new THREE.MeshStandardMaterial({color:0x08090c, roughness:1}),
-  metal: new THREE.MeshStandardMaterial({map:T.metal, color:0x555a63, roughness:.5, metalness:.8}),
-  wood:  new THREE.MeshStandardMaterial({color:0x2a1c12, roughness:.75, metalness:.1}),
-  table: new THREE.MeshStandardMaterial({color:0x6a2020, roughness:.5, metalness:.1}),
+  metal: new THREE.MeshStandardMaterial({map:T.metal, bumpMap:T.metal, bumpScale:0.4, color:0x555a63, roughness:.42, metalness:.85, envMapIntensity:1.0}),
+  wood:  new THREE.MeshStandardMaterial({color:0x2a1c12, roughness:.72, metalness:.1, envMapIntensity:.4}),
+  table: new THREE.MeshStandardMaterial({color:0x6a2020, roughness:.45, metalness:.12, envMapIntensity:.5}),
   curtain:new THREE.MeshStandardMaterial({map:T.curtain, color:0x7a1246, roughness:.8, side:THREE.DoubleSide}),
   stage: new THREE.MeshStandardMaterial({color:0x1a0e14, roughness:.9}),
 };
@@ -767,7 +816,7 @@ const emergency = dimLight(0,17,0x8a1414,0.0,12);    // acil kırmızı (yalnız
 // Fener (kameraya bağlı spotlight)
 const flash = new THREE.SpotLight(0xfff0cc, 0, 30, Math.PI*0.20, 0.45, 1.1);
 flash.castShadow = !isMobile;
-if(flash.castShadow){ flash.shadow.mapSize.set(2048,2048); flash.shadow.camera.near=0.2; flash.shadow.camera.far=32; flash.shadow.bias=-0.0006; flash.shadow.radius=3; }
+if(flash.castShadow){ flash.shadow.mapSize.set(2048,2048); flash.shadow.camera.near=0.2; flash.shadow.camera.far=32; flash.shadow.bias=-0.0005; flash.shadow.radius=4.5; flash.shadow.blurSamples=16; }
 const flashTarget = new THREE.Object3D();
 scene.add(flash); scene.add(flashTarget); flash.target = flashTarget;
 // yakın çevre için zayıf ışık
