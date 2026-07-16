@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gece Bekçisi — Korku</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000; font-family:'Courier New',monospace; }
+  #wrap { position:fixed; inset:0; background:#000; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #hint { position:fixed; bottom:6px; left:50%; transform:translateX(-50%); color:#333; font-size:11px; letter-spacing:1px; pointer-events:none; z-index:50; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+</div>
+<div id="hint">GECE BEKÇİSİ</div>
+<script>
+"use strict";
+/* ============================================================
+   GECE BEKÇİSİ — FNAF tarzı korku oyunu (temel sürüm)
+   Tek dosya, canvas, prosedürel grafik + ses. Online DEĞİL.
+   ============================================================ */
+
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+// --- Sanal çözünürlük (16:9), her cihaza ölçeklenir ---
+const VW = 1280, VH = 720;
+let scale = 1, offX = 0, offY = 0;
+function resize(){
+  const w = window.innerWidth, h = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  cv.width = w*dpr; cv.height = h*dpr;
+  scale = Math.min(w/VW, h/VH);
+  offX = (w - VW*scale)/2;
+  offY = (h - VH*scale)/2;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Ekran -> sanal koordinat dönüşümü
+function toVirtual(px,py){
+  return { x:(px-offX)/scale, y:(py-offY)/scale };
+}
+
+/* ================= SES (WebAudio, prosedürel) ================= */
+const Audio = (()=> {
+  let actx=null, master=null, humGain=null, humNodes=[];
+  let enabled=true;
+  function init(){
+    if(actx) return;
+    try{
+      actx = new (window.AudioContext||window.webkitAudioContext)();
+      master = actx.createGain(); master.gain.value=0.6; master.connect(actx.destination);
+    }catch(e){ enabled=false; }
+  }
+  function resume(){ if(actx && actx.state==='suspended') actx.resume(); }
+  function tone(freq,dur,type,vol,when){
+    if(!actx) return;
+    const t=(when||actx.currentTime);
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    g.gain.value=0; o.connect(g); g.connect(master);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol||0.3, t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.start(t); o.stop(t+dur+0.02);
+  }
+  function noise(dur,vol,filterFreq){
+    if(!actx) return;
+    const t=actx.currentTime;
+    const n=Math.floor(actx.sampleRate*dur);
+    const buf=actx.createBuffer(1,n,actx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const src=actx.createBufferSource(); src.buffer=buf;
+    const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filterFreq||1200;
+    const g=actx.createGain(); g.gain.value=vol||0.2;
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t); return {src,g};
+  }
+  // Sürekli ofis fanı/uğultu
+  function startHum(){
+    if(!actx||humNodes.length) return;
+    humGain=actx.createGain(); humGain.gain.value=0.05; humGain.connect(master);
+    [60,90].forEach(fr=>{
+      const o=actx.createOscillator(); o.type='sawtooth'; o.frequency.value=fr;
+      const g=actx.createGain(); g.gain.value=0.5; o.connect(g); g.connect(humGain);
+      o.start(); humNodes.push(o);
+    });
+    // hafif hışırtı
+    const ns=noise(9999,0.015,400); if(ns){ ns.src.loop=true; }
+  }
+  function stopHum(){ humNodes.forEach(o=>{try{o.stop()}catch(e){}}); humNodes=[]; }
+  // Jumpscare çığlığı
+  function scream(){
+    if(!actx) return;
+    const t=actx.currentTime;
+    for(let i=0;i<3;i++){
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(900-i*120, t);
+      o.frequency.exponentialRampToValueAtTime(70, t+0.6);
+      g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+0.95);
+    }
+    noise(0.9,0.5,3000);
+  }
+  function doorSfx(){ tone(120,0.15,'square',0.25); noise(0.2,0.15,600); }
+  function beep(f){ tone(f||440,0.06,'square',0.12); }
+  function chime(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.4,'sine',0.25, (actx?actx.currentTime:0)+i*0.18)); }
+  function knock(){ tone(80,0.25,'sine',0.4); noise(0.15,0.2,300); }
+  return {init,resume,tone,noise,startHum,stopHum,scream,doorSfx,beep,chime,knock,
+          setEnabled:v=>{enabled=v; if(master)master.gain.value=v?0.6:0;},
+          get ready(){return !!actx;}};
+})();
+
+/* ================= OYUN DURUMU ================= */
+const STATE = { MENU:'menu', PLAY:'play', CAMS:'cams', JUMP:'jump', DEAD:'dead', WIN:'win' };
+let state = STATE.MENU;
+
+const NIGHT_HOUR_MS = 45000; // her saat 45sn -> 6 saat = 4.5 dk
+const game = {
+  night: 1,
+  timeMs: 0,          // 0 = 12 AM ; 6*NIGHT_HOUR_MS = 6 AM
+  power: 100,
+  usage: 1,           // güç kullanım çubuğu (1-4)
+  doorL:false, doorR:false,   // kapı kapalı mı
+  lightL:false, lightR:false, // ışık açık mı
+  currentCam: 1,
+  camsUp:false,
+  camFlip:0,          // kamera açılış animasyonu
+  deathBy:null,
+  powerOut:false,     // güç bitti
+  powerOutTimer:0,
+  shake:0,
+  flicker:0,
+};
+
+/* Odalar / kamera düzeni */
+const ROOMS = {
+  1:{name:'SAHNE',        x:0.42,y:0.10},
+  2:{name:'YEMEKHANE',    x:0.42,y:0.34},
+  3:{name:'SOL KORİDOR',  x:0.20,y:0.55},
+  4:{name:'SAĞ KORİDOR',  x:0.66,y:0.55},
+  5:{name:'KULİS',        x:0.20,y:0.34},
+  6:{name:'MUTFAK',       x:0.66,y:0.34, dark:true},
+  7:{name:'DEPO',         x:0.66,y:0.10},
+};
+
+/* Animatronikler — her birinin ofise giden yolu var */
+function makeAnims(){
+  return [
+    { id:'freddo', name:'FREDDO', color:'#7a5230', side:'R', ai:3,
+      path:[1,2,4], pos:0, atDoor:false, timer:0, interval:5.0, attack:0 },
+    { id:'bonko',  name:'BONKO',  color:'#7a2a55', side:'L', ai:4,
+      path:[1,5,3], pos:0, atDoor:false, timer:0, interval:4.6, attack:0 },
+    { id:'chika',  name:'CHİKA',  color:'#b5992a', side:'R', ai:3,
+      path:[1,7,6,4], pos:0, atDoor:false, timer:0, interval:5.2, attack:0 },
+    { id:'foxo',   name:'FOXO',   color:'#8a3b1f', side:'L', ai:2, special:true,
+      path:[1,3], pos:0, atDoor:false, timer:0, interval:7.0, attack:0, foxStage:0 },
+  ];
+}
+let anims = makeAnims();
+
+function nightAI(n){ // gece zorluğu
+  const base = {1:[3,4,3,2],2:[4,5,4,3],3:[5,6,5,4],4:[6,8,6,5],5:[8,10,8,7]};
+  return base[Math.min(n,5)] || base[5];
+}
+
+function startNight(n){
+  game.night=n; game.timeMs=0; game.power=100; game.usage=1;
+  game.doorL=game.doorR=game.lightL=game.lightR=false;
+  game.camsUp=false; game.currentCam=1; game.deathBy=null;
+  game.powerOut=false; game.powerOutTimer=0; game.shake=0; game.camFlip=0;
+  anims = makeAnims();
+  const ai = nightAI(n);
+  anims.forEach((a,i)=>{ a.ai=ai[i]; a.timer=a.interval*(0.6+Math.random()*0.6); a.pos=0; a.foxStage=0; });
+  state = STATE.PLAY;
+  Audio.init(); Audio.resume(); Audio.startHum();
+}
+
+/* ================= GİRİŞ / DOKUNMA ================= */
+const buttons = []; // {id,x,y,w,h,on:fn}  (sanal koordinatta)
+let pointer = {x:0,y:0,down:false};
+
+function hitButtons(vx,vy){
+  for(let i=buttons.length-1;i>=0;i--){
+    const b=buttons[i];
+    if(vx>=b.x && vx<=b.x+b.w && vy>=b.y && vy<=b.y+b.h){ b.on(); return true; }
+  }
+  return false;
+}
+function handleDown(px,py){
+  Audio.init(); Audio.resume();
+  const v=toVirtual(px,py); pointer.x=v.x; pointer.y=v.y; pointer.down=true;
+  if(state===STATE.MENU){
+    if(game._menuReady) startNight(game.night||1);
+    return;
+  }
+  if(state===STATE.DEAD || state===STATE.WIN){
+    state=STATE.MENU; Audio.stopHum(); return;
+  }
+  if(state===STATE.PLAY || state===STATE.CAMS){
+    hitButtons(v.x,v.y);
+  }
+}
+function handleMove(px,py){ const v=toVirtual(px,py); pointer.x=v.x; pointer.y=v.y; }
+function handleUp(){ pointer.down=false; }
+
+cv.addEventListener('mousedown',e=>handleDown(e.clientX,e.clientY));
+cv.addEventListener('mousemove',e=>handleMove(e.clientX,e.clientY));
+window.addEventListener('mouseup',handleUp);
+cv.addEventListener('touchstart',e=>{e.preventDefault(); const t=e.changedTouches[0]; handleDown(t.clientX,t.clientY);},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault(); const t=e.changedTouches[0]; handleMove(t.clientX,t.clientY);},{passive:false});
+window.addEventListener('touchend',e=>{handleUp();});
+
+// Klavye kısayolları (bilgisayar)
+window.addEventListener('keydown',e=>{
+  if(state===STATE.PLAY||state===STATE.CAMS){
+    if(e.key==='a'||e.key==='A') toggleDoor('L');
+    if(e.key==='d'||e.key==='D') toggleDoor('R');
+    if(e.key==='q'||e.key==='Q') game.lightL=!game.lightL;
+    if(e.key==='e'||e.key==='E') game.lightR=!game.lightR;
+    if(e.key===' '){ e.preventDefault(); toggleCams(); }
+  } else if((state===STATE.MENU&&game._menuReady)||state===STATE.DEAD||state===STATE.WIN){
+    handleDown(window.innerWidth/2, window.innerHeight/2);
+  }
+});
+
+/* ================= EYLEMLER ================= */
+function toggleDoor(side){
+  if(game.powerOut) return;
+  if(side==='L') game.doorL=!game.doorL; else game.doorR=!game.doorR;
+  Audio.doorSfx();
+}
+function toggleCams(){
+  if(game.powerOut) return;
+  game.camsUp=!game.camsUp;
+  state = game.camsUp?STATE.CAMS:STATE.PLAY;
+  game.camFlip = 1;
+  Audio.beep(game.camsUp?660:330);
+}
+
+/* ================= GÜNCELLEME (LOGIC) ================= */
+let last=performance.now();
+function update(dt){
+  if(state!==STATE.PLAY && state!==STATE.CAMS) return;
+
+  // Zaman ilerlet
+  game.timeMs += dt*1000;
+  if(game.timeMs >= 6*NIGHT_HOUR_MS){ winNight(); return; }
+
+  // Güç kullanımı hesapla
+  let u=1;
+  if(game.doorL) u++;
+  if(game.doorR) u++;
+  if(game.lightL||game.lightR) u++;
+  if(game.camsUp) u++;
+  game.usage=Math.min(u,5);
+  if(!game.powerOut){
+    // temel drenaj + kullanım; gecenin zorluğuna göre biraz hızlanır
+    const drain = (0.28 + (game.usage-1)*0.34) * (1 + (game.night-1)*0.06);
+    game.power -= drain*dt;
+    if(game.power<=0){ game.power=0; triggerPowerOut(); }
+  }
+
+  // Işık açıkken hafif elektrik cızırtısı
+  game.flicker = Math.max(0, game.flicker-dt*3);
+
+  // Animatronik hareketi
+  if(!game.powerOut){
+    for(const a of anims){
+      updateAnim(a,dt);
+    }
+  } else {
+    updatePowerOut(dt);
+  }
+
+  if(game.shake>0) game.shake=Math.max(0,game.shake-dt*4);
+}
+
+function doorClosed(side){ return side==='L'?game.doorL:game.doorR; }
+function lightOn(side){ return side==='L'?game.lightL:game.lightR; }
+
+function updateAnim(a,dt){
+  a.timer -= dt;
+
+  // FOXO özel: kulise/koridora bakılmazsa aşamalı olarak saldırır
+  if(a.special){
+    // sol koridora (cam3) bakılıyorsa geri çekilir
+    const watched = game.camsUp && game.currentCam===3;
+    if(a.timer<=0){
+      a.timer=a.interval*(0.7+Math.random()*0.6);
+      if(watched){ a.foxStage=Math.max(0,a.foxStage-1); }
+      else if(Math.random()<a.ai/12){ a.foxStage++; }
+    }
+    if(a.foxStage>=4 && !a.atDoor){ a.atDoor=true; a.attack=0; }
+    if(a.atDoor){
+      if(doorClosed(a.side)){ a.atDoor=false; a.foxStage=1; a.timer=a.interval*1.5; Audio.knock(); game.shake=0.6; }
+      else { a.attack+=dt; if(a.attack>0.8) doJumpscare(a); }
+    }
+    return;
+  }
+
+  if(a.atDoor){
+    // kapıdaysa: kapı kapalıysa geri döner, açıksa saldırıya geçer
+    if(doorClosed(a.side)){
+      a.atDoor=false; a.pos=Math.max(0,a.pos-1); a.timer=a.interval*(1.2+Math.random());
+      Audio.knock(); game.shake=0.4;
+    } else {
+      a.attack+=dt;
+      if(a.attack>2.2) doJumpscare(a);
+    }
+    return;
+  }
+
+  if(a.timer<=0){
+    a.timer = a.interval*(0.7+Math.random()*0.7);
+    // ofise bakılırken (kamera açık) biraz daha az hareket
+    const camPenalty = game.camsUp?0.85:1;
+    if(Math.random() < (a.ai/20)*camPenalty){
+      a.pos++;
+      Audio.tone(100+Math.random()*40,0.1,'sine',0.05);
+      if(a.pos >= a.path.length-1){
+        a.pos=a.path.length-1; a.atDoor=true; a.attack=0;
+        // kapıya vardığında hafif uyarı sesi
+      }
+    }
+  }
+}
+
+function currentRoomOf(a){ return a.atDoor ? (a.side==='L'?'DL':'DR') : a.path[a.pos]; }
+function animsInRoom(roomId){ return anims.filter(a=>!a.atDoor && a.path[a.pos]===roomId); }
+function animAtDoor(side){ return anims.find(a=>a.atDoor && a.side===side); }
+
+function triggerPowerOut(){
+  game.powerOut=true; game.powerOutTimer=0;
+  game.doorL=game.doorR=game.lightL=game.lightR=false;
+  game.camsUp=false; state=STATE.PLAY;
+  Audio.stopHum();
+  Audio.beep(160);
+}
+function updatePowerOut(dt){
+  game.powerOutTimer+=dt;
+  // karanlıkta bir süre sonra Freddo gelir
+  game.flicker = (Math.sin(game.powerOutTimer*6)>0.6)?1:0;
+  if(game.powerOutTimer>4 && game.powerOutTimer<7){
+    if(Math.floor(game.powerOutTimer*2)%2===0 && !game._pomTune){
+      game._pomTune=true; Audio.chime();
+    }
+  }
+  if(game.powerOutTimer>7 + Math.random()*2){
+    const fred = anims.find(a=>a.id==='freddo')||anims[0];
+    doJumpscare(fred);
+  }
+}
+
+let jumpTimer=0, jumpAnim=null;
+function doJumpscare(a){
+  if(state===STATE.JUMP) return;
+  jumpAnim=a; jumpTimer=0; state=STATE.JUMP; game.deathBy=a.name;
+  Audio.scream(); game.shake=1;
+  if(navigator.vibrate) navigator.vibrate([200,60,200]);
+}
+function winNight(){
+  state=STATE.WIN; Audio.stopHum(); Audio.chime();
+  game.night=Math.min(game.night+1,6);
+}
+
+/* ================= ÇİZİM YARDIMCILARI ================= */
+function clk(){ return `${((Math.floor(game.timeMs/NIGHT_HOUR_MS))||12)===0?12:(Math.floor(game.timeMs/NIGHT_HOUR_MS)||12)} AM`; }
+function hourNum(){ let h=Math.floor(game.timeMs/NIGHT_HOUR_MS); return h===0?12:h; }
+
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+// Animatronik yüzü (prosedürel, ürkütücü)
+function drawFace(cx,cy,s,color,eyeGlow,mouthOpen){
+  ctx.save(); ctx.translate(cx,cy);
+  // kafa
+  ctx.fillStyle=color; rr(-s*0.5,-s*0.55,s,s*1.1,s*0.22); ctx.fill();
+  // kulaklar
+  ctx.beginPath(); ctx.arc(-s*0.42,-s*0.55,s*0.16,0,7); ctx.arc(s*0.42,-s*0.55,s*0.16,0,7); ctx.fill();
+  // gözler
+  const eg = eyeGlow?'#ff2a2a':'#e8e8e8';
+  ctx.fillStyle='#0a0a0a'; ctx.beginPath(); ctx.arc(-s*0.22,-s*0.12,s*0.17,0,7); ctx.arc(s*0.22,-s*0.12,s*0.17,0,7); ctx.fill();
+  ctx.fillStyle=eg; ctx.shadowColor=eg; ctx.shadowBlur=eyeGlow?25:6;
+  ctx.beginPath(); ctx.arc(-s*0.22,-s*0.12,s*0.08,0,7); ctx.arc(s*0.22,-s*0.12,s*0.08,0,7); ctx.fill();
+  ctx.shadowBlur=0;
+  // ağız
+  const mo = mouthOpen? s*0.28 : s*0.08;
+  ctx.fillStyle='#120a0a'; rr(-s*0.34, s*0.12, s*0.68, mo, s*0.05); ctx.fill();
+  // dişler
+  ctx.fillStyle='#d8d2c0';
+  const teeth=6, tw=(s*0.68)/teeth;
+  for(let i=0;i<teeth;i++){ ctx.fillRect(-s*0.34+i*tw+1, s*0.12, tw-2, s*0.06); ctx.fillRect(-s*0.34+i*tw+1, s*0.12+mo-s*0.06, tw-2, s*0.06); }
+  ctx.restore();
+}
+
+/* ================= ÇİZİM: MENÜ ================= */
+let t=0;
+function drawMenu(){
+  applyView();
+  // arka plan
+  ctx.fillStyle='#050505'; ctx.fillRect(0,0,VW,VH);
+  // titreşen loş ışık
+  const g=ctx.createRadialGradient(VW/2,VH*0.42,40, VW/2,VH*0.42,520);
+  g.addColorStop(0,'rgba(40,10,10,0.5)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
+
+  // Sahneye ürkütücü yüz
+  drawFace(VW/2, VH*0.36, 150, '#5a3a20', (Math.sin(t*3)>0.4), false);
+
+  // başlık
+  ctx.textAlign='center';
+  ctx.fillStyle='#c0161d'; ctx.font='bold 84px Courier New';
+  ctx.shadowColor='#c0161d'; ctx.shadowBlur=20;
+  const jitter = (Math.random()<0.06)? (Math.random()*6-3):0;
+  ctx.fillText('GECE BEKÇİSİ', VW/2+jitter, VH*0.66);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#666'; ctx.font='20px Courier New';
+  ctx.fillText('— karanlıkta yalnız değilsin —', VW/2, VH*0.66+34);
+
+  ctx.fillStyle= (Math.sin(t*4)>0)?'#e8e8e8':'#888';
+  ctx.font='bold 30px Courier New';
+  ctx.fillText(`GECE ${game.night||1}  •  BAŞLAMAK İÇİN DOKUN`, VW/2, VH*0.83);
+
+  ctx.fillStyle='#444'; ctx.font='15px Courier New';
+  ctx.fillText('Kapılar: A / D    Işıklar: Q / E    Kamera: BOŞLUK', VW/2, VH*0.92);
+  game._menuReady = t>0.4;
+  ctx.restore();
+}
+
+/* ================= ÇİZİM: OFİS ================= */
+function applyView(){
+  ctx.save();
+  ctx.translate(offX,offY); ctx.scale(scale,scale);
+  // ekran sarsıntısı
+  if(game.shake>0){ ctx.translate((Math.random()-0.5)*14*game.shake,(Math.random()-0.5)*14*game.shake); }
+  ctx.beginPath(); ctx.rect(0,0,VW,VH); ctx.clip();
+}
+
+function drawOffice(){
+  applyView();
+  buttons.length=0;
+
+  // Duvar
+  ctx.fillStyle='#0c0d10'; ctx.fillRect(0,0,VW,VH);
+  const wall=ctx.createLinearGradient(0,0,0,VH);
+  wall.addColorStop(0,'#15161b'); wall.addColorStop(0.6,'#0d0e12'); wall.addColorStop(1,'#050506');
+  ctx.fillStyle=wall; ctx.fillRect(0,0,VW,VH);
+
+  // --- SOL KAPI / KORİDOR ---
+  drawDoorway('L', 40, game.doorL, game.lightL);
+  // --- SAĞ KAPI / KORİDOR ---
+  drawDoorway('R', VW-40-260, game.doorR, game.lightR);
+
+  // --- Masa + monitör + fan ---
+  ctx.fillStyle='#101216'; ctx.fillRect(VW*0.28, VH*0.78, VW*0.44, VH*0.22);
+  // fan
+  ctx.save(); ctx.translate(VW*0.36, VH*0.80);
+  ctx.fillStyle='#1c1f26'; ctx.fillRect(-6,0,12,60);
+  ctx.rotate(t*14);
+  ctx.fillStyle='#2a2e38';
+  for(let i=0;i<3;i++){ ctx.rotate(2.094); ctx.beginPath(); ctx.ellipse(0,-18,8,20,0,0,7); ctx.fill(); }
+  ctx.fillStyle='#3a3f4a'; ctx.beginPath(); ctx.arc(0,0,7,0,7); ctx.fill();
+  ctx.restore();
+  // monitör (küçük)
+  ctx.fillStyle='#050a0c'; rr(VW*0.55,VH*0.78,150,90,6); ctx.fill();
+  ctx.fillStyle= game.camsUp?'#0a2a1a':'#071015';
+  rr(VW*0.55+8,VH*0.78+8,134,74,4); ctx.fill();
+
+  // Karanlık vinyet
+  const vg=ctx.createRadialGradient(VW/2,VH*0.55,120, VW/2,VH*0.55,760);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.85)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+
+  // Güç bittiyse karanlık + Freddo yaklaşımı
+  if(game.powerOut){
+    ctx.fillStyle='rgba(0,0,0,0.82)'; ctx.fillRect(0,0,VW,VH);
+    if(game.flicker){
+      // sol kapıda parlayan gözler
+      ctx.fillStyle='#ff2a2a'; ctx.shadowColor='#ff2a2a'; ctx.shadowBlur=30;
+      ctx.beginPath(); ctx.arc(160,VH*0.5,10,0,7); ctx.arc(210,VH*0.5,10,0,7); ctx.fill();
+      ctx.shadowBlur=0;
+    }
+    ctx.fillStyle='#c0161d'; ctx.textAlign='center'; ctx.font='bold 30px Courier New';
+    if(game.powerOutTimer<4) ctx.fillText('GÜÇ BİTTİ', VW/2, VH*0.4);
+  }
+
+  drawHUD();
+  drawOfficeButtons();
+  drawScanlines();
+  ctx.restore();
+}
+
+function drawDoorway(side, x, closed, light){
+  const w=260, top=VH*0.16, h=VH*0.62;
+  ctx.save();
+  // koridor boşluğu
+  ctx.fillStyle= light? '#20242c' : '#070809';
+  ctx.fillRect(x, top, w, h);
+  // ışık açıksa koridoru aydınlat + animatronik varsa göster
+  if(light){
+    const lg=ctx.createLinearGradient(x, top, x, top+h);
+    lg.addColorStop(0,'rgba(180,180,140,0.18)'); lg.addColorStop(1,'rgba(120,120,90,0.05)');
+    ctx.fillStyle=lg; ctx.fillRect(x,top,w,h);
+    game.flicker=Math.random()<0.3?0.5:game.flicker;
+    const a=animAtDoor(side);
+    if(a){
+      drawFace(x+w/2, top+h*0.5, 120, a.color, true, true);
+    }
+  }
+  // kapı çerçevesi
+  ctx.strokeStyle='#2a2d34'; ctx.lineWidth=10; ctx.strokeRect(x,top,w,h);
+  ctx.fillStyle='#181a20'; ctx.fillRect(x-18,top-10,18,h+20); ctx.fillRect(x+w,top-10,18,h+20);
+
+  // kapalı kapı (metal panjur)
+  if(closed){
+    ctx.fillStyle='#23262e'; ctx.fillRect(x,top,w,h);
+    ctx.strokeStyle='#14161b'; ctx.lineWidth=3;
+    for(let yy=top+12; yy<top+h; yy+=18){ ctx.beginPath(); ctx.moveTo(x,yy); ctx.lineTo(x+w,yy); ctx.stroke(); }
+    // uyarı şeridi
+    ctx.fillStyle='#b58500';
+    for(let i=0;i<w;i+=40){ ctx.beginPath(); ctx.moveTo(x+i,top+h*0.5); ctx.lineTo(x+i+20,top+h*0.5); ctx.lineTo(x+i+10,top+h*0.5+14); ctx.fill(); }
+  }
+  // etiket
+  ctx.fillStyle='#555'; ctx.font='bold 16px Courier New'; ctx.textAlign='center';
+  ctx.fillText(side==='L'?'SOL':'SAĞ', x+w/2, top-16);
+  ctx.restore();
+}
+
+function drawOfficeButtons(){
+  // Sol grup
+  makeBtn('doorL', 60, VH-150, 150, 54, game.doorL?'KAPI ▮':'KAPI ▯', game.doorL?'#7a1f1f':'#242830', ()=>toggleDoor('L'));
+  makeBtn('lightL', 60, VH-90, 150, 44, game.lightL?'IŞIK ●':'IŞIK ○', game.lightL?'#8a7a1f':'#242830', ()=>{ if(!game.powerOut) game.lightL=!game.lightL; });
+  // Sağ grup
+  makeBtn('doorR', VW-210, VH-150, 150, 54, game.doorR?'KAPI ▮':'KAPI ▯', game.doorR?'#7a1f1f':'#242830', ()=>toggleDoor('R'));
+  makeBtn('lightR', VW-210, VH-90, 150, 44, game.lightR?'IŞIK ●':'IŞIK ○', game.lightR?'#8a7a1f':'#242830', ()=>{ if(!game.powerOut) game.lightR=!game.lightR; });
+  // Kamera
+  makeBtn('cams', VW/2-90, VH-58, 180, 46, game.camsUp?'▼ KAPAT':'📷 KAMERA', game.camsUp?'#1f5a3a':'#242830', toggleCams);
+}
+function makeBtn(id,x,y,w,h,label,color,on){
+  const hover = pointer.x>=x&&pointer.x<=x+w&&pointer.y>=y&&pointer.y<=y+h;
+  ctx.fillStyle=color; rr(x,y,w,h,8); ctx.fill();
+  ctx.strokeStyle= hover?'#fff':'rgba(255,255,255,0.15)'; ctx.lineWidth=2; rr(x,y,w,h,8); ctx.stroke();
+  ctx.fillStyle='#eee'; ctx.font='bold 18px Courier New'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, x+w/2, y+h/2+1); ctx.textBaseline='alphabetic';
+  buttons.push({id,x,y,w,h,on});
+}
+
+/* ================= ÇİZİM: HUD ================= */
+function drawHUD(){
+  // Saat
+  ctx.textAlign='right'; ctx.fillStyle='#e8e8e8'; ctx.font='bold 30px Courier New';
+  ctx.fillText(`${hourNum()} AM`, VW-30, 44);
+  ctx.font='14px Courier New'; ctx.fillStyle='#888';
+  ctx.fillText(`Gece ${game.night}`, VW-30, 64);
+
+  // Güç
+  ctx.textAlign='left';
+  ctx.fillStyle= game.power<25?'#c0161d':'#e8e8e8'; ctx.font='bold 22px Courier New';
+  ctx.fillText(`GÜÇ: ${Math.ceil(game.power)}%`, 30, 40);
+  // kullanım çubukları
+  ctx.fillText('Kullanım:', 30, 66);
+  for(let i=0;i<5;i++){
+    ctx.fillStyle= i<game.usage ? (i<2?'#3fae5a':i<3?'#c9a227':'#c0161d') : '#2a2d34';
+    ctx.fillRect(140+i*20, 50, 16, 18);
+  }
+  // güç düşükse yanıp sönen uyarı
+  if(game.power<15 && Math.sin(t*8)>0){
+    ctx.fillStyle='#c0161d'; ctx.font='bold 16px Courier New';
+    ctx.fillText('!! GÜÇ AZALIYOR !!', 30, 90);
+  }
+}
+
+/* ================= ÇİZİM: KAMERALAR ================= */
+function drawCams(){
+  applyView();
+  buttons.length=0;
+  ctx.fillStyle='#05070a'; ctx.fillRect(0,0,VW,VH);
+
+  const r=ROOMS[game.currentCam];
+  // Feed alanı
+  const fx=40,fy=40,fw=VW-360,fh=VH-140;
+  ctx.fillStyle='#0a1014'; ctx.fillRect(fx,fy,fw,fh);
+
+  if(r.dark){
+    ctx.fillStyle='#000'; ctx.fillRect(fx,fy,fw,fh);
+    ctx.fillStyle='#1a3a2a'; ctx.textAlign='center'; ctx.font='bold 40px Courier New';
+    ctx.fillText('SES YOK — GÖRÜNTÜ YOK', fx+fw/2, fy+fh/2);
+    // mutfakta animatronik varsa sadece ses ipucu
+  } else {
+    drawRoomScene(game.currentCam, fx,fy,fw,fh);
+  }
+
+  // Kamera statik/gürültü
+  drawStatic(fx,fy,fw,fh, r.dark?0.9:0.18);
+  // Kamera açılış flip efekti
+  if(game.camFlip>0){
+    ctx.fillStyle=`rgba(255,255,255,${game.camFlip*0.4})`; ctx.fillRect(fx,fy,fw,fh);
+    game.camFlip=Math.max(0,game.camFlip-0.08);
+  }
+
+  // Feed başlığı
+  ctx.fillStyle='#7fff9f'; ctx.textAlign='left'; ctx.font='bold 22px Courier New';
+  ctx.fillText(`● CAM ${game.currentCam} — ${r.name}`, fx+14, fy+30);
+  ctx.fillStyle= (Math.sin(t*6)>0)?'#c0161d':'#600'; ctx.fillText('● REC', fx+fw-90, fy+30);
+
+  // --- HARİTA (sağ panel) ---
+  const mx=VW-300, my=40, mw=260, mh=VH-80;
+  ctx.fillStyle='#0c1216'; ctx.fillRect(mx,my,mw,mh);
+  ctx.strokeStyle='#1f3a2a'; ctx.lineWidth=2; ctx.strokeRect(mx,my,mw,mh);
+  ctx.fillStyle='#3fae5a'; ctx.font='bold 16px Courier New'; ctx.textAlign='center';
+  ctx.fillText('KAT PLANI', mx+mw/2, my+24);
+  // ofis konumu
+  ctx.fillStyle='#223'; ctx.fillRect(mx+mw*0.36, my+mh*0.82, mw*0.28, mh*0.12);
+  ctx.fillStyle='#88a'; ctx.font='11px Courier New'; ctx.fillText('OFİS', mx+mw/2, my+mh*0.90);
+
+  for(const id in ROOMS){
+    const room=ROOMS[id];
+    const bx=mx+room.x*mw, by=my+room.y*mh, bw=mw*0.24, bh=mh*0.10;
+    const active = (+id===game.currentCam);
+    const hasAnim = animsInRoom(+id).length>0;
+    ctx.fillStyle= active?'#1f5a3a':(hasAnim?'#3a1416':'#182028');
+    rr(bx,by,bw,bh,4); ctx.fill();
+    ctx.strokeStyle= active?'#7fff9f':'rgba(120,160,140,0.3)'; ctx.lineWidth=2; rr(bx,by,bw,bh,4); ctx.stroke();
+    ctx.fillStyle= hasAnim?'#ff5a5a':'#9fbfae'; ctx.font='bold 10px Courier New'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('CAM'+id, bx+bw/2, by+bh/2); ctx.textBaseline='alphabetic';
+    buttons.push({id:'cam'+id,x:bx,y:by,w:bw,h:bh,on:()=>{ if(game.currentCam!==+id){game.currentCam=+id; game.camFlip=1; Audio.beep(520);} }});
+  }
+  // FOXO uyarısı (sol koridora bak!)
+  const fox=anims.find(a=>a.special);
+  if(fox && fox.foxStage>=2){
+    ctx.fillStyle='#c0161d'; ctx.textAlign='center'; ctx.font='bold 13px Courier New';
+    ctx.fillText('⚠ SOL KORİDOR (CAM3)', mx+mw/2, my+mh*0.98);
+  }
+
+  // Kapat butonu (kamerayı indir)
+  makeBtn('cams', VW/2-90, VH-58, 180, 46, '▼ KAPAT', '#1f5a3a', toggleCams);
+
+  // HUD üstte
+  drawHUD();
+  drawScanlines();
+  ctx.restore();
+}
+
+function drawRoomScene(id, x,y,w,h){
+  // basit oda arka planı
+  ctx.fillStyle='#0e1519'; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='#16232a'; ctx.lineWidth=1;
+  for(let i=0;i<8;i++){ ctx.beginPath(); ctx.moveTo(x, y+h*i/8); ctx.lineTo(x+w, y+h*i/8); ctx.stroke(); }
+  // zemin çizgisi
+  ctx.strokeStyle='#22333a'; ctx.beginPath(); ctx.moveTo(x,y+h*0.7); ctx.lineTo(x+w,y+h*0.7); ctx.stroke();
+  // oda etiketine göre birkaç eşya
+  ctx.fillStyle='#111a1f';
+  if(id===1){ ctx.fillRect(x+w*0.2,y+h*0.35,w*0.6,h*0.35); } // sahne
+  if(id===2){ for(let i=0;i<3;i++) ctx.fillRect(x+w*(0.2+i*0.25),y+h*0.55,w*0.12,h*0.12); } // masalar
+  // animatronikler
+  const inRoom=animsInRoom(id);
+  inRoom.forEach((a,i)=>{
+    drawFace(x+w*(0.35+i*0.28), y+h*0.45, Math.min(w,h)*0.16, a.color, true, false);
+  });
+  if(inRoom.length){
+    ctx.fillStyle='#ff5a5a'; ctx.font='bold 14px Courier New'; ctx.textAlign='left';
+    ctx.fillText('⚠ HAREKET ALGILANDI', x+14, y+h-16);
+  }
+}
+
+/* ================= EFEKTLER ================= */
+function drawStatic(x,y,w,h,amt){
+  if(amt<=0) return;
+  const n=Math.floor(w*h*0.0006*amt*3);
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  for(let i=0;i<n;i++){ ctx.fillRect(x+Math.random()*w, y+Math.random()*h, 2,2); }
+}
+function drawScanlines(){
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  for(let yy=0; yy<VH; yy+=4){ ctx.fillRect(0,yy,VW,2); }
+}
+
+/* ================= JUMPSCARE ================= */
+function drawJump(){
+  applyView();
+  jumpTimer+=1/60;
+  const a=jumpAnim||anims[0];
+  // hızlı titreşen ürkütücü yüz
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,VW,VH);
+  const s=260+Math.sin(jumpTimer*40)*40;
+  ctx.save();
+  ctx.translate(VW/2+(Math.random()-0.5)*30, VH/2+(Math.random()-0.5)*30);
+  ctx.scale(1+Math.sin(jumpTimer*30)*0.06,1+Math.cos(jumpTimer*30)*0.06);
+  drawFace(0,0,s,a.color,true,true);
+  ctx.restore();
+  // kırmızı flaş
+  if(Math.random()<0.5){ ctx.fillStyle='rgba(120,0,0,0.35)'; ctx.fillRect(0,0,VW,VH); }
+  drawStatic(0,0,VW,VH,0.5);
+  ctx.restore();
+  if(jumpTimer>1.6){ state=STATE.DEAD; }
+}
+
+function drawDead(){
+  applyView();
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,VW,VH);
+  ctx.textAlign='center';
+  ctx.fillStyle='#c0161d'; ctx.font='bold 72px Courier New';
+  ctx.shadowColor='#c0161d'; ctx.shadowBlur=20;
+  ctx.fillText('YAKALANDIN', VW/2, VH*0.42); ctx.shadowBlur=0;
+  ctx.fillStyle='#999'; ctx.font='24px Courier New';
+  ctx.fillText(`${game.deathBy||'???'} seni buldu`, VW/2, VH*0.42+44);
+  ctx.fillStyle='#666'; ctx.font='18px Courier New';
+  ctx.fillText(`Saat ${hourNum()} AM — Gece ${game.night}`, VW/2, VH*0.42+80);
+  ctx.fillStyle=(Math.sin(t*4)>0)?'#e8e8e8':'#888'; ctx.font='bold 22px Courier New';
+  ctx.fillText('TEKRAR DENEMEK İÇİN DOKUN', VW/2, VH*0.72);
+  ctx.restore();
+}
+function drawWin(){
+  applyView();
+  ctx.fillStyle='#03060a'; ctx.fillRect(0,0,VW,VH);
+  const g=ctx.createRadialGradient(VW/2,VH*0.4,40,VW/2,VH*0.4,500);
+  g.addColorStop(0,'rgba(40,60,90,0.4)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
+  ctx.textAlign='center';
+  ctx.fillStyle='#7fbfff'; ctx.font='bold 90px Courier New';
+  ctx.shadowColor='#3a6a9a'; ctx.shadowBlur=25;
+  ctx.fillText('6:00 AM', VW/2, VH*0.4); ctx.shadowBlur=0;
+  ctx.fillStyle='#e8e8e8'; ctx.font='bold 34px Courier New';
+  ctx.fillText('HAYATTA KALDIN!', VW/2, VH*0.4+56);
+  ctx.fillStyle='#888'; ctx.font='20px Courier New';
+  ctx.fillText(`Gece ${game.night-1<1?1:game.night-1} tamamlandı`, VW/2, VH*0.4+92);
+  ctx.fillStyle=(Math.sin(t*4)>0)?'#e8e8e8':'#888'; ctx.font='bold 22px Courier New';
+  ctx.fillText(`GECE ${game.night} İÇİN DOKUN`, VW/2, VH*0.72);
+  ctx.restore();
+}
+
+/* ================= ANA DÖNGÜ ================= */
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
+  update(dt);
+
+  // temizle
+  ctx.setTransform((window.devicePixelRatio||1),0,0,(window.devicePixelRatio||1),0,0);
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
+
+  if(state===STATE.MENU) drawMenu();
+  else if(state===STATE.PLAY) drawOffice();
+  else if(state===STATE.CAMS) drawCams();
+  else if(state===STATE.JUMP) drawJump();
+  else if(state===STATE.DEAD) drawDead();
+  else if(state===STATE.WIN) drawWin();
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

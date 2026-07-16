@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GECE BEKÇİSİ 3D — Pizzacı (Serbest Gezinti)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;color:#ddd;}
+  #app{position:fixed;inset:0;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+
+  .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:40;}
+  .hidden{display:none!important;}
+
+  /* HUD */
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:12px 18px;z-index:20;pointer-events:none;text-shadow:0 2px 6px #000;}
+  #roomName{font-size:18px;font-weight:bold;letter-spacing:1px;color:#cfd6e0;}
+  #roomSub{font-size:12px;color:#7a828c;}
+  #battBox{text-align:right;}
+  #battLabel{font-size:12px;color:#9aa;}
+  #battBar{width:150px;height:14px;border:1px solid rgba(255,255,255,.3);border-radius:3px;margin-top:3px;overflow:hidden;background:#111;}
+  #battFill{height:100%;width:100%;background:linear-gradient(90deg,#e11d1d,#c9a227 40%,#3fae5a 70%);transition:width .1s;}
+  #flashState{font-size:12px;margin-top:2px;color:#888;}
+
+  /* Fener butonu */
+  #flashBtn{position:fixed;right:18px;bottom:26px;z-index:22;width:76px;height:76px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#3a4048,#1a1e24);border:2px solid rgba(255,255,255,.18);
+    color:#ffe9a8;font-size:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,0,0,.6);pointer-events:auto;}
+  #flashBtn.on{background:radial-gradient(circle at 40% 35%,#6a5a2a,#3a3010);border-color:#c9b840;box-shadow:0 0 22px rgba(220,190,80,.5);}
+
+  /* Sprint butonu */
+  #runBtn{position:fixed;right:104px;bottom:30px;z-index:22;width:60px;height:60px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:2px solid rgba(255,255,255,.14);
+    color:#cde;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;}
+  #runBtn.on{background:radial-gradient(circle at 40% 35%,#20506a,#123040);border-color:#3fae7a;}
+
+  /* Joystick (dokunmatik) */
+  #joyZone{position:fixed;left:0;bottom:0;width:45%;height:60%;z-index:21;}
+  #joyBase{position:absolute;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.05);display:none;pointer-events:none;}
+  #joyKnob{position:absolute;width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.25);
+    border:2px solid rgba(255,255,255,.4);left:33px;top:33px;pointer-events:none;}
+
+  /* Crosshair */
+  #cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:19;pointer-events:none;
+    width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);box-shadow:0 0 6px rgba(0,0,0,.8);}
+
+  /* Menü / ölüm */
+  #menu,#dead{background:radial-gradient(ellipse at center 40%,rgba(30,8,8,.55),#000 72%);}
+  .bigTitle{font-size:min(70px,11vw);font-weight:bold;color:#c0161d;text-shadow:0 0 22px #c0161d;letter-spacing:3px;}
+  .sub{color:#888;font-size:min(20px,4vw);margin-top:8px;}
+  .tapHint{margin-top:30px;font-size:min(22px,5vw);font-weight:bold;color:#e8e8e8;animation:blink 1s steps(1) infinite;}
+  .keys{margin-top:22px;color:#5a6068;font-size:13px;line-height:1.8;max-width:620px;}
+  @keyframes blink{50%{opacity:.25;}}
+
+  /* Efektler */
+  #grain{position:fixed;inset:0;z-index:15;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  #scan{position:fixed;inset:0;z-index:16;pointer-events:none;opacity:.25;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 2px,rgba(0,0,0,.22) 3px,rgba(0,0,0,0) 4px);}
+  #vig{position:fixed;inset:0;z-index:14;pointer-events:none;box-shadow:inset 0 0 240px 80px rgba(0,0,0,.92);}
+  #loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#000;color:#a33;font-size:20px;letter-spacing:2px;text-align:center;padding:20px;}
+
+  /* Elektrik durumu + toast */
+  #powerStat{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:21;font-size:14px;font-weight:bold;letter-spacing:1px;padding:5px 12px;border-radius:6px;background:rgba(0,0,0,.5);pointer-events:none;text-shadow:0 1px 3px #000;}
+  .pw-on{color:#6fe38a;} .pw-off{color:#ff5a5a;animation:blink .6s steps(1) infinite;}
+  #toast{position:fixed;left:50%;bottom:26%;transform:translateX(-50%);z-index:30;font-size:16px;font-weight:bold;color:#ffefe0;background:rgba(10,10,14,.82);border:1px solid rgba(255,255,255,.2);padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:82vw;}
+  /* Kamera + eylem butonları */
+  #camBtn{position:fixed;right:18px;bottom:112px;z-index:22;width:60px;height:60px;border-radius:14px;background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:2px solid rgba(255,255,255,.14);color:#cfe;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;}
+  #actBtn{position:fixed;left:50%;bottom:132px;transform:translateX(-50%);z-index:22;font-family:'Courier New',monospace;font-weight:bold;font-size:15px;color:#fff;background:linear-gradient(#3a2f18,#241b0e);border:1px solid #c9a227;border-radius:9px;padding:12px 18px;cursor:pointer;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,.5);}
+  /* Tablet */
+  #tablet{position:fixed;inset:0;z-index:28;display:none;}
+  #tablet.show{display:block;}
+  #tabFrame{position:absolute;inset:3%;border:3px solid rgba(120,255,180,.22);border-radius:14px;box-shadow:inset 0 0 70px rgba(0,0,0,.85);pointer-events:none;}
+  #tabStatic{position:absolute;inset:3%;border-radius:14px;pointer-events:none;opacity:0;mix-blend-mode:screen;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");}
+  #camName{position:absolute;top:5.5%;left:7%;z-index:2;color:#7fff9f;font-weight:bold;font-size:16px;text-shadow:0 0 8px #0f0;pointer-events:none;}
+  #camClose{position:absolute;top:5%;right:7%;z-index:2;font-family:'Courier New',monospace;font-weight:bold;color:#dfffe8;background:#123;border:1px solid #3fae7a;border-radius:8px;padding:8px 12px;cursor:pointer;}
+  #camPrev,#camNext{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:52px;height:72px;font-size:30px;color:#cfe;background:rgba(10,20,16,.55);border:1px solid rgba(120,200,160,.3);border-radius:8px;cursor:pointer;}
+  #camPrev{left:5%;} #camNext{right:5%;}
+  /* Müzik kutusu */
+  #boxWrap{position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:21;width:230px;text-align:center;pointer-events:none;}
+  #boxLabel{font-size:12px;font-weight:bold;text-shadow:0 1px 3px #000;letter-spacing:.5px;}
+  .box-ok{color:#c79bff;} .box-warn{color:#ffb44a;} .box-danger{color:#ff4a4a;animation:blink .5s steps(1) infinite;}
+  #boxBar{width:100%;height:10px;border:1px solid rgba(255,255,255,.3);border-radius:3px;margin-top:2px;overflow:hidden;background:#111;}
+  #boxFill{height:100%;width:100%;background:linear-gradient(90deg,#ff4a4a,#c79bff 55%);transition:width .12s;}
+  #windBtn{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);z-index:32;font-family:'Courier New',monospace;font-weight:bold;font-size:18px;color:#fff;background:linear-gradient(#5a2a7a,#3a1050);border:2px solid #c79bff;border-radius:12px;padding:16px 26px;cursor:pointer;box-shadow:0 0 24px rgba(150,80,220,.5);pointer-events:auto;}
+  #windBtn:active{transform:translateX(-50%) scale(.96);}
+  #jumpFlash{position:fixed;inset:0;z-index:35;pointer-events:none;background:#500;opacity:0;}
+
+  /* Saat / gece */
+  #clockBox{margin-top:7px;}
+  #clockTime{font-size:26px;font-weight:bold;color:#e8e2d0;letter-spacing:2px;}
+  #clockTime.dawn{color:#ffd76a;text-shadow:0 0 14px rgba(255,200,60,.7);}
+  #nightLbl{font-size:12px;color:#8a8f98;margin-left:8px;letter-spacing:1px;}
+  #clockBar{width:132px;height:4px;background:#15171c;border:1px solid rgba(255,255,255,.18);border-radius:2px;margin-top:4px;overflow:hidden;}
+  #clockFill{height:100%;width:0%;background:linear-gradient(90deg,#3a4a6a,#c9a227 70%,#ffd76a);transition:width .2s;}
+
+  /* Gece seçici */
+  #nightPick{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;justify-content:center;}
+  .nbtn{font-family:'Courier New',monospace;font-weight:bold;font-size:15px;width:52px;height:52px;border-radius:10px;
+    background:linear-gradient(#2a2f38,#161a20);border:2px solid rgba(255,255,255,.18);color:#dfe4ea;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;}
+  .nbtn small{font-size:8px;color:#7a828c;font-weight:normal;}
+  .nbtn.sel{border-color:#c0161d;color:#fff;box-shadow:0 0 16px rgba(192,22,29,.5);background:linear-gradient(#4a1a1e,#2a0c0e);}
+  .nbtn.lock{opacity:.35;cursor:not-allowed;}
+  .nbtn.six{border-color:#c9a227;color:#ffd76a;}
+
+  /* Kazanma ekranı */
+  #win{background:radial-gradient(ellipse at center 40%,rgba(10,30,14,.6),#000 72%);}
+  #winClock{font-size:min(96px,16vw);font-weight:bold;color:#ffd76a;text-shadow:0 0 30px rgba(255,200,60,.6);letter-spacing:4px;}
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="loading">GECE BEKÇİSİ 3D<br><span style="font-size:13px;color:#555">pizzacı yükleniyor…</span></div>
+
+<div id="vig"></div><div id="grain"></div><div id="scan"></div>
+<div id="jumpFlash"></div>
+<div id="cross" class="hidden"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div><div id="roomName">OFİS</div><div id="roomSub">Freddy Fazbear's Pizza</div>
+    <div id="clockBox"><span id="clockTime">12:00</span><span id="nightLbl">GECE 1</span>
+      <div id="clockBar"><div id="clockFill"></div></div></div></div>
+  <div id="battBox"><div id="battLabel">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState">KAPALI</div></div>
+</div>
+
+<!-- Dokunmatik kontroller -->
+<div id="joyZone" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div></div>
+<button id="flashBtn" class="hidden">🔦</button>
+<button id="runBtn" class="hidden">»</button>
+<button id="camBtn" class="hidden">📹</button>
+<button id="actBtn" class="hidden">▼ KAPAT</button>
+
+<!-- Elektrik durumu + mesaj -->
+<div id="powerStat" class="hidden pw-on">⚡ ELEKTRİK: AÇIK</div>
+<div id="toast"></div>
+
+<!-- Kamera / tablet -->
+<div id="tablet">
+  <div id="tabFrame"></div>
+  <div id="tabStatic"></div>
+  <div id="camName">CAM • SAHNE</div>
+  <button id="camClose">▼ İNDİR</button>
+  <button id="camPrev">‹</button>
+  <button id="camNext">›</button>
+</div>
+
+<!-- Müzik kutusu KUR butonu + bar -->
+<button id="windBtn" class="hidden">🎵 KUR (BASILI TUT)</button>
+<div id="boxWrap" class="hidden"><div id="boxLabel" class="box-ok">🎵 MÜZİK KUTUSU 100%</div><div id="boxBar"><div id="boxFill"></div></div></div>
+
+<!-- Menü -->
+<div id="menu" class="overlay">
+  <div class="bigTitle">GECE BEKÇİSİ</div>
+  <div class="sub">— 06:00'a kadar dayan —</div>
+  <div id="nightPick"></div>
+  <div class="tapHint">BAŞLAMAK İÇİN DOKUN</div>
+  <div class="keys">
+    <b>Bilgisayar:</b> W A S D = yürü &nbsp;•&nbsp; Fare sürükle = bak &nbsp;•&nbsp; F = fener &nbsp;•&nbsp; Shift = koş &nbsp;•&nbsp; E = kapı<br>
+    <b>Telefon:</b> Sol joystick = yürü &nbsp;•&nbsp; Sağ ekran sürükle = bak &nbsp;•&nbsp; 🔦 = fener &nbsp;•&nbsp; » = koş<br>
+    <b>C</b> = kamera (yalnız ofiste) &nbsp;•&nbsp; <b>Boşluk / KUR</b> = müzik kutusunu kur<br>
+    <span style="color:#8a7a5a">🐻 FREDDO ışık tutunca DONAR &nbsp;•&nbsp; 💜 BONKO ışığı görürse ÇILDIRIR<br>
+    🐤 CHİKA sesini duyar (koşma!) &nbsp;•&nbsp; 🦊 FOXO'yu kamerada izle yoksa koşar</span><br>
+    <span style="color:#c9a227">🚪 Kapı 7s kapalı kalır, sonra kendi açılır — tekrar kapatmak için 7s bekleme.<br>
+    Kapıda 3s takılan animatronik VAZGEÇER ve çeker gider. Kapı kalkan değil, zaman kazandırır.</span><br>
+    🎵 Müzik kutusu boşalırsa PUPPET seni yer! Elektrik yoksa kamera çalışmaz → Ödül Köşesi'ne gidip elle kur.
+  </div>
+</div>
+
+<!-- Ölüm -->
+<div id="dead" class="overlay hidden">
+  <div class="bigTitle">YAKALANDIN</div>
+  <div class="sub" id="deadWho">??? seni buldu</div>
+  <div class="sub" id="deadWhen" style="color:#6a6a6a"></div>
+  <div class="tapHint">TEKRAR İÇİN DOKUN</div>
+</div>
+
+<!-- Gece atlatıldı -->
+<div id="win" class="overlay hidden">
+  <div id="winClock">06:00</div>
+  <div class="bigTitle" id="winTitle" style="color:#3fae5a;text-shadow:0 0 22px #3fae5a">GECE ATLATILDI</div>
+  <div class="sub" id="winSub">Gece 1 bitti</div>
+  <div class="tapHint">DEVAM İÇİN DOKUN</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+const $ = s => document.querySelector(s);
+const app = $('#app');
+
+/* ================= RENDERER / SAHNE ================= */
+const isMobile = /Mobi|Android|iPad|iPhone/i.test(navigator.userAgent);
+const renderer = new THREE.WebGLRenderer({antialias:!isMobile, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isMobile?1.5:2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+$('#loading').classList.add('hidden');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x030406);
+scene.fog = new THREE.FogExp2(0x030406, 0.032);
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.03, 260);
+
+// Harita ölçeği: statik dünya yatayda SC kat büyür (yükseklik/insan boyu aynı kalır).
+// Tüm oyun mantığı "tasarım" koordinatında; sadece render SC ile ölçeklenir.
+const SC = 3.0;
+
+addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+/* ================= DOKULAR ================= */
+function mc(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function noiseTex(base,spec){ const c=mc(256,256),g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,256,256);
+  for(let i=0;i<26000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*spec})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return t; }
+function wallTex(){ const c=mc(256,256),g=c.getContext('2d');
+  // FNAF: alt kısım kiremit kırmızısı, üst bej — burada dikey iki ton
+  g.fillStyle='#6a2a2a'; g.fillRect(0,0,256,256); g.fillStyle='#c9b487'; g.fillRect(0,0,256,150);
+  g.fillStyle='#3a1414'; g.fillRect(0,148,256,6);
+  g.strokeStyle='rgba(0,0,0,.15)'; for(let y=0;y<256;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(256,y); g.stroke(); }
+  for(let i=0;i<8000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.12})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return t; }
+function floorTex(){ const c=mc(256,256),g=c.getContext('2d');
+  // siyah-beyaz damalı zemin (FNAF)
+  for(let y=0;y<256;y+=64) for(let x=0;x<256;x+=64){ g.fillStyle=(x/64+y/64)%2?'#151515':'#c8c4bc'; g.fillRect(x,y,64,64);}
+  for(let i=0;i<16000;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*.28})`; g.fillRect(Math.random()*256,Math.random()*256,1,1);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.repeat.set(1,1); return t; }
+function posterTex(txt,col){ const c=mc(256,320),g=c.getContext('2d'); g.fillStyle=col||'#7a1f2a'; g.fillRect(0,0,256,320);
+  g.fillStyle='rgba(0,0,0,.22)'; g.fillRect(8,8,240,304); g.fillStyle='#f0e6c8'; g.font='bold 30px Courier New'; g.textAlign='center'; g.fillText(txt||'FREDDO',128,52);
+  g.fillStyle='#3a2410'; g.beginPath(); g.arc(128,180,66,0,7); g.fill(); g.fillStyle='#ff3030'; g.beginPath(); g.arc(106,168,11,0,7); g.arc(150,168,11,0,7); g.fill();
+  g.fillStyle='#100a0a'; g.fillRect(98,206,60,24); g.fillStyle='#ddd'; for(let i=0;i<5;i++) g.fillRect(100+i*12,206,9,11);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
+
+const T = { wall:wallTex(), floor:floorTex(), metal:noiseTex('#3a3f48',.25), carpet:noiseTex('#3a1a1a',.35), curtain:noiseTex('#5a1030',.3) };
+T.floor.repeat.set(0.25,0.25);
+
+const M = {
+  wall:  new THREE.MeshStandardMaterial({map:T.wall, roughness:.95, metalness:.03}),
+  floor: new THREE.MeshStandardMaterial({map:T.floor, roughness:.7, metalness:.05}),
+  ceil:  new THREE.MeshStandardMaterial({color:0x08090c, roughness:1}),
+  metal: new THREE.MeshStandardMaterial({map:T.metal, color:0x555a63, roughness:.5, metalness:.8}),
+  wood:  new THREE.MeshStandardMaterial({color:0x2a1c12, roughness:.75, metalness:.1}),
+  table: new THREE.MeshStandardMaterial({color:0x6a2020, roughness:.5, metalness:.1}),
+  curtain:new THREE.MeshStandardMaterial({map:T.curtain, color:0x7a1246, roughness:.8, side:THREE.DoubleSide}),
+  stage: new THREE.MeshStandardMaterial({color:0x1a0e14, roughness:.9}),
+};
+
+/* ================= IŞIKLAR ================= */
+// Ortam + gökyarısı dolgu (elektrik açıkken parlak, kesikken karanlık)
+const ambient = new THREE.AmbientLight(0x2a3346, 0.5); scene.add(ambient);
+const hemi = new THREE.HemisphereLight(0xcfe0f0, 0x1a1e26, 0.9); scene.add(hemi);
+// Tavan lambaları (elektrikle çalışır) — powerLights[].userData.base taban şiddeti
+const powerLights=[];
+function dimLight(x,z,col,intensity,dist){ const l=new THREE.PointLight(col,intensity,(dist||10)*SC,2); l.position.set(x*SC,2.9,z*SC); scene.add(l); return l; }
+function pLight(x,z,col,intensity,dist){ const l=dimLight(x,z,col,intensity,dist); l.userData.base=intensity; powerLights.push(l); return l; }
+pLight(0,18,   0xfff0d8, 0.9, 13);   // ofis
+pLight(-3,10,  0xffe9c8, 0.8, 11);   // batı koridor
+pLight(3,10,   0xffe9c8, 0.8, 11);   // doğu koridor
+pLight(-3,1,   0xfff2e0, 0.85,13);   // yemekhane batı
+pLight(3,1,    0xfff2e0, 0.85,13);   // yemekhane doğu
+pLight(0,-7,   0xffe0b0, 1.0, 15);   // sahne
+pLight(11,0,   0xffe6c0, 0.6, 9);    // mutfak
+const exitSign = dimLight(0,20.6,0x3a9a3a,0.45,6);   // acil çıkış tabelası (hep açık)
+const emergency = dimLight(0,17,0x8a1414,0.0,12);    // acil kırmızı (yalnız kesikken)
+
+// Fener (kameraya bağlı spotlight)
+const flash = new THREE.SpotLight(0xfff0cc, 0, 30, Math.PI*0.20, 0.45, 1.1);
+flash.castShadow = !isMobile;
+if(flash.castShadow){ flash.shadow.mapSize.set(1024,1024); flash.shadow.camera.near=0.2; flash.shadow.camera.far=30; flash.shadow.bias=-0.0008; }
+const flashTarget = new THREE.Object3D();
+scene.add(flash); scene.add(flashTarget); flash.target = flashTarget;
+// yakın çevre için zayıf ışık
+const nearLight = new THREE.PointLight(0x9099aa, 0.25, 3.5, 2); scene.add(nearLight);
+
+/* ================= DÜNYA + ÇARPIŞMA ================= */
+const world = new THREE.Group(); world.scale.set(SC,1,SC); scene.add(world); // statik dünya yatayda ölçekli
+const colliders = []; // oyuncu çarpışması: duvar + mobilya (hepsi)
+const wallCols = [];  // animatronik/LOS çarpışması: SADECE duvar (mobilya değil → takılmasınlar)
+const WH = 4.2; // duvar yüksekliği (harita büyüdü, tavan yükseldi)
+
+function solid(cx,cz,w,d,h,mat,y){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat||M.wall);
+  m.position.set(cx, y===undefined?h/2:y, cz); m.castShadow=true; m.receiveShadow=true; world.add(m);
+  const box={minX:cx-w/2,maxX:cx+w/2,minZ:cz-d/2,maxZ:cz+d/2};
+  colliders.push(box); wallCols.push(box); return m; } // duvarlar iki listede de
+function decoBox(cx,cy,cz,w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(cx,cy,cz); m.castShadow=true; m.receiveShadow=true; world.add(m); return m; }
+// X boyunca duvar (sabit z), isteğe bağlı kapı boşluğu [a,b]
+function wallX(x0,x1,z,gap){ const th=0.2; let segs = gap? [[x0,gap[0]],[gap[1],x1]] : [[x0,x1]];
+  for(const [a,b] of segs){ if(b-a>0.05) solid((a+b)/2, z, b-a, th, WH); } }
+function wallZ(z0,z1,x,gap){ const th=0.2; let segs = gap? [[z0,gap[0]],[gap[1],z1]] : [[z0,z1]];
+  for(const [a,b] of segs){ if(b-a>0.05) solid(x, (a+b)/2, th, b-a, WH); } }
+
+// Zemin + tavan (tüm bina)
+const FMINX=-21,FMAXX=14,FMINZ=-11,FMAXZ=22;
+const floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(FMAXX-FMINX, FMAXZ-FMINZ), M.floor);
+floorMesh.rotation.x=-Math.PI/2; floorMesh.position.set((FMINX+FMAXX)/2,0,(FMINZ+FMAXZ)/2); floorMesh.receiveShadow=true; world.add(floorMesh);
+const ceilMesh=new THREE.Mesh(new THREE.PlaneGeometry(FMAXX-FMINX, FMAXZ-FMINZ), M.ceil);
+ceilMesh.rotation.x=Math.PI/2; ceilMesh.position.set((FMINX+FMAXX)/2,WH,(FMINZ+FMAXZ)/2); world.add(ceilMesh);
+
+/* ---- FNAF 1 KAT PLANI ----
+   Ofis (güney) -> Batı/Doğu koridor -> Yemekhane (merkez) -> Sahne (kuzey)
+   Yan odalar: Kulis(batı), Mutfak(doğu), Malzeme dolabı(batı koridor), Tuvaletler(doğu koridor), Pirate Cove(yemekhane batı) */
+
+function poster(txt,col,x,y,z,ry){ const m=new THREE.Mesh(new THREE.PlaneGeometry(0.95,1.2), new THREE.MeshStandardMaterial({map:posterTex(txt,col),roughness:.9})); m.position.set(x,y,z); m.rotation.y=ry; world.add(m); }
+
+/* Bağlantı planı (kuzey = -Z):
+   OFİS x[-5,5] z[15,21]  ── kuzeyde iki kapı: batı x[-5,-1.5], doğu x[1.5,5]
+   BATI KORİDOR x[-5,-1.5] z[6,15]   DOĞU KORİDOR x[1.5,5] z[6,15]  (kuzey uçları yemekhaneye açık)
+   YEMEKHANE x[-9,9] z[-4,6]  ── kuzeyde sahne ağzı x[-5,5]
+   SAHNE x[-5,5] z[-10,-4]   KULİS x[-13,-9]   MUTFAK x[9,13]  */
+
+// --- OFİS --- (koridorlar daraldı: kapılar x[-4,-2] ve x[2,4])
+wallX(-5,5, 21);              // arka (güney) duvar
+wallZ(15,21, -5);            // batı duvar
+wallZ(15,21,  5);            // doğu duvar
+wallX(-5,-4, 15); wallX(-2,2, 15); wallX(4,5, 15);  // kuzey; boşluklar x[-4,-2] ve x[2,4]
+// Ofis masası (önümüzde)
+decoBox(0,0.75,18.6, 3.4,0.15,1.0, M.wood);
+decoBox(0,0.4,19.05, 3.4,0.7,0.1, M.wood);
+colliders.push({minX:-1.7,maxX:1.7,minZ:18.1,maxZ:19.1});
+decoBox(-1.0,0.95,18.4, 0.9,0.5,0.06, new THREE.MeshStandardMaterial({color:0x0a1a12,emissive:0x0a3a22,emissiveIntensity:.4}));
+const fanBlades=new THREE.Group();
+for(let i=0;i<3;i++){ const h=new THREE.Group(); h.rotation.z=i*2.094; const b=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.001,0.11),new THREE.MeshStandardMaterial({color:0x2c3038,side:THREE.DoubleSide})); b.position.x=0.17; h.add(b); fanBlades.add(h);}
+fanBlades.position.set(1.0,1.05,18.4); world.add(fanBlades);
+poster('FREDDO','#6a1f2a', -4.7,1.7,18, Math.PI/2);
+poster('ÇOCUK KULÜBÜ','#1f3a5a', 0,1.8,20.9, Math.PI);
+
+// --- BATI KORİDOR x[-4,-2] ---
+wallZ(6,15, -4, [9.5,11.5]);   // batı duvar (Malzeme dolabı kapısı)
+wallZ(6,15, -2);               // doğu duvar
+// --- DOĞU KORİDOR x[2,4] ---
+wallZ(6,15,  4, [9.5,11.5]);   // doğu duvar (Tuvalet kapısı)
+wallZ(6,15,  2);               // batı duvar
+
+// --- MALZEME DOLABI x[-8,-4] z[9,12] ---
+wallX(-8,-4,9); wallX(-8,-4,12); wallZ(9,12,-8);
+decoBox(-7.4,0.5,10.5,0.5,1.0,0.5,M.metal); decoBox(-6.4,0.4,11.2,0.4,0.8,0.4,M.wood);
+colliders.push({minX:-7.7,maxX:-7.1,minZ:10.2,maxZ:10.8});
+// --- TUVALETLER x[4,8] z[9,12] ---
+wallX(4,8,9); wallX(4,8,12); wallZ(9,12,8);
+decoBox(6.6,0.6,10.6,0.6,1.2,0.4,new THREE.MeshStandardMaterial({color:0x9aa4ac,roughness:.4}));
+
+// --- YEMEKHANE ---
+wallX(-9,-4, 6); wallX(-2,2, 6); wallX(4,9, 6);   // güney duvar, koridor ağızları açık
+wallX(-9,9, -4, [-5,5]);      // kuzey duvar, sahne ağzı açık
+wallZ(-4,6, -9, [-1.5,1.5]);  // batı duvar, kulis kapısı
+wallZ(-4,6,  9, [-1.5,1.5]);  // doğu duvar, mutfak kapısı
+for(let mx=-6; mx<=6; mx+=4){ for(let mz=-2; mz<=4; mz+=3){
+  decoBox(mx,0.5,mz,1.1,0.08,1.1,M.table); decoBox(mx,0.25,mz,0.08,0.5,0.08,M.metal);
+  colliders.push({minX:mx-0.55,maxX:mx+0.55,minZ:mz-0.55,maxZ:mz+0.55});
+}}
+
+// --- SAHNE ---
+wallX(-5,5,-10); wallZ(-10,-4,-5); wallZ(-10,-4,5);
+decoBox(0,0.2,-7, 10,0.4,6, M.stage);
+colliders.push({minX:-5,maxX:5,minZ:-10,maxZ:-4}); // sahneye çıkılamaz
+decoBox(0,2,-9.7, 9.6,3.4,0.15, M.curtain);
+poster('★ FREDDO & ARKADAŞLARI ★','#2a1030', 0,2.6,-9.55, 0);
+
+// --- KULİS x[-13,-9] z[-2,2] --- (batı duvarında Ödül Köşesi'ne kapı)
+wallX(-13,-9,-2); wallX(-13,-9,2); wallZ(-3,3,-13,[-1,1]);
+decoBox(-11,0.6,-1,0.5,1.2,0.5,M.metal);
+decoBox(-11,1.35,-1,0.42,0.42,0.42,new THREE.MeshStandardMaterial({color:0x6a4a2a}));
+colliders.push({minX:-11.3,maxX:-10.7,minZ:-1.3,maxZ:-0.7});
+
+// --- ÖDÜL KÖŞESİ (Prize Corner) x[-20,-13] z[-3,3] — Puppet + müzik kutusu ---
+wallX(-20,-13,-3); wallX(-20,-13,3); wallZ(-3,3,-20);
+poster('ÖDÜL KÖŞESİ','#3a1050', -19.85,2.2,0, Math.PI/2);
+// renkli hediye kutuları
+[[-18,0x8a1030],[-16.5,0x108a4a],[-17.3,0x1050a0]].forEach(([zz,col],i)=>{
+  decoBox(-18.5,0.5+i*0.05,zz,1.0,1.0+i*0.1,1.0,new THREE.MeshStandardMaterial({color:col,roughness:.6}));
+});
+// büyük hediye kutusu (Puppet'in evi)
+decoBox(-16.5,0.9,1.4, 1.8,1.8,1.8, new THREE.MeshStandardMaterial({color:0x201028,roughness:.7}));
+decoBox(-16.5,1.85,1.4, 1.9,0.15,1.9, new THREE.MeshStandardMaterial({color:0x6a1050,roughness:.5}));
+// müzik kutusu (küçük, parlak göstergeli)
+decoBox(-17.6,0.55,-1.6, 0.7,0.5,0.7, new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:.5,metalness:.3}));
+const boxLED=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8), new THREE.MeshStandardMaterial({color:0x30ff60,emissive:0x30ff60,emissiveIntensity:2}));
+boxLED.position.set(-17.6*SC,0.85,-1.6*SC); scene.add(boxLED);
+dimLight(-16.5,0,0x5a2a7a,0.55,9); // mor loş ışık
+colliders.push({minX:-18.6,maxX:-14.6,minZ:0.4,maxZ:2.4}); // hediye kutuları engeli
+// --- MUTFAK x[9,13] z[-2,2] (karanlık) ---
+wallX(9,13,-2); wallX(9,13,2); wallZ(-2,2,13);
+decoBox(11,0.5,-1,2.5,1.0,0.6,M.metal);
+colliders.push({minX:9.7,maxX:12.3,minZ:-1.3,maxZ:-0.7});
+
+// --- PIRATE COVE (yemekhane batı köşesi, perdeli) — genişletildi, Foxo burada ---
+decoBox(-7,0.2,4, 3.8,0.4,2.8, M.stage);       // geniş platform (üst y=0.4)
+decoBox(-8.8,1.8,4, 0.14,3.4,2.8, M.curtain);
+decoBox(-5.2,1.8,4, 0.14,3.4,2.8, M.curtain);
+decoBox(-7,3.4,4, 3.7,0.3,2.8, M.curtain);      // üst perde
+poster('PIRATE COVE','#2a1030', -7,2.6,2.5, 0);
+colliders.push({minX:-8.9,maxX:-5.1,minZ:2.5,maxZ:5.4});
+
+/* ---- ELEKTRONİK KAPILAR (elektrikle çalışır) ---- */
+const doors=[];
+function makeDoorway(name,x0,x1,z){
+  const w=x1-x0, cx=(x0+x1)/2, panelH=WH-0.1, closedY=panelH/2, openY=WH+panelH/2+0.4;
+  const panel=new THREE.Mesh(new THREE.BoxGeometry(w,panelH,0.16), M.metal);
+  panel.castShadow=true; panel.receiveShadow=true; panel.position.set(cx,openY,z); world.add(panel);
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(w,0.28,0.17), new THREE.MeshStandardMaterial({color:0xc0a000,emissive:0x2a2200,emissiveIntensity:.4}));
+  stripe.position.y=-panelH/2+1.1; panel.add(stripe);
+  // closeT: kapalı kalan süre  |  cool: tekrar kapatabilmek için beklenen süre
+  const d={name,cx,z,x0,x1,panel,closed:false,closeT:0,cool:0,openY,closedY};
+  doors.push(d); return d;
+}
+const DOOR_TIME=7;    // kapı bu kadar saniye kapalı kalır, sonra otomatik açılır
+const DOOR_COOL=7;    // açıldıktan sonra tekrar kapatmak için bekleme
+const DOOR_FORGET=3;  // animatronik kapalı kapıda bu kadar takılırsa vazgeçer
+const GIVEUP_TIME=8;  // vazgeçince bu kadar saniye uzaklaşır
+makeDoorway('BATI KAPI',-4,-2,15);
+makeDoorway('DOĞU KAPI', 2,4,15);
+
+/* ---- SİGORTA DÜŞME NOKTALARI (rastgele) ---- */
+const FUSE_SPOTS=[
+  {n:'MUTFAK', p:[11,0.5,0.5]}, {n:'KULİS', p:[-11,0.5,0.8]},
+  {n:'MALZEME DOLABI', p:[-6.5,0.5,10.5]}, {n:'TUVALETLER', p:[6.5,0.5,10.6]},
+  {n:'SAHNE ÖNÜ', p:[-3,0.5,-3]}, {n:'YEMEKHANE', p:[4,0.5,3]},
+  {n:'PIRATE COVE', p:[-7,0.5,5.6]}, {n:'DOĞU KORİDOR', p:[3,0.5,12.5]},
+  {n:'BATI KORİDOR', p:[-3,0.5,7]},
+];
+// sigorta modeli (parlayan kutu)
+const fuse=new THREE.Group();
+const fuseBox=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.4,0.14), new THREE.MeshStandardMaterial({color:0x1a1a1e,roughness:.5,metalness:.4}));
+const fuseGlow=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.14,0.16), new THREE.MeshStandardMaterial({color:0x30ff60,emissive:0x30ff60,emissiveIntensity:2}));
+fuseGlow.position.y=0.05; fuse.add(fuseBox); fuse.add(fuseGlow);
+const fuseHalo=glowSprite('rgba(60,255,120,0.9)',1.1); fuse.add(fuseHalo);
+const fuseLight=new THREE.PointLight(0x40ff70,0.0,4,2); fuse.add(fuseLight);
+fuse.visible=false; scene.add(fuse);
+
+/* ---- KAMERA AÇILARI (tablet) ---- */
+const CAMV=[
+  {n:'ÖDÜL KÖŞESİ',  pos:[-13.5,2.4,0], look:[-18,1.4,0.5], prize:true},
+  {n:'SAHNE',        pos:[0,2.4,-4.3],  look:[0,1.4,-8]},
+  {n:'YEMEKHANE',    pos:[0,2.5,5.5],   look:[0,1.1,-1]},
+  {n:'BATI KORİDOR', pos:[-3.2,2.3,14.5],look:[-3.2,1.1,7]},
+  {n:'DOĞU KORİDOR', pos:[3.2,2.3,14.5], look:[3.2,1.1,7]},
+  {n:'MUTFAK',       pos:[11,2.4,1.6],  look:[11,1.1,-1.5]},
+  {n:'PIRATE COVE',  pos:[-7,2.4,7.5],  look:[-7,1.3,4], cove:true},
+];
+let camIndex=0;
+
+/* ================= ANİMATRONİK MODELLERİ ================= */
+// Kir/çizik/leke dokusu — beyaz taban material.color ile çarpılır, lekeler koyultur.
+// Düz renk yerine bu: "plastik oyuncak" görüntüsünü kırar.
+function grimeTex(){
+  const c=mc(128,128), g=c.getContext('2d');
+  g.fillStyle='#f2f2f2'; g.fillRect(0,0,128,128);
+  for(let i=0;i<44;i++){ const x=Math.random()*128,y=Math.random()*128,r=2+Math.random()*15;
+    const gr=g.createRadialGradient(x,y,0,x,y,r);
+    gr.addColorStop(0,'rgba(20,10,4,'+(0.15+Math.random()*0.3)+')'); gr.addColorStop(1,'rgba(20,10,4,0)');
+    g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
+  g.lineWidth=1;
+  for(let i=0;i<30;i++){ g.strokeStyle='rgba(0,0,0,'+(0.12+Math.random()*0.32)+')';
+    const x=Math.random()*128,y=Math.random()*128; g.beginPath(); g.moveTo(x,y);
+    g.lineTo(x+(Math.random()-0.5)*34, y+(Math.random()-0.5)*34); g.stroke(); }
+  for(let i=0;i<4500;i++){ g.fillStyle='rgba(0,0,0,'+Math.random()*0.2+')'; g.fillRect(Math.random()*128,Math.random()*128,1,1); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+const T_GRIME=grimeTex();
+// Ortak malzemeler (her karakterde yeniden üretilmez → daha az shader/draw maliyeti)
+const M_ENDO  = new THREE.MeshStandardMaterial({color:0x23262b, roughness:.3, metalness:.95});  // endoskelet
+const M_SOCKET= new THREE.MeshStandardMaterial({color:0x030304, roughness:1});                   // göz çukuru (kara delik)
+const M_TEETH = new THREE.MeshStandardMaterial({map:T_GRIME, color:0xcfc7ad, roughness:.5});     // dişler
+const M_BLACK = new THREE.MeshStandardMaterial({color:0x0d0d10, roughness:.7});                  // şapka/papyon
+
+function glowSprite(color,size){ const c=mc(64,64),g=c.getContext('2d'); const grd=g.createRadialGradient(32,32,0,32,32,32);
+  grd.addColorStop(0,color); grd.addColorStop(.3,color); grd.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=grd; g.fillRect(0,0,64,64);
+  const tx=new THREE.CanvasTexture(c); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true})); sp.scale.set(size,size,1); return sp; }
+// Uzuv pivotu: mesh omuz/kalçadan sarkar, böylece rotation.x gerçek bir salınım verir
+function limbPivot(x,y,len,geo,mat,rz){
+  const p=new THREE.Group(); p.position.set(x,y,0); p.rotation.z=rz||0;
+  const m=new THREE.Mesh(geo,mat); m.position.y=-len/2; m.castShadow=true; p.add(m);
+  return p;
+}
+// Chika önlüğü
+function bibTex(){
+  const c=mc(128,96), g=c.getContext('2d');
+  g.fillStyle='#e6dfbc'; g.fillRect(0,0,128,96);
+  g.fillStyle='#8a1620'; g.font='bold 21px Courier New'; g.textAlign='center';
+  g.fillText("LET'S",64,40); g.fillText("EAT !!!",64,68);
+  for(let i=0;i<2200;i++){ g.fillStyle='rgba(50,25,8,'+Math.random()*0.4+')'; g.fillRect(Math.random()*128,Math.random()*96,1,1); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+// El: avuç + 3 parmak (küt silindir yerine — "Paint'ten çıkma" hissini bu kırıyor)
+function makeHand(mat){
+  const h=new THREE.Group();
+  const palm=new THREE.Mesh(new THREE.SphereGeometry(0.095,8,6), mat); palm.scale.set(1,0.8,1.1); h.add(palm);
+  for(let i=0;i<3;i++){
+    const f=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.024,0.17,5), mat);
+    f.position.set(-0.052+i*0.052,-0.10,0.02); f.rotation.x=0.18; h.add(f);
+  }
+  const th=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.022,0.12,5), mat);
+  th.position.set(0.07,-0.05,-0.04); th.rotation.z=-0.7; h.add(th);
+  return h;
+}
+function buildAnimatronic(cfg){
+  const g=new THREE.Group();
+  const suit   = new THREE.MeshStandardMaterial({map:T_GRIME, color:cfg.color, roughness:.88, metalness:.06});
+  const bmat   = new THREE.MeshStandardMaterial({map:T_GRIME, color:cfg.belly, roughness:.8,  metalness:.04});
+  const eyeWhite = new THREE.MeshStandardMaterial({color:cfg.eye, emissive:cfg.eye, emissiveIntensity:1, roughness:.2});
+  const socketM  = new THREE.MeshStandardMaterial({color:0x0a0a0c, roughness:1});
+
+  /* ---- GÖVDE (kalça pivotu y=0.7) ---- */
+  const bodyG=new THREE.Group(); bodyG.position.y=0.7;
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.46,0.40,1.0,14), suit);
+  torso.position.set(0,0.40,-0.02); torso.castShadow=true;
+  const bel=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.32,0.72,14), bmat);
+  bel.position.set(0,0.34,0.13); bel.scale.z=0.55;
+  const seam=new THREE.Mesh(new THREE.TorusGeometry(0.45,0.02,6,18), M_ENDO);   // kostüm paneli dikişi
+  seam.position.set(0,0.55,-0.02); seam.rotation.x=Math.PI/2;
+  const shL=new THREE.Mesh(new THREE.SphereGeometry(0.2,10,8), suit); shL.position.set(-0.5,0.80,0); shL.castShadow=true;
+  const shR=new THREE.Mesh(new THREE.SphereGeometry(0.2,10,8), suit); shR.position.set( 0.5,0.80,0); shR.castShadow=true;
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.16,0.32,8), M_ENDO);  // açıkta kalan endoskelet boyun
+  neck.position.set(0,0.86,-0.02);
+  bodyG.add(torso,bel,seam,shL,shR,neck);
+
+  // FOXO: yırtık kostüm — altından endoskelet kaburgalar sırıtıyor
+  if(cfg.torn){
+    const rip=new THREE.Mesh(new THREE.SphereGeometry(0.21,8,6), new THREE.MeshStandardMaterial({color:0x040405,roughness:1}));
+    rip.position.set(0.17,0.42,0.30); rip.scale.set(1,1.35,0.5); bodyG.add(rip);
+    for(let i=0;i<3;i++){
+      const rib=new THREE.Mesh(new THREE.TorusGeometry(0.115,0.016,5,10,Math.PI), M_ENDO);
+      rib.position.set(0.17,0.26+i*0.13,0.33); rib.rotation.set(Math.PI/2,0,0); bodyG.add(rib);
+    }
+  }
+  // Papyon (Freddo/Bonko)
+  if(cfg.bowtie!==undefined){
+    const bt=new THREE.MeshStandardMaterial({color:cfg.bowtie, roughness:.55});
+    const c1=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.17,4), bt); c1.position.set(-0.13,0.80,0.44); c1.rotation.z=-Math.PI/2;
+    const c2=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.17,4), bt); c2.position.set( 0.13,0.80,0.44); c2.rotation.z= Math.PI/2;
+    const kn=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.075,0.07), bt); kn.position.set(0,0.80,0.45);
+    bodyG.add(c1,c2,kn);
+  }
+  // Önlük (Chika)
+  if(cfg.bib){
+    const bib=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.32,0.05), new THREE.MeshStandardMaterial({map:bibTex(),roughness:.85}));
+    bib.position.set(0,0.66,0.44); bib.rotation.x=-0.05; bodyG.add(bib);
+  }
+
+  /* ---- KAFA (boyun pivotu: bodyG içinde y=0.9 → dünyada 1.6) ---- */
+  // Kafa kasten BÜYÜK ve hafif öne taşkın: FNAF silüetinin belkemiği bu
+  const headG=new THREE.Group(); headG.position.y=0.9;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.46,16,12), suit);
+  head.position.set(0,0.42,0.04); head.scale.set(1.04,0.94,1.0); head.castShadow=true;
+  // KAŞ ÇIKINTISI — gözlerin üstüne sarkar, gölge düşürür (asıl korkutucu detay)
+  const brow=new THREE.Mesh(new THREE.BoxGeometry(0.66,0.10,0.28), suit);
+  brow.position.set(0,0.60,0.32); brow.rotation.x=0.2; brow.castShadow=true;
+  // GÖZ: kara çukur + içinde küçük parlayan bebek
+  const socL=new THREE.Mesh(new THREE.SphereGeometry(0.145,10,8), socketM); socL.position.set(-0.18,0.44,0.34);
+  const socR=new THREE.Mesh(new THREE.SphereGeometry(0.145,10,8), socketM); socR.position.set( 0.18,0.44,0.34);
+  const eyeGeo=new THREE.SphereGeometry(0.06,10,8);
+  const eyeL=new THREE.Mesh(eyeGeo, eyeWhite); eyeL.position.set(-0.18,0.44,0.46);
+  const eyeR=new THREE.Mesh(eyeGeo, eyeWhite); eyeR.position.set( 0.18,0.44,0.46);
+  const glowL=glowSprite(cfg.glow,0.42); glowL.position.set(-0.18,0.44,0.50);
+  const glowR=glowSprite(cfg.glow,0.42); glowR.position.set( 0.18,0.44,0.50);
+  glowL.visible=glowR.visible=false;
+  headG.add(head,brow,socL,socR,eyeL,eyeR,glowL,glowR);
+
+  // Kulaklar — hepsi kafatasının ÜSTÜNDE kalmalı (gömülürlerse siluet ölür)
+  if(cfg.ear==='long'){            // BONKO — uzun, hafif yana yatık
+    [[-0.23,-0.10],[0.23,0.10]].forEach(([x,rz])=>{
+      const e=new THREE.Mesh(new THREE.CapsuleGeometry(0.09,0.56,3,8), suit);
+      e.position.set(x,1.12,0.0); e.rotation.z=rz; e.castShadow=true; headG.add(e);
+      const inner=new THREE.Mesh(new THREE.CapsuleGeometry(0.052,0.42,3,6), bmat);
+      inner.position.set(x*0.96,1.12,0.07); inner.rotation.z=rz; headG.add(inner);
+    });
+  } else if(cfg.ear==='tuft'){     // CHİKA — tepede tüy demeti
+    for(let i=0;i<3;i++){
+      const f=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.26,5), suit);
+      f.position.set(-0.11+i*0.11,0.92,0.0); f.rotation.z=(i-1)*0.38; f.castShadow=true; headG.add(f);
+    }
+  } else if(cfg.ear==='fox'){      // FOXO — sivri, biri yana kırık
+    [[-0.20,0.22],[0.20,-0.62]].forEach(([x,rz])=>{
+      const e=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.40,6), suit);
+      e.position.set(x,0.95,0.0); e.rotation.z=rz; e.castShadow=true; headG.add(e);
+    });
+  } else {                         // FREDDO — yuvarlak, şapkanın iki yanında
+    [-0.37,0.37].forEach(x=>{
+      const e=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.15,0.10,10), suit);
+      e.position.set(x,0.66,0.0); e.rotation.z=Math.PI/2; e.castShadow=true; headG.add(e);
+      const ei=new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.09,0.11,10), bmat);
+      ei.position.set(x*1.1,0.66,0.0); ei.rotation.z=Math.PI/2; headG.add(ei);
+    });
+  }
+
+  // Burun/gaga + ağız boşluğu
+  const maw=new THREE.Mesh(new THREE.SphereGeometry(0.19,8,6), new THREE.MeshStandardMaterial({color:0x080203,roughness:1}));
+  maw.position.set(0,0.19,0.40); maw.scale.set(1,0.7,0.8); headG.add(maw);   // dişlerin ardındaki karanlık
+  if(cfg.beak){                    // CHİKA — üst gaga
+    const ub=new THREE.Mesh(new THREE.ConeGeometry(0.20,0.36,4), bmat);
+    ub.position.set(0,0.30,0.48); ub.rotation.set(Math.PI/2,Math.PI/4,0); ub.scale.set(1,1,0.55);
+    ub.castShadow=true; headG.add(ub);
+  } else {
+    const muz=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,9), bmat);
+    muz.position.set(0,0.27,0.44); muz.scale.set(1.05,0.72,cfg.snout==='long'?1.6:1.0);
+    muz.castShadow=true; headG.add(muz);
+    const nose=new THREE.Mesh(new THREE.SphereGeometry(0.075,8,8), M_BLACK);
+    nose.position.set(0,0.32,cfg.snout==='long'?0.82:0.64); headG.add(nose);
+  }
+  // Üst diş sırası (kafada — çene ile açılmaz)
+  const teeth=new THREE.Group();
+  for(let i=0;i<4;i++){
+    const t=new THREE.Mesh(new THREE.ConeGeometry(0.032,0.08,4), M_TEETH);
+    t.position.set(-0.11+i*0.073,0.215,0.53); t.rotation.x=Math.PI; teeth.add(t);
+  }
+  headG.add(teeth);
+
+  // FOXO göz bandı — alına kalkık, tek göz üstünde
+  if(cfg.eyepatch){
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(0.105,0.105,0.02,10), M_BLACK);
+    p.position.set(0.19,0.66,0.36); p.rotation.set(Math.PI/2-0.30,0,0); headG.add(p);
+  }
+  // FREDDO silindir şapka — kulakların arasına oturur
+  if(cfg.hat){
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(0.30,0.30,0.03,14), M_BLACK); brim.position.set(0,0.86,0.02);
+    const crown=new THREE.Mesh(new THREE.CylinderGeometry(0.20,0.215,0.30,14), M_BLACK); crown.position.set(0,1.01,0.02);
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.06,14), new THREE.MeshStandardMaterial({color:0x6a1020,roughness:.6}));
+    band.position.set(0,0.90,0.02);
+    brim.castShadow=crown.castShadow=true; headG.add(brim,crown,band);
+  }
+
+  /* ---- ÇENE (açılıp kapanır) ---- */
+  const jaw=new THREE.Group(); jaw.position.set(0,0.22,0.08);
+  const chin=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.13,0.34), cfg.beak? bmat : suit);
+  chin.position.set(0,-0.10,0.32); chin.castShadow=true; jaw.add(chin);
+  for(let i=0;i<4;i++){
+    const t=new THREE.Mesh(new THREE.ConeGeometry(0.032,0.08,4), M_TEETH);
+    t.position.set(-0.11+i*0.073,-0.045,0.46); jaw.add(t);
+  }
+  headG.add(jaw);
+
+  /* ---- KOLLAR — uzun ve sarkık (dizlere kadar iner: tekinsizliğin yarısı bu) ---- */
+  const AL=1.06;
+  const armGeo=new THREE.CylinderGeometry(0.12,0.085,AL,8);
+  const armL=limbPivot(-0.53,0.8,AL,armGeo,suit, 0.16);
+  const armR=limbPivot( 0.53,0.8,AL,armGeo,suit,-0.16);
+  [armL,armR].forEach(a=>{   // dirsek eklemi
+    const el=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6), M_ENDO); el.position.y=-0.53; a.add(el);
+  });
+  if(cfg.hook){              // FOXO — sağ elde kanca
+    const hL=makeHand(suit); hL.position.y=-AL; armL.add(hL);
+    const hk=new THREE.Group(); hk.position.y=-AL+0.02;
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.03,0.14,6), M_ENDO); shaft.position.y=-0.07;
+    const curve=new THREE.Mesh(new THREE.TorusGeometry(0.10,0.028,6,12,Math.PI*1.35), M_ENDO);
+    curve.position.y=-0.23; curve.rotation.set(0,Math.PI/2,-0.4);
+    hk.add(shaft,curve); armR.add(hk);
+  } else {
+    [armL,armR].forEach(a=>{ const h=makeHand(suit); h.position.y=-AL; a.add(h); });
+  }
+  bodyG.add(headG,armL,armR);
+  // kalça parçası — gövde ile bacakları ayırır, fıçı görüntüsünü kırar
+  const hip=new THREE.Mesh(new THREE.SphereGeometry(0.36,12,8), suit);
+  hip.position.set(0,-0.04,0); hip.scale.set(1,0.6,0.85); bodyG.add(hip);
+
+  /* ---- BACAKLAR + ayaklar ---- */
+  const legGeo=new THREE.CylinderGeometry(0.17,0.13,0.7,8);
+  const legL=limbPivot(-0.22,0.68,0.7,legGeo,suit);
+  const legR=limbPivot( 0.22,0.68,0.7,legGeo,suit);
+  [legL,legR].forEach(l=>{
+    const kn=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), M_ENDO); kn.position.y=-0.35; l.add(kn);  // diz eklemi
+    const ft=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.11,0.38), suit); ft.position.set(0,-0.66,0.11); ft.castShadow=true; l.add(ft);
+  });
+  g.add(bodyG,legL,legR);
+
+  g.userData={eyeWhite,glowL,glowR,mouth:maw,head,teeth,bodyG,headG,jaw,armL,armR,legL,legR,torso};
+  scene.add(g); return g; // ölçekli dünyaya EKLENMEZ (bozulmasın); konum elle ölçeklenir
+}
+
+/* ---- İSKELET POZLAMA ---- yürüyüş/koşu döngüsü, öne eğilme, kafa, çene
+   o: {phase, walk 0..1, lean, jaw, headYaw, headPitch} */
+function poseRig(m,o){
+  const u=m.userData; if(!u.legL) return;
+  const sw=Math.sin(o.phase), sw2=Math.sin(o.phase*2);
+  const amp=o.walk*0.8;
+  u.legL.rotation.x =  sw*amp;
+  u.legR.rotation.x = -sw*amp;
+  u.armL.rotation.x = -sw*amp*0.75;
+  u.armR.rotation.x =  sw*amp*0.75;
+  u.bodyG.rotation.x = o.lean;
+  u.bodyG.rotation.z = sw*0.06*o.walk;                 // yürürken yalpalama
+  u.headG.rotation.x = (o.headPitch||0) - o.lean*0.7;  // eğilince kafa dik kalır
+  u.headG.rotation.y = o.headYaw||0;
+  u.headG.position.y = 0.9 + sw2*0.025*o.walk;         // adım başına kafa zıplaması
+  u.jaw.rotation.x = o.jaw||0;
+  return Math.abs(sw2)*0.06*o.walk;                    // gövde yükseklik ofseti (bob)
+}
+
+// Dörtlüyü yerleştir (sahnede 3'ü + Pirate Cove'da Foxo)
+// Göz rengi karakter başına ayrı: karanlıkta kimin geldiğini gözünden anlarsın
+const CFG=[
+  {id:'freddo',name:'FREDDO', color:0x6a4a2a, belly:0x8a7a55, ear:'round', hat:true,  bowtie:0x101014,
+   eye:0x9ad8ff, glow:'rgba(150,215,255,0.9)'},
+  {id:'bonko', name:'BONKO',  color:0x6a2a5a, belly:0xc0b0c8, ear:'long',  bowtie:0x8a1030,
+   eye:0xff2a2a, glow:'rgba(255,50,50,0.9)'},
+  {id:'chika', name:'CHİKA',  color:0xb59a2a, belly:0xe8d88a, ear:'tuft',  beak:true, bib:true,
+   eye:0xff5ab4, glow:'rgba(255,95,185,0.9)'},
+  {id:'foxo',  name:'FOXO',   color:0x9a3b1f, belly:0xc86a44, ear:'fox',   hook:true, eyepatch:true, torn:true, snout:'long',
+   eye:0xffc814, glow:'rgba(255,200,25,0.9)'},
+];
+const A={};
+CFG.forEach(c=>{ A[c.id]=buildAnimatronic(c); });
+// sahne (platform üstü y=0.4), güneye (+Z) bakar — konumlar SC ile ölçekli
+A.bonko.position.set(-2.2*SC,0.4,-7*SC);  A.bonko.lookAt(-2.2*SC,1.4,10*SC);
+A.freddo.position.set(0,0.4,-7.4*SC);     A.freddo.lookAt(0,1.4,10*SC);
+A.chika.position.set(2.2*SC,0.4,-7*SC);   A.chika.lookAt(2.2*SC,1.4,10*SC);
+// Foxo — genişletilmiş Pirate Cove platformunda, yemekhaneye bakar
+A.foxo.position.set(-7*SC,0.4,4*SC); A.foxo.lookAt(-7*SC,1.4,14*SC);
+// atmosfer + büyük haritada belirgin dursunlar diye modeller büyütüldü
+const ANIM_SCALE=1.35;
+Object.values(A).forEach(m=>{ m.userData.glowL.visible=m.userData.glowR.visible=true; m.userData.eyeWhite.emissiveIntensity=0.9; m.visible=true; m.userData.baseScale=ANIM_SCALE; m.scale.setScalar(ANIM_SCALE); });
+
+/* ---- PUPPET / MARIONETTE ---- */
+function buildPuppet(){
+  const g=new THREE.Group();
+  const black=new THREE.MeshStandardMaterial({color:0x0a0a0e, roughness:.7, metalness:.1});
+  const white=new THREE.MeshStandardMaterial({color:0xf4f0ea, roughness:.4, emissive:0x151515, emissiveIntensity:.3});
+  const purple=new THREE.MeshStandardMaterial({color:0x6a1a8a, emissive:0x2a0a3a, emissiveIntensity:.4});
+  const red=new THREE.MeshStandardMaterial({color:0xd01030, emissive:0x400010, emissiveIntensity:.5});
+  // ince uzun gövde
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,1.5,10), black); torso.position.y=1.5; torso.castShadow=true;
+  // beyaz göğüs düğmeleri
+  for(let i=0;i<3;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), white); b.position.set(0,1.9-i*0.28,0.24); g.add(b); }
+  // maske (beyaz yüz)
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.34,18,16), white); head.position.y=2.65; head.scale.set(0.9,1.05,0.9); head.castShadow=true;
+  // gözler (kara oyuk + parlak)
+  const eyeGeo=new THREE.SphereGeometry(0.09,10,10);
+  const eyeMat=new THREE.MeshStandardMaterial({color:0x080808, emissive:0xff2a6a, emissiveIntensity:0.6});
+  const eL=new THREE.Mesh(eyeGeo,eyeMat); eL.position.set(-0.13,2.7,0.28);
+  const eR=new THREE.Mesh(eyeGeo,eyeMat); eR.position.set(0.13,2.7,0.28);
+  const glowL=glowSprite('rgba(255,40,110,0.9)',0.42); glowL.position.set(-0.13,2.7,0.33);
+  const glowR=glowSprite('rgba(255,40,110,0.9)',0.42); glowR.position.set(0.13,2.7,0.33);
+  // mor gözyaşı çizgileri
+  const tL=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.28,0.02), purple); tL.position.set(-0.13,2.5,0.31);
+  const tR=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.28,0.02), purple); tR.position.set(0.13,2.5,0.31);
+  // pembe yanaklar + kırmızı dudak
+  const chL=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,10), red); chL.position.set(-0.22,2.58,0.24);
+  const chR=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,10), red); chR.position.set(0.22,2.58,0.24);
+  const lip=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.05,0.04), red); lip.position.set(0,2.5,0.31);
+  // uzun ince kollar (sarkık)
+  const armGeo=new THREE.CylinderGeometry(0.06,0.05,1.4,8);
+  const aL=new THREE.Mesh(armGeo,black); aL.position.set(-0.34,1.3,0); aL.rotation.z=0.15;
+  const aR=new THREE.Mesh(armGeo,black); aR.position.set(0.34,1.3,0); aR.rotation.z=-0.15;
+  // ince bacaklar
+  const legGeo=new THREE.CylinderGeometry(0.07,0.05,1.0,8);
+  const lL=new THREE.Mesh(legGeo,black); lL.position.set(-0.12,0.5,0);
+  const lR=new THREE.Mesh(legGeo,black); lR.position.set(0.12,0.5,0);
+  g.add(torso,head,eL,eR,glowL,glowR,tL,tR,chL,chR,lip,aL,aR,lL,lR);
+  g.userData={glowL,glowR,eyeMat,head,aL,aR,torso};
+  scene.add(g); return g;
+}
+const puppet=buildPuppet();
+const PUP_SCALE=1.25; puppet.userData.baseScale=PUP_SCALE; puppet.scale.setScalar(PUP_SCALE);
+const PUP_HOME={x:-16.5, z:1.4};           // hediye kutusunun içi
+const MB={x:-17.6, z:-1.6};                // müzik kutusunun yeri (yanında sarmak için)
+puppet.position.set(PUP_HOME.x*SC, 0.05, PUP_HOME.z*SC);
+puppet.lookAt(0,2.5,0);
+
+/* ---- ANİMATRONİK YAPAY ZEKASI (uyanma + görüş + kovalama) ---- */
+// Görüş hattı: tasarım koordinatında segment ↔ AABB (duvar/eşya) engel testi
+function ptIn(x,z,c){ return x>c.minX && x<c.maxX && z>c.minZ && z<c.maxZ; }
+function segAABB(ax,az,bx,bz,c){
+  let tmin=0, tmax=1; const dx=bx-ax, dz=bz-az;
+  const axis=[[ax,dx,c.minX,c.maxX],[az,dz,c.minZ,c.maxZ]];
+  for(const [p,d,mn,mx] of axis){
+    if(Math.abs(d)<1e-9){ if(p<mn||p>mx) return false; }
+    else { let t1=(mn-p)/d, t2=(mx-p)/d; if(t1>t2){const t=t1;t1=t2;t2=t;} tmin=Math.max(tmin,t1); tmax=Math.min(tmax,t2); if(tmin>tmax) return false; }
+  }
+  return true;
+}
+function losClear(ax,az,bx,bz){
+  for(const c of wallCols){ if(ptIn(ax,az,c)||ptIn(bx,bz,c)) continue; if(segAABB(ax,az,bx,bz,c)) return false; }
+  // kapalı kapılar görüşü keser
+  for(const d of doors){ if(!d.closed) continue; const c={minX:d.x0,maxX:d.x1,minZ:d.z-0.15,maxZ:d.z+0.15}; if(segAABB(ax,az,bx,bz,c)) return false; }
+  return true;
+}
+// Animatronik çarpışması: SADECE duvar + KAPALI kapı (mobilyaya takılmaz)
+function collideActor(px,pz,cx,cz,r){
+  for(let k=0;k<2;k++){
+    for(const c of wallCols){ if(ptIn(cx,cz,c)) continue;
+      if(px>c.minX-r&&px<c.maxX+r&&pz>c.minZ-r&&pz<c.maxZ+r){
+        const pL=px-(c.minX-r),pR=(c.maxX+r)-px,pT=pz-(c.minZ-r),pB=(c.maxZ+r)-pz,m=Math.min(pL,pR,pT,pB);
+        if(m===pL)px=c.minX-r;else if(m===pR)px=c.maxX+r;else if(m===pT)pz=c.minZ-r;else pz=c.maxZ+r;
+      }
+    }
+    for(const d of doors){ if(!d.closed) continue; const c={minX:d.x0,maxX:d.x1,minZ:d.z-0.13,maxZ:d.z+0.13}; if(ptIn(cx,cz,c)) continue;
+      if(px>c.minX-r&&px<c.maxX+r&&pz>c.minZ-r&&pz<c.maxZ+r){
+        const pL=px-(c.minX-r),pR=(c.maxX+r)-px,pT=pz-(c.minZ-r),pB=(c.maxZ+r)-pz,m=Math.min(pL,pR,pT,pB);
+        if(m===pL)px=c.minX-r;else if(m===pR)px=c.maxX+r;else if(m===pT)pz=c.minZ-r;else pz=c.maxZ+r;
+      }
+    }
+  }
+  return [px,pz];
+}
+
+/* ---- YOL AĞI (nav graph) ----
+   Animatronikler artık görüş hattı olmadan da kovaladığı için düz çizgi yetmez:
+   duvara saplanırlardı. Düğümler odaların/kapı ağızlarının ortasına konuldu;
+   iki komşu düğüm arasındaki düz çizgi HER ZAMAN duvarsızdır. */
+const NODES=[
+  {n:'OFFICE',    x:0,    z:18},    // 0
+  {n:'W_DOOR',    x:-3,   z:16},    // 1
+  {n:'E_DOOR',    x:3,    z:16},    // 2
+  {n:'W_CORR_S',  x:-3,   z:14},    // 3
+  {n:'W_CORR_M',  x:-3,   z:10.5},  // 4
+  {n:'W_CORR_N',  x:-3,   z:7},     // 5
+  {n:'E_CORR_S',  x:3,    z:14},    // 6
+  {n:'E_CORR_M',  x:3,    z:10.5},  // 7
+  {n:'E_CORR_N',  x:3,    z:7},     // 8
+  {n:'SUPPLY',    x:-6,   z:10.5},  // 9
+  {n:'TOILET',    x:6,    z:10.5},  // 10
+  {n:'DIN_SW',    x:-3,   z:4},     // 11
+  {n:'DIN_SE',    x:3,    z:4},     // 12
+  {n:'DIN_C',     x:0,    z:0},     // 13
+  {n:'DIN_W',     x:-7,   z:0},     // 14
+  {n:'DIN_E',     x:7,    z:0},     // 15
+  {n:'STAGE_M',   x:0,    z:-3},    // 16
+  {n:'STAGE',     x:0,    z:-6},    // 17
+  {n:'KITCHEN',   x:11,   z:0},     // 18
+  {n:'BACKSTAGE', x:-11,  z:0},     // 19
+  {n:'PRIZE',     x:-17,  z:0},     // 20
+  {n:'COVE',      x:-7,   z:4},     // 21
+];
+const EDGES=[[0,1],[0,2],[1,3],[3,4],[4,5],[2,6],[6,7],[7,8],[4,9],[7,10],
+             [5,11],[8,12],[11,13],[12,13],[13,14],[13,15],[13,16],[16,17],
+             [15,18],[14,19],[19,20],[14,21],[21,11]];
+const ADJ=NODES.map(()=>[]);
+EDGES.forEach(([a,b])=>{ ADJ[a].push(b); ADJ[b].push(a); });
+// Her hedef için BFS → "n düğümündeyken t'ye gitmek için sıradaki düğüm" tablosu
+const NEXT=NODES.map((_,t)=>{
+  const next=new Array(NODES.length).fill(-1), dist=new Array(NODES.length).fill(-1);
+  dist[t]=0; const q=[t];
+  while(q.length){ const c=q.shift();
+    for(const nb of ADJ[c]) if(dist[nb]<0){ dist[nb]=dist[c]+1; next[nb]=c; q.push(nb); } }
+  return next;
+});
+// GENİŞ görüş hattı: 0.4 yarıçaplı bir GÖVDE bu çizgiden geçebilir mi?
+// losClear ince bir ışın — kapı/koridor ağzını sıyıran çizgide "açık" der, ama
+// animatronik oraya girince duvara sürtünüp saatte 0.07 birim ilerler. Yol bulmada
+// mutlaka bu kullanılmalı; losClear sadece GÖRME (algı) için.
+const BODY_R=0.42;
+function losWide(ax,az,bx,bz){
+  if(!losClear(ax,az,bx,bz)) return false;
+  const dx=bx-ax, dz=bz-az, d=Math.hypot(dx,dz);
+  if(d<1e-6) return true;
+  const nx=-dz/d*BODY_R, nz=dx/d*BODY_R;   // çizgiye dik kaydırma
+  return losClear(ax+nx,az+nz,bx+nx,bz+nz) && losClear(ax-nx,az-nz,bx-nx,bz-nz);
+}
+// Bir noktaya en yakın düğüm — tercihen gövdenin gerçekten gidebileceği (yoksa düz en yakın)
+function nearestNode(x,z){
+  let bi=0,bd=1e9, li=-1,ld=1e9;
+  for(let i=0;i<NODES.length;i++){
+    const d=Math.hypot(NODES[i].x-x, NODES[i].z-z);
+    if(d<bd){ bd=d; bi=i; }
+    if(d<ld && losWide(x,z,NODES[i].x,NODES[i].z)){ ld=d; li=i; }
+  }
+  return li>=0? li : bi;
+}
+// Nihai hedefe giderken bu karede yürünecek ara nokta
+function navTarget(px,pz,tx,tz){
+  if(losWide(px,pz,tx,tz)) return [tx,tz];       // gövde sığıyorsa dosdoğru git
+  const f=nearestNode(px,pz), t=nearestNode(tx,tz);
+  if(f===t) return [tx,tz];
+  const n=NEXT[t][f];
+  return n<0? [tx,tz] : [NODES[n].x, NODES[n].z];
+}
+// CHİKA devriyesi: ses duymadığında bu turu atar (yemekhane göbeği ortak durak)
+const CHIKA_PATH=[{x:2.2,z:-5},{x:4,z:2},{x:11,z:0},{x:4,z:2},{x:3,z:10},{x:4,z:2}];
+
+// Fener konisi testi — bu noktaya ışık tutuyor muyuz?
+// FREDDO'yu dondurur, BONKO'yu çıldırtır: aynı alet, iki zıt sonuç.
+function litByFlash(x,z){
+  if(state!==S.PLAY || !flashOn || battery<=0) return false;
+  const dx=x-player.x, dz=z-player.z, dist=Math.hypot(dx,dz);
+  if(dist>15 || dist<0.001) return false;
+  const dot=(dx*Math.sin(player.yaw)+dz*Math.cos(player.yaw))/dist;
+  return dot>0.80 && losClear(player.x,player.z,x,z);   // ~±36° koni
+}
+// Animatronik ile oyuncunun arasında KAPALI KAPI var mı?
+// "Takılma" ölçmek yetmiyordu: BONKO pusu mesafesinde durup kapıya hiç dokunmadığı için
+// sonsuza kadar kapının önünde dikiliyordu. Vazgeçmeyi kapıyı GÖRMEYE bağlıyoruz.
+function doorBlocks(ax,az,bx,bz){
+  for(const d of doors){
+    if(!d.closed) continue;
+    if(segAABB(ax,az,bx,bz,{minX:d.x0,maxX:d.x1,minZ:d.z-0.13,maxZ:d.z+0.13})) return true;
+  }
+  return false;
+}
+// CHİKA sesle avlanır — oyuncunun çıkardığı gürültü buraya düşer
+let noiseX=0, noiseZ=0, noiseLvl=0;
+function emitNoise(x,z,lvl){ if(lvl>=noiseLvl){ noiseX=x; noiseZ=z; noiseLvl=lvl; } }
+
+const AIS=[
+  {id:'freddo',name:'FREDDO', kind:'dark',  home:{x:0,z:-7.4},  homeY:0.4, speed:2.05},
+  {id:'bonko', name:'BONKO',  kind:'light', home:{x:-2.2,z:-7}, homeY:0.4, speed:2.30},
+  {id:'chika', name:'CHİKA',  kind:'noise', home:{x:2.2,z:-7},  homeY:0.4, speed:2.35},
+  {id:'foxo',  name:'FOXO',   kind:'cove',  home:{x:-7,z:4},    homeY:0.4, speed:2.60},
+].map(a=>({...a, model:A[a.id], pos:{x:a.home.x,z:a.home.z}}));
+
+function resetAI(){
+  noiseLvl=0;
+  for(const a of AIS){
+    a.awake=false; a.chasing=false; a.left=false; a.chk=Math.random()*0.35;
+    a.pos.x=a.home.x; a.pos.z=a.home.z; a.lx=player.x; a.lz=player.z;
+    a.phase=Math.random()*6.28; a.walk=0; a.lean=0; a.jaw=0;
+    a.rage=0; a.frozen=0; a.cry=3+Math.random()*7; a.stuck=0; a.giveUp=0; a.doorT=0;
+    a.hx=a.home.x; a.hz=a.home.z; a.hear=0; a.wp=0; a.wpT=16;
+    a.navT=0; a.ntx=a.home.x; a.ntz=a.home.z;
+    a.mode='cove'; a.coveT=0; a.stage=0; a.run=0; a.blocked=0; a.bang=0;
+    const w=ncfg().wake[a.id]; a.wakeAt=(w===undefined?9e9:w);
+    a.model.scale.setScalar(a.model.userData.baseScale||1);
+    a.model.rotation.set(0,0,0);
+  }
+}
+// Tek adım; GERÇEKTE kat edilen mesafeyi döndürür (duvara/kapıya takılmayı ölçmek için)
+function stepToward(a,tx,tz,sp,dt){
+  const dx=tx-a.pos.x, dz=tz-a.pos.z, d=Math.hypot(dx,dz);
+  if(d<0.01) return 0;
+  const s=Math.min(sp*dt, d);
+  let nx=a.pos.x+dx/d*s, nz=a.pos.z+dz/d*s;
+  [nx,nz]=collideActor(nx,nz,a.pos.x,a.pos.z,0.4);
+  const got=Math.hypot(nx-a.pos.x, nz-a.pos.z);
+  a.pos.x=nx; a.pos.z=nz;
+  return got;
+}
+let aiStep=0;
+function updateAI(dt){
+  const cfg=ncfg(), sm=cfg.sm;
+  noiseLvl=Math.max(0, noiseLvl-dt*0.55);   // gürültü sönümlenir
+  aiStep-=dt;
+  let dmax=0;
+  for(const a of AIS){
+    const m=a.model, u=m.userData;
+
+    // ---- UYANMA (gece tablosuna göre) ----
+    if(!a.awake){
+      if(clockT>=a.wakeAt){ a.awake=true; toast('⚠ '+a.name+' UYANDI'); Audio.tone(78,.55,'sawtooth',.28); Audio.noise(.4,.16,320); }
+      else {
+        a.phase+=dt*1.2;
+        u.glowL.visible=u.glowR.visible=false; u.eyeWhite.emissiveIntensity=0.25;
+        m.position.set(a.home.x*SC, a.homeY, a.home.z*SC);
+        poseRig(m,{phase:a.phase, walk:0.06, lean:0, jaw:0, headYaw:Math.sin(a.phase*0.3)*0.25, headPitch:0.05});
+        continue;
+      }
+    }
+    u.glowL.visible=u.glowR.visible=true;
+
+    let tx=player.x, tz=player.z, sp=a.speed*sm, want=false;
+    const dist0=Math.hypot(player.x-a.pos.x, player.z-a.pos.z);
+    const see=dist0<cfg.detect && losClear(a.pos.x,a.pos.z,player.x,player.z);
+
+    // ---- KAPALI KAPIYI GÖRDÜ → DOOR_FORGET sn sonra unut ----
+    // Kapıya dokunmasına gerek yok (Bonko pusuda durup hiç dokunmuyordu);
+    // arada kapalı kapı varsa sayaç işler.
+    if(a.kind!=='cove' && a.giveUp<=0 && dist0<12 && doorBlocks(a.pos.x,a.pos.z,player.x,player.z)){
+      a.doorT+=dt;
+      if(a.doorT>DOOR_FORGET){
+        a.doorT=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0; a.stuck=0;
+        toast('😮‍💨 '+a.name+' VAZGEÇTİ — KAPIDAN GİTTİ'); Audio.growl();
+      }
+    } else a.doorT=0;
+
+    // ---- VAZGEÇTİ: bir süre çeker gider ----
+    // Bu olmadan Freddo/Bonko kapalı kapının önünde sonsuza kadar kamp kurar,
+    // oyuncu da ofiste kilitli kalırdı. (FOXO'nun kendi 'back' modu var, o hariç.)
+    if(a.giveUp>0 && a.kind!=='cove'){
+      a.giveUp-=dt;
+      tx=a.home.x; tz=a.home.z; want=true; a.chasing=false; sp*=0.9;
+      a.cry-=dt; if(a.cry<=0) a.cry=8+Math.random()*8;
+    }
+    // ================= FREDDO — KARANLIK AVCISI =================
+    // Seni asla kaybetmez ama ışık tutunca donar. Işıklar yanarken ağır, karanlıkta hızlı.
+    else if(a.kind==='dark'){
+      const lit=litByFlash(a.pos.x,a.pos.z);
+      if(lit){ if(a.frozen<=0) Audio.growl(); a.frozen=0.5; }
+      else a.frozen=Math.max(0,a.frozen-dt);
+      sp *= powered? 0.55 : 1.3;
+      want = a.frozen<=0;
+      a.chasing = want;
+      a.cry-=dt; if(a.cry<=0){ a.cry=8+Math.random()*9; if(!lit) Audio.laugh(); }
+    }
+    // ================= BONKO — IŞIĞA SALDIRIR =================
+    // Sinsice yaklaşır ve birkaç adım ötende PUSUYA YATAR — ışık yakmadıkça saldırmaz.
+    // Ama FREDDO seni fener yakmaya zorlar: ikisi birbirinin zıddı, seçim senin.
+    else if(a.kind==='light'){
+      const lit=litByFlash(a.pos.x,a.pos.z);
+      if(lit){ if(a.rage<=0){ Audio.screech(); toast('💜 BONKO IŞIĞI GÖRDÜ!'); } a.rage=6.5; }
+      else a.rage=Math.max(0,a.rage-dt);
+      if(a.rage<=0 && dist0<2.2){ a.rage=4; Audio.sting(); }   // üstüne basarsan yine atlar
+      a.chasing=a.rage>0;
+      sp *= a.chasing? 1.55 : 0.5;
+      want = a.chasing || dist0>4.0;   // öfkeli değilse 4 birim ötede bekler
+    }
+    // ================= CHİKA — SES AVCISI =================
+    // Görmez, DUYAR. Koşarsan haritanın öbür ucundan gelir; yürürsen ancak yakınında fark eder.
+    // Hiç ses yoksa devriye atar — yani sessiz kalmak onu etkisizleştirir ama yok etmez.
+    else if(a.kind==='noise'){
+      if(noiseLvl>0.2 && noiseLvl*26 > Math.hypot(noiseX-a.pos.x, noiseZ-a.pos.z)){ a.hx=noiseX; a.hz=noiseZ; a.hear=noiseLvl; }
+      a.hear=Math.max(0,a.hear-dt*0.25);
+      if(see && dist0<4.5){ a.hx=player.x; a.hz=player.z; a.hear=1; }
+      a.chasing=a.hear>0.5;
+      if(a.hear>0.05){
+        tx=a.hx; tz=a.hz;
+        want = Math.hypot(tx-a.pos.x,tz-a.pos.z)>0.9;
+        sp *= a.chasing? 1.15 : 0.85;
+      } else {                                  // devriye
+        const wp=CHIKA_PATH[a.wp%CHIKA_PATH.length];
+        tx=wp.x; tz=wp.z; want=true; sp*=0.6;
+        a.wpT-=dt;
+        if(Math.hypot(tx-a.pos.x,tz-a.pos.z)<1.2 || a.wpT<=0){ a.wp++; a.wpT=16; }
+      }
+      a.cry-=dt; if(a.cry<=0){ a.cry=6+Math.random()*7; Audio.clang(); }
+    }
+    // ================= FOXO — PIRATE COVE =================
+    // Kamerada perdeye bakmazsan kademe kademe çıkar, sonra KOŞAR. Kapı kapatarak durdurulur.
+    else if(a.kind==='cove'){
+      if(a.mode==='cove'){
+        const watched=(state===S.CAMS && CAMV[camIndex].cove);
+        a.coveT=Math.max(0, a.coveT + (watched? -dt*3.5 : dt));
+        const ns=Math.min(3, Math.floor(a.coveT/cfg.coveStep));
+        if(ns>a.stage){ Audio.creak(); toast(['','🦊 PERDE KIPIRDADI','🦊 PERDE ARALANDI','🦊 FOXO PERDEDEN ÇIKTI'][ns]); }
+        a.stage=ns; a.left=false;
+        // Perdeden çıkış yemekhane zemininde kalmalı: z=6 güney duvarı, x[-9,-4] aralığında SAĞIR.
+        // Daha uzağa taşırsak Foxo duvarın arkasındaki kapalı boşluğa sıkışıp asla ulaşamaz.
+        a.pos.x=a.home.x+a.stage*0.10; a.pos.z=a.home.z+a.stage*0.55;
+        if(a.stage>=3){ a.mode='run'; a.run=13; a.blocked=0;
+          Audio.foxRun(); toast('🦊 FOXO KOŞUYOR — KAPIYI KAPAT!'); if(navigator.vibrate) navigator.vibrate(200); }
+        a.phase+=dt*1.5;
+        m.position.set(a.pos.x*SC, a.homeY*(1-a.stage/3*0.95), a.pos.z*SC);   // çıktıkça platformdan iner
+        m.lookAt(player.x*SC,1.4,player.z*SC);
+        poseRig(m,{phase:a.phase, walk:0.08, lean:0.05*a.stage, jaw:0.06*a.stage, headYaw:0, headPitch:0});
+        u.eyeWhite.emissiveIntensity=0.8+a.stage*0.5;
+        dmax=Math.max(dmax, a.stage/3*0.35);
+        continue;
+      }
+      if(a.mode==='run'){
+        a.run-=dt; a.left=true; sp=6.2*Math.min(1.15,sm); want=true; a.chasing=true;
+        if(a.run<=0) a.mode='back';
+      } else { // 'back' — koveye dönüyor
+        a.left=true; tx=a.home.x; tz=a.home.z; sp=3.4; want=true; a.chasing=false;
+        if(Math.hypot(a.pos.x-a.home.x,a.pos.z-a.home.z)<0.8){ a.mode='cove'; a.coveT=0; a.stage=0; a.pos.x=a.home.x; a.pos.z=a.home.z; }
+      }
+    }
+
+    // ---- HAREKET (yol ağını takip ederek) ----
+    let moved=0;
+    if(want){
+      a.navT-=dt;
+      // ara nokta bayatladıysa ya da ulaşıldıysa yeniden hesapla
+      if(a.navT<=0 || Math.hypot(a.ntx-a.pos.x, a.ntz-a.pos.z)<0.35){
+        a.navT=a.chasing?0.25:0.5;
+        const nt=navTarget(a.pos.x,a.pos.z,tx,tz); a.ntx=nt[0]; a.ntz=nt[1];
+      }
+      moved=stepToward(a,a.ntx,a.ntz,sp,dt);
+    }
+    if(moved>0.0001) a.left=true;
+
+    // Kapalı kapıya toslayan diğerleri: DOOR_FORGET sn vurup vazgeçer, çeker gider
+    if(a.kind!=='cove' && a.chasing && want){
+      if(moved < sp*dt*0.3){
+        a.stuck+=dt;
+        a.bang-=dt; if(a.bang<=0){ a.bang=0.5; Audio.bang(); if(navigator.vibrate) navigator.vibrate(45); }
+        if(a.stuck>DOOR_FORGET){
+          a.stuck=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0;
+          toast('😮‍💨 '+a.name+' VAZGEÇTİ'); Audio.growl();
+        }
+      } else a.stuck=Math.max(0, a.stuck-dt*2);
+    }
+    // Foxo koşarken kapalı kapıya toslarsa: vur, sonra koveye dön
+    if(a.kind==='cove' && a.mode==='run'){
+      if(moved < sp*dt*0.3){
+        a.blocked+=dt; a.bang-=dt;
+        if(a.bang<=0){ a.bang=0.45; Audio.bang(); if(navigator.vibrate) navigator.vibrate(60); }
+        if(a.blocked>1.6){ a.mode='back'; toast('🦊 KAPI FOXO\'YU DURDURDU'); }
+      } else a.blocked=Math.max(0,a.blocked-dt*2);
+    }
+
+    // ---- ANİMASYON ----
+    const spd = dt>0? moved/dt : 0;
+    a.walk += (Math.min(1,spd/2.6)-a.walk)*Math.min(1,dt*8);
+    a.phase += dt*(4.5+spd*1.7);
+    a.lean += ((a.chasing? Math.min(0.32, spd*0.055) : 0.04)-a.lean)*Math.min(1,dt*5);
+    a.jaw  += ((a.chasing? 0.34+Math.sin(perf*0.012)*0.10 : 0.02)-a.jaw)*Math.min(1,dt*7);
+    const bob=poseRig(m,{phase:a.phase, walk:a.walk, lean:a.lean, jaw:a.jaw,
+                         headYaw:a.chasing?0:Math.sin(a.phase*0.22)*0.3, headPitch:0});
+    // baktığı yön: kovalarken oyuncu, değilse yürüdüğü ara nokta
+    if(a.chasing){ a.lx=player.x; a.lz=player.z; }
+    else if(want && Math.hypot(a.ntx-a.pos.x,a.ntz-a.pos.z)>0.5){ a.lx=a.ntx; a.lz=a.ntz; }
+    m.position.set(a.pos.x*SC, (a.left?0.02:a.homeY)+bob, a.pos.z*SC);
+    m.lookAt(a.lx*SC, 1.4, a.lz*SC);
+
+    // ---- GÖZLER / SES / TEHLİKE ----
+    u.eyeWhite.emissiveIntensity = (a.kind==='dark'&&a.frozen>0)? 2.6 : (a.chasing? 1.9 : 1.1);
+    if(a.chasing){
+      if(aiStep<=0 && a.walk>0.3) Audio.step();
+      const dnow=Math.hypot(player.x-a.pos.x, player.z-a.pos.z);
+      dmax=Math.max(dmax, 1-Math.min(dnow,13)/13);
+      if(dnow<1.15 && losClear(a.pos.x,a.pos.z,player.x,player.z)) startJump(m, a.name);
+    }
+  }
+  if(aiStep<=0) aiStep=0.32;
+  // müzik kutusu azaldıkça da tehlike
+  if(musicBox<30) dmax=Math.max(dmax,(30-musicBox)/30*0.8);
+  dangerLevel=dmax;
+}
+// Gerilim ambiyansı: kalp atışı tehlikeyle hızlanır + rastgele gerilim öğeleri
+function driveAmbience(dt){
+  heartT-=dt;
+  if(heartT<=0){ if(dangerLevel>0.1){ Audio.heart(); heartT=1.25-dangerLevel*0.9; } else heartT=1.0; }
+  ambT-=dt;
+  if(ambT<=0){ ambT=5+Math.random()*7; const r=Math.random();
+    if(dangerLevel>0.4) Audio.pad([49,55,58][Math.floor(Math.random()*3)],2.5);
+    else if(r<0.45) Audio.creak();
+    else if(r<0.75) Audio.pad([55,58,65,49][Math.floor(Math.random()*4)],4);
+    else Audio.noise(0.5,0.035,280);
+  }
+}
+
+/* ================= SES ================= */
+const Audio=(()=>{ let ac=null,mas=null,hum=[];
+  function init(){ if(ac)return; try{ ac=new (window.AudioContext||window.webkitAudioContext)(); mas=ac.createGain(); mas.gain.value=.5; mas.connect(ac.destination);}catch(e){} }
+  function resume(){ if(ac&&ac.state==='suspended') ac.resume(); }
+  function tone(f,d,ty,v){ if(!ac)return; const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.type=ty||'sine'; o.frequency.value=f; o.connect(g); g.connect(mas); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v||.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.start(t); o.stop(t+d+.02); }
+  function noise(d,v,ff){ if(!ac)return; const n=Math.floor(ac.sampleRate*d),buf=ac.createBuffer(1,n,ac.sampleRate),da=buf.getChannelData(0); for(let i=0;i<n;i++)da[i]=Math.random()*2-1; const s=ac.createBufferSource(); s.buffer=buf; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=ff||1000; const g=ac.createGain(); g.gain.value=v||.2; s.connect(f); f.connect(g); g.connect(mas); s.start(); }
+  function startHum(){ if(!ac||hum.length)return; const hg=ac.createGain(); hg.gain.value=.04; hg.connect(mas); [52,78].forEach(fr=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=fr;const g=ac.createGain();g.gain.value=.5;o.connect(g);g.connect(hg);o.start();hum.push(o);}); }
+  // Gerilim ambiyansı: düşük dron + yavaş LFO ile nefes alan karanlık ped
+  function startAmbience(){ startHum(); if(!ac||hum.length>3)return;
+    const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=34; g.gain.value=.06; o.connect(g); g.connect(mas);
+    const lfo=ac.createOscillator(), lg=ac.createGain(); lfo.type='sine'; lfo.frequency.value=.07; lg.gain.value=.03; lfo.connect(lg); lg.connect(g.gain);
+    const o2=ac.createOscillator(), g2=ac.createGain(); o2.type='sawtooth'; o2.frequency.value=51; g2.gain.value=.018; const f2=ac.createBiquadFilter(); f2.type='lowpass'; f2.frequency.value=200; o2.connect(f2); f2.connect(g2); g2.connect(mas);
+    o.start(); lfo.start(); o2.start(); hum.push(o,lfo,o2); }
+  // yavaş korku pedi (rastgele nota)
+  function pad(freq,dur){ if(!ac)return; const t=ac.currentTime; const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+    o.type='sawtooth'; o2.type='sawtooth'; o.frequency.value=freq; o2.frequency.value=freq*1.006; f.type='lowpass'; f.frequency.value=520;
+    o.connect(f); o2.connect(f); f.connect(g); g.connect(mas); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.05,t+dur*.4); g.gain.linearRampToValueAtTime(0,t+dur);
+    o.start(t); o2.start(t); o.stop(t+dur+.1); o2.stop(t+dur+.1); }
+  // kalp atışı (tehlikede hızlanır)
+  function heart(){ if(!ac)return; const t=ac.currentTime; [0,0.15].forEach((off,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(68,t+off); o.frequency.exponentialRampToValueAtTime(36,t+off+.14); g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(i?.2:.3,t+off+.02); g.gain.exponentialRampToValueAtTime(.0001,t+off+.19); o.connect(g); g.connect(mas); o.start(t+off); o.stop(t+off+.22); }); }
+  // algılama/dikkat "sting"
+  function sting(){ if(!ac)return; const t=ac.currentTime; [740,784,932].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sawtooth'; o.frequency.value=fr*(1+i*.008); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.11,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.7); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.72); }); noise(.3,.09,2500); }
+  // gıcırtı / uzak ses
+  function creak(){ if(!ac)return; const t=ac.currentTime; const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter(); o.type='sawtooth'; o.frequency.setValueAtTime(170+Math.random()*130,t); o.frequency.linearRampToValueAtTime(85,t+.6); f.type='bandpass'; f.frequency.value=420; f.Q.value=7; o.connect(f); f.connect(g); g.connect(mas); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+.12); g.gain.exponentialRampToValueAtTime(.0001,t+.7); o.start(t); o.stop(t+.72); }
+  function click(){ tone(660,.05,'square',.12); }
+  function step(){ tone(70+Math.random()*20,.07,'sine',.05); noise(.05,.03,300); }
+  // --- KARAKTER İPUÇLARI ---
+  // FREDDO: karanlıkta gelen kahkaha
+  function laugh(){ if(!ac)return; const t=ac.currentTime;
+    for(let i=0;i<4;i++){ const off=i*0.16, o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.setValueAtTime(215-i*18,t+off); o.frequency.linearRampToValueAtTime(148-i*14,t+off+.13);
+      f.type='bandpass'; f.frequency.value=600; f.Q.value=3; o.connect(f); f.connect(g); g.connect(mas);
+      g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.09,t+off+.02); g.gain.exponentialRampToValueAtTime(.0001,t+off+.15);
+      o.start(t+off); o.stop(t+off+.17); } }
+  // FREDDO: fenerle dondurulunca hırlama
+  function growl(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+    o.type='sawtooth'; o.frequency.setValueAtTime(58,t); o.frequency.linearRampToValueAtTime(44,t+.9);
+    f.type='lowpass'; f.frequency.value=260; o.connect(f); f.connect(g); g.connect(mas);
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.13,t+.1); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
+    o.start(t); o.stop(t+1.05); }
+  // CHİKA: mutfaktan tencere sesi (nerede olduğunu ele verir)
+  function clang(){ if(!ac)return; const t=ac.currentTime;
+    [1800,2400,3100].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='square'; o.frequency.value=fr*(1+Math.random()*.05);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.045,t+.005); g.gain.exponentialRampToValueAtTime(.0001,t+.5+i*.1);
+      o.connect(g); g.connect(mas); o.start(t); o.stop(t+.66); }); noise(.12,.05,4000); }
+  // BONKO: ışığı görünce çıldırma
+  function screech(){ if(!ac)return; const t=ac.currentTime;
+    [620,930,1240].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sawtooth';
+      o.frequency.setValueAtTime(fr,t); o.frequency.linearRampToValueAtTime(fr*1.5,t+.35);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.09,t+.03); g.gain.exponentialRampToValueAtTime(.0001,t+.55);
+      o.connect(g); g.connect(mas); o.start(t); o.stop(t+.6); }); noise(.3,.1,3000); }
+  // FOXO: perdeden fırlayıp koşma alarmı
+  function foxRun(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(880,t+.5);
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.15,t+.05); g.gain.exponentialRampToValueAtTime(.0001,t+.9);
+    o.connect(g); g.connect(mas); o.start(t); o.stop(t+.95); noise(.5,.12,1800); }
+  // Kapalı kapıya vurma
+  function bang(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(45,t+.18);
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.3);
+    o.connect(g); g.connect(mas); o.start(t); o.stop(t+.32); noise(.16,.18,900); }
+  // --- SAAT ---
+  function hourBell(){ if(!ac)return; const t=ac.currentTime;
+    [880,1320].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.value=fr;
+      g.gain.setValueAtTime(.0001,t+i*.09); g.gain.linearRampToValueAtTime(.09,t+i*.09+.01); g.gain.exponentialRampToValueAtTime(.0001,t+i*.09+.7);
+      o.connect(g); g.connect(mas); o.start(t+i*.09); o.stop(t+i*.09+.75); }); }
+  function chime6(){ if(!ac)return; const t=ac.currentTime;
+    [523,659,784,1047].forEach((fr,i)=>{ const off=i*0.18, o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.value=fr;
+      g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.2,t+off+.02); g.gain.exponentialRampToValueAtTime(.0001,t+off+1.1);
+      o.connect(g); g.connect(mas); o.start(t+off); o.stop(t+off+1.15); }); }
+  return {init,resume,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
+          laugh,growl,clang,screech,foxRun,bang,hourBell,chime6}; })();
+
+/* ================= DURUM ================= */
+const S={MENU:0,PLAY:1,DEAD:2,CAMS:3,JUMP:4,WIN:5}; let state=S.MENU;
+let jumpT=0, nearBox=false;
+
+/* ================= SAAT / GECE ================= */
+const HOUR_SEC=52;      // 1 oyun saati = 52 sn → bir gece ≈ 5 dk 12 sn
+const NIGHT_HOURS=6;    // 12:00 → 06:00
+let night=1, selNight=1, clockT=0, lastHour=0;
+// Gece zorluk tablosu: kim kaçıncı saniyede uyanır + hız/kutu/algı/Foxo eşiği
+const NIGHT_CFG={
+  1:{wake:{bonko:26, chika:58, freddo:100, foxo:9e9}, sm:0.80, box:1.30, detect:10, coveStep:18},
+  2:{wake:{bonko:18, chika:38, freddo:66,  foxo:120}, sm:0.90, box:1.45, detect:11, coveStep:14},
+  3:{wake:{bonko:12, chika:26, freddo:44,  foxo:70},  sm:1.00, box:1.60, detect:12, coveStep:11},
+  4:{wake:{bonko:8,  chika:18, freddo:30,  foxo:45},  sm:1.10, box:1.75, detect:13, coveStep:9},
+  5:{wake:{bonko:5,  chika:11, freddo:18,  foxo:26},  sm:1.20, box:1.95, detect:14, coveStep:7.5},
+  6:{wake:{bonko:3,  chika:7,  freddo:10,  foxo:15},  sm:1.35, box:2.20, detect:15, coveStep:6},
+};
+function ncfg(){ return NIGHT_CFG[night]||NIGHT_CFG[6]; }
+function clockHour(){ return Math.min(NIGHT_HOURS, Math.floor(clockT/HOUR_SEC)); }
+function clockText(){ const h=clockHour(); return (h===0?12:h)+':00'; }
+
+/* ================= KAYIT ================= */
+const SAVE_KEY='gb3d_save_v1';
+let save={maxNight:1, best:0};
+try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save=s; }catch(e){}
+function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+const player={ x:0, z:19.7, yaw:Math.PI, pitch:-0.05 }; // ofiste, kuzeye bak (yaw=PI -> -Z)
+const EYE=1.62;
+let flashOn=false, battery=100, running=false;
+let walkBob=0;
+// Elektrik / sigorta
+let powered=true, powerTimer=0, fuseActive=false, nearDoor=null;
+function randRange(a,b){ return a+Math.random()*(b-a); }
+function resetPowerTimer(){ powerTimer=randRange(100,190); } // elektrik kesintisi artık nadir
+// Müzik kutusu / Puppet
+let musicBox=100, puppetOut=false, winding=false;
+const puppetPos={x:PUP_HOME.x, z:PUP_HOME.z};
+let boxTuneTimer=0;
+let dangerLevel=0, heartT=0, ambT=5;
+function inOffice(){ return player.x>=-5 && player.x<=5 && player.z>=15 && player.z<=21; }
+
+/* Yön: yaw 0 => +Z (güney). Kuzeye bakmak için yaw=PI. */
+function dirVec(){ return new THREE.Vector3(Math.sin(player.yaw)*Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw)*Math.cos(player.pitch)); }
+
+/* ================= ODA İSMİ ================= */
+const REGIONS=[
+  {n:'OFİS',            x:[-5,5],    z:[15,21]},
+  {n:'BATI KORİDOR',    x:[-4,-2],   z:[6,15]},
+  {n:'DOĞU KORİDOR',    x:[2,4],     z:[6,15]},
+  {n:'MALZEME DOLABI',  x:[-8,-4],   z:[9,12]},
+  {n:'TUVALETLER',      x:[4,8],     z:[9,12]},
+  {n:'PIRATE COVE',     x:[-8.9,-5.1],z:[2.5,5.4]},
+  {n:'KULİS',           x:[-13,-9],  z:[-2,2]},
+  {n:'MUTFAK',          x:[9,13],    z:[-2,2]},
+  {n:'SAHNE ÖNÜ',       x:[-5,5],    z:[-4,-1]},
+  {n:'YEMEKHANE',       x:[-9,9],    z:[-4,6]},
+];
+function roomName(){ for(const r of REGIONS){ if(player.x>=r.x[0]&&player.x<=r.x[1]&&player.z>=r.z[0]&&player.z<=r.z[1]) return r.n; } return 'PİZZACI'; }
+
+/* ================= ÇARPIŞMA ================= */
+const PR=0.34;
+function collide(px,pz){
+  for(let k=0;k<2;k++){ // birkaç iterasyon
+    for(const c of colliders){
+      if(px>c.minX-PR && px<c.maxX+PR && pz>c.minZ-PR && pz<c.maxZ+PR){
+        const pL=px-(c.minX-PR), pR=(c.maxX+PR)-px, pT=pz-(c.minZ-PR), pB=(c.maxZ+PR)-pz;
+        const m=Math.min(pL,pR,pT,pB);
+        if(m===pL)px=c.minX-PR; else if(m===pR)px=c.maxX+PR; else if(m===pT)pz=c.minZ-PR; else pz=c.maxZ+PR;
+      }
+    }
+    // kapalı kapılar da engel
+    for(const d of doors){ if(!d.closed) continue;
+      const minX=d.x0, maxX=d.x1, minZ=d.z-0.12, maxZ=d.z+0.12;
+      if(px>minX-PR && px<maxX+PR && pz>minZ-PR && pz<maxZ+PR){
+        const pL=px-(minX-PR), pR=(maxX+PR)-px, pT=pz-(minZ-PR), pB=(maxZ+PR)-pz;
+        const m=Math.min(pL,pR,pT,pB);
+        if(m===pL)px=minX-PR; else if(m===pR)px=maxX+PR; else if(m===pT)pz=minZ-PR; else pz=maxZ+PR;
+      }
+    }
+  }
+  // bina sınırı
+  px=Math.max(FMINX+PR,Math.min(FMAXX-PR,px)); pz=Math.max(FMINZ+PR,Math.min(FMAXZ-PR,pz));
+  return [px,pz];
+}
+
+/* ================= GİRİŞ ================= */
+const keys={};
+addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
+  if(state===S.MENU){ startGame(); return; }
+  if(state===S.DEAD || state===S.WIN){ toMenu(); return; }
+  if(state===S.CAMS){ if(k==='c'||k==='escape') closeCamera(); else if(k==='arrowleft')cycleCam(-1); else if(k==='arrowright')cycleCam(1); else if(k===' '){ e.preventDefault(); startWind(); } return; }
+  keys[k]=true;
+  if(k==='f') toggleFlash();
+  if(k==='e') interactDoor();
+  if(k==='c') openCamera();
+  if(k===' '){ e.preventDefault(); startWind(); }
+  if(k==='shift') running=true;
+});
+addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); keys[k]=false; if(k==='shift') running=false; if(k===' ') stopWind(); });
+
+// Fare bakışı (sürükle)
+let look=null;
+renderer.domElement.addEventListener('mousedown',e=>{ if(state!==S.PLAY)return; look={x:e.clientX,y:e.clientY}; });
+addEventListener('mousemove',e=>{ if(!look||state!==S.PLAY)return; addLook((e.clientX-look.x)*0.0026,(e.clientY-look.y)*0.0026); look={x:e.clientX,y:e.clientY}; });
+addEventListener('mouseup',()=>look=null);
+
+function addLook(dyaw,dpitch){ player.yaw-=dyaw; player.pitch=Math.max(-1.1,Math.min(1.1,player.pitch-dpitch)); }
+
+// Dokunmatik: sol joystick + sağ bak
+const joyZone=$('#joyZone'), joyBase=$('#joyBase'), joyKnob=$('#joyKnob');
+let joyId=null, joyC={x:0,y:0}, moveVec={x:0,y:0};
+let lookId=null, lookLast={x:0,y:0};
+function isLeft(x){ return x < innerWidth*0.45; }
+renderer.domElement.addEventListener('touchstart',e=>{ if(state!==S.PLAY)return;
+  for(const t of e.changedTouches){
+    if(isLeft(t.clientX) && joyId===null){ joyId=t.identifier; joyC={x:t.clientX,y:t.clientY};
+      joyBase.style.display='block'; joyBase.style.left=(t.clientX-60)+'px'; joyBase.style.top=(t.clientY-60)+'px'; joyKnob.style.left='33px'; joyKnob.style.top='33px'; }
+    else if(lookId===null){ lookId=t.identifier; lookLast={x:t.clientX,y:t.clientY}; }
+  }
+},{passive:true});
+renderer.domElement.addEventListener('touchmove',e=>{ if(state!==S.PLAY)return;
+  for(const t of e.changedTouches){
+    if(t.identifier===joyId){ let dx=t.clientX-joyC.x, dy=t.clientY-joyC.y; const mag=Math.hypot(dx,dy),max=55; if(mag>max){dx*=max/mag;dy*=max/mag;} joyKnob.style.left=(33+dx)+'px'; joyKnob.style.top=(33+dy)+'px'; moveVec={x:dx/max, y:dy/max}; }
+    else if(t.identifier===lookId){ addLook((t.clientX-lookLast.x)*0.004,(t.clientY-lookLast.y)*0.004); lookLast={x:t.clientX,y:t.clientY}; }
+  }
+},{passive:true});
+function endTouch(e){ for(const t of e.changedTouches){ if(t.identifier===joyId){ joyId=null; moveVec={x:0,y:0}; joyBase.style.display='none'; } if(t.identifier===lookId) lookId=null; } }
+renderer.domElement.addEventListener('touchend',endTouch); renderer.domElement.addEventListener('touchcancel',endTouch);
+
+$('#flashBtn').addEventListener('click',toggleFlash);
+$('#runBtn').addEventListener('click',()=>{ running=!running; $('#runBtn').classList.toggle('on',running); });
+$('#menu').addEventListener('click',()=>startGame());
+$('#dead').addEventListener('click',toMenu);
+$('#win').addEventListener('click',toMenu);
+$('#actBtn').addEventListener('click',interactDoor);
+$('#camBtn').addEventListener('click',openCamera);
+$('#camClose').addEventListener('click',closeCamera);
+$('#camPrev').addEventListener('click',()=>cycleCam(-1));
+$('#camNext').addEventListener('click',()=>cycleCam(1));
+// KUR butonu — basılı tutulur (fare + dokunmatik)
+const windBtn=$('#windBtn');
+windBtn.addEventListener('mousedown',e=>{e.preventDefault(); startWind();});
+addEventListener('mouseup',stopWind);
+windBtn.addEventListener('touchstart',e=>{e.preventDefault(); startWind();},{passive:false});
+windBtn.addEventListener('touchend',e=>{e.preventDefault(); stopWind();},{passive:false});
+
+function toggleFlash(){ if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?'AÇIK':'KAPALI'; Audio.click(); }
+
+// --- kısa mesaj ---
+let toastT=0;
+function toast(msg){ const el=$('#toast'); el.textContent=msg; el.style.opacity='1'; toastT=1.6; }
+
+// --- KAPI ---
+function interactDoor(){
+  if(state!==S.PLAY) return;
+  if(!nearDoor){ return; }
+  if(!powered){ toast('⚡ GÜÇ YOK — KAPI ÇALIŞMIYOR'); Audio.tone(120,.15,'square',.2); return; }
+  if(nearDoor.closed){                       // elle erken aç
+    nearDoor.closed=false; nearDoor.closeT=0; nearDoor.cool=DOOR_COOL;
+    toast(nearDoor.name+' AÇILDI — '+DOOR_COOL+'s bekleme');
+  } else {
+    if(nearDoor.cool>0){                     // henüz hazır değil
+      toast('⏳ KAPI ISINIYOR — '+Math.ceil(nearDoor.cool)+'s');
+      Audio.tone(140,.12,'square',.18); return;
+    }
+    nearDoor.closed=true; nearDoor.closeT=DOOR_TIME;
+    toast(nearDoor.name+' KAPANDI — '+DOOR_TIME+'s');
+  }
+  Audio.tone(110,.15,'square',.25); Audio.noise(.2,.15,600);
+  emitNoise(nearDoor.cx, nearDoor.z, 1.3);   // kapı gürültüsü CHİKA'yı buraya çeker
+}
+
+// --- KAMERA / TABLET ---
+function openCamera(){
+  if(state===S.CAMS){ closeCamera(); return; }
+  if(state!==S.PLAY) return;
+  if(!inOffice()){ toast('📹 KAMERA SADECE OFİSTE KULLANILIR'); Audio.tone(200,.1,'square',.15); return; }
+  if(!powered){ toast('⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR'); Audio.tone(160,.12,'square',.18); return; }
+  state=S.CAMS; $('#tablet').classList.add('show'); $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam();
+}
+function closeCamera(){ if(state!==S.CAMS) return; state=S.PLAY; winding=false; $('#tablet').classList.remove('show'); $('#windBtn').classList.add('hidden'); Audio.tone(300,.06,'square',.1); }
+function cycleCam(dir){ camIndex=(camIndex+dir+CAMV.length)%CAMV.length; winding=false; $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam(); }
+function refreshCam(){ $('#camName').textContent='CAM • '+CAMV[camIndex].n;
+  // Müzik kutusu kurma butonu sadece Ödül Köşesi kamerasında
+  $('#windBtn').classList.toggle('hidden', !CAMV[camIndex].prize);
+  if(!CAMV[camIndex].prize) winding=false;
+}
+// KUR (müzik kutusu) — basılı tutulur. Kameradan (elektrik varken) VEYA yanına gidip (her zaman)
+function startWind(){ if((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)) winding=true; }
+function stopWind(){ winding=false; }
+
+/* ================= OYUN AKIŞI ================= */
+// Menüdeki gece seçici — kilitli geceler save.maxNight'a göre açılır
+function renderNights(){
+  const el=$('#nightPick'); el.innerHTML='';
+  for(let n=1;n<=6;n++){
+    const locked = n>save.maxNight;
+    const b=document.createElement('button');
+    b.className='nbtn'+(n===selNight?' sel':'')+(locked?' lock':'')+(n===6?' six':'');
+    b.innerHTML = locked? '🔒<small>GECE '+n+'</small>' : n+'<small>GECE</small>';
+    b.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(locked){ Audio.init(); Audio.resume(); Audio.tone(150,.12,'square',.15); return; }
+      selNight=n; renderNights(); startGame();
+    });
+    el.appendChild(b);
+  }
+}
+selNight=save.maxNight; renderNights();
+
+function startGame(){ Audio.init(); Audio.resume(); Audio.startAmbience();
+  night=selNight; clockT=0; lastHour=0;
+  player.x=0; player.z=19.7; player.yaw=Math.PI; player.pitch=-0.05; battery=100; flashOn=false; running=false;
+  powered=true; fuseActive=false; fuse.visible=false; resetPowerTimer();
+  doors.forEach(d=>{ d.closed=false; d.closeT=0; d.cool=0; });
+  musicBox=100; puppetOut=false; winding=false; puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z;
+  puppet.position.set(PUP_HOME.x*SC,0.05,PUP_HOME.z*SC); puppet.scale.setScalar(puppet.userData.baseScale||1);
+  resetAI();
+  state=S.PLAY;
+  $('#runBtn').classList.remove('on');
+  toast('🕐 12:00 — GECE '+night+' BAŞLADI');
+  $('#menu').classList.add('hidden'); $('#dead').classList.add('hidden'); $('#win').classList.add('hidden'); $('#tablet').classList.remove('show');
+  $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
+  $('#flashBtn').classList.remove('hidden','on'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
+  $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden'); $('#windBtn').classList.add('hidden');
+  if(isMobile) joyZone.classList.remove('hidden');
+  $('#flashState').textContent='KAPALI';
+}
+function toMenu(){ state=S.MENU; $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden');
+  $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
+  $('#actBtn').classList.add('hidden'); $('#tablet').classList.remove('show'); joyZone.classList.add('hidden');
+  $('#powerStat').classList.add('hidden'); $('#toast').style.opacity='0'; toastT=0;
+  $('#boxWrap').classList.add('hidden'); $('#windBtn').classList.add('hidden');
+  $('#dead').classList.add('hidden'); $('#win').classList.add('hidden');
+  renderNights(); $('#menu').classList.remove('hidden'); }
+
+// 06:00 — gece atlatıldı
+function winNight(){
+  if(state===S.WIN) return;
+  state=S.WIN; winding=false; running=false; flashOn=false; flash.intensity=0;
+  hidePlayUI(); Audio.chime6();
+  if(navigator.vibrate) navigator.vibrate([80,60,80,60,180]);
+  if(night>save.best) save.best=night;
+  if(night+1>save.maxNight) save.maxNight=Math.min(6,night+1);
+  saveGame();
+  selNight=Math.min(6, Math.max(selNight, night+1));
+  const done = night>=6;
+  $('#winTitle').textContent = done? 'HEPSİ BİTTİ' : 'GECE ATLATILDI';
+  $('#winSub').textContent  = done? 'Gece 6\'yı da bitirdin — pizzacı senindir.' : ('Gece '+night+' bitti — GECE '+(night+1)+' AÇILDI');
+  $('#win').classList.remove('hidden');
+}
+
+/* ================= ELEKTRİK / SİGORTA ================= */
+let fuseDX=0, fuseDZ=0;
+function blackout(){
+  powered=false;
+  // Güç gidince kilitler boşalır: yoksa iki kapı kapalıyken kesinti = ofiste kilitli kalıp kesin ölüm
+  const wasShut=doors.some(d=>d.closed);
+  doors.forEach(d=>{ d.closed=false; d.closeT=0; d.cool=0; });   // güç yokken kapı zaten kapanamaz, bekleme de anlamsız
+  Audio.tone(70,.8,'sawtooth',.3); Audio.noise(.7,.25,400);
+  if(wasShut) Audio.bang();
+  const spot=FUSE_SPOTS[Math.floor(randRange(0,FUSE_SPOTS.length))];
+  fuseDX=spot.p[0]; fuseDZ=spot.p[2];
+  fuse.position.set(spot.p[0]*SC,spot.p[1],spot.p[2]*SC); fuse.visible=true; fuseActive=true; fuse._spot=spot.n;
+  toast('⚡ ELEKTRİK KESİLDİ! SİGORTA: '+spot.n);
+  if(navigator.vibrate) navigator.vibrate(120);
+}
+function restorePower(){
+  powered=true; fuseActive=false; fuse.visible=false; resetPowerTimer();
+  [440,660,880].forEach(f=>Audio.tone(f,.28,'sine',.2)); Audio.click();
+  toast('⚡ ELEKTRİK GERİ GELDİ');
+}
+function hidePlayUI(){
+  $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden'); $('#tablet').classList.remove('show');
+  $('#flashBtn').classList.add('hidden'); $('#runBtn').classList.add('hidden'); $('#camBtn').classList.add('hidden');
+  $('#actBtn').classList.add('hidden'); $('#windBtn').classList.add('hidden'); $('#powerStat').classList.add('hidden');
+  $('#boxWrap').classList.add('hidden'); joyZone.classList.add('hidden');
+}
+let jumpModel=null, jumpName='???';
+function startJump(model,name){
+  if(state===S.JUMP||state===S.DEAD) return;
+  jumpModel=model; jumpName=name||'???'; state=S.JUMP; winding=false; jumpT=0;
+  Audio.tone(950,.7,'sawtooth',.45); Audio.tone(520,.7,'sawtooth',.3); Audio.noise(.9,.5,3500);
+  if(navigator.vibrate) navigator.vibrate([300,60,300]);
+  hidePlayUI();
+  const u=model.userData; if(u.glowL){ u.glowL.visible=u.glowR.visible=true; }
+  if(u.eyeMat) u.eyeMat.emissiveIntensity=2.6; else if(u.eyeWhite) u.eyeWhite.emissiveIntensity=2.6;
+  if(u.jaw) u.jaw.rotation.x=0.95;   // ağzı ardına kadar açık son görüntün
+}
+function onDead(){ state=S.DEAD; if(jumpModel) jumpModel.scale.setScalar(jumpModel.userData.baseScale||1); $('#jumpFlash').style.opacity='0';
+  $('#deadWho').textContent=jumpName+' seni yakaladı';
+  $('#deadWhen').textContent='Gece '+night+' • '+clockText()+' — 06:00\'a '+Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC)+' saat kalmıştı';
+  $('#dead').classList.remove('hidden'); }
+
+/* ================= GÜNCELLEME ================= */
+let stepTimer=0;
+function update(dt){
+  fanBlades.rotation.y += (powered?dt*12:dt*1);
+  // ışıkları elektriğe göre yumuşat
+  const k=Math.min(1,dt*5);
+  ambient.intensity += ((powered?0.5:0.06)-ambient.intensity)*k;
+  hemi.intensity    += ((powered?0.9:0.0)-hemi.intensity)*k;
+  powerLights.forEach(l=> l.intensity += ((powered?l.userData.base:0)-l.intensity)*k);
+  emergency.intensity += ((powered?0:0.55)-emergency.intensity)*k;
+  // animatronik göz nabzı (karanlıkta daha belirgin)
+  const pulse=0.7+Math.sin(perf*0.003)*0.3;
+  Object.values(A).forEach(m=>{ m.userData.eyeWhite.emissiveIntensity = powered?0.5:pulse; });
+  // kapı paneli animasyonu (her durumda)
+  for(const d of doors){ const ty=d.closed?d.closedY:d.openY; d.panel.position.y += (ty-d.panel.position.y)*Math.min(1,dt*8); }
+  // sigorta görseli
+  if(fuseActive){ fuseHalo.material.opacity=0.55+Math.sin(perf*0.006)*0.4; fuseLight.intensity=1.2+Math.sin(perf*0.006)*0.7; fuse.rotation.y+=dt*1.6; }
+  // toast solması
+  if(toastT>0){ toastT-=dt; if(toastT<=0) $('#toast').style.opacity='0'; }
+
+  // === JUMPSCARE animasyonu ===
+  if(state===S.JUMP && jumpModel){
+    jumpT+=dt;
+    camera.position.set(player.x*SC+(Math.random()-0.5)*0.25, EYE+(Math.random()-0.5)*0.25, player.z*SC+(Math.random()-0.5)*0.25);
+    const dj=dirVec();
+    jumpModel.position.set(player.x*SC+dj.x*0.95, 0.35+Math.sin(jumpT*45)*0.12, player.z*SC+dj.z*0.95);
+    jumpModel.scale.setScalar((jumpModel.userData.baseScale||1)*(1.25+Math.sin(jumpT*32)*0.15));
+    jumpModel.lookAt(camera.position.x,2.4,camera.position.z);
+    camera.lookAt(jumpModel.position.x,1.7,jumpModel.position.z);
+    flash.intensity=0;
+    $('#jumpFlash').style.opacity = Math.random()<0.5?'0.6':'0';
+    if(jumpT>1.35){ onDead(); }
+    return;
+  }
+
+  // === KAPI SÜRELERİ === (kamerada da işler)
+  if(state===S.PLAY || state===S.CAMS){
+    for(const d of doors){
+      if(d.closed){
+        d.closeT-=dt;
+        if(d.closeT<=0){ d.closed=false; d.closeT=0; d.cool=DOOR_COOL;
+          Audio.tone(150,.2,'square',.2); Audio.noise(.25,.14,500);
+          toast('🔓 '+d.name+' OTOMATİK AÇILDI'); }
+      } else if(d.cool>0){
+        d.cool-=dt;
+        if(d.cool<=0){ d.cool=0; Audio.tone(520,.08,'square',.1); }   // yeniden hazır
+      }
+    }
+  }
+
+  // === SAAT: 12:00 → 06:00 ===
+  if(state===S.PLAY || state===S.CAMS){
+    clockT+=dt;
+    const h=clockHour();
+    if(h!==lastHour){ lastHour=h; Audio.hourBell(); if(h<NIGHT_HOURS) toast('🕐 SAAT '+clockText()); }
+    if(clockT>=NIGHT_HOURS*HOUR_SEC){ winNight(); return; }
+  }
+
+  // === MÜZİK KUTUSU + PUPPET (PLAY ve CAMS'de) ===
+  if(state===S.PLAY || state===S.CAMS){
+    nearBox = Math.hypot(player.x-MB.x, player.z-MB.z) < 1.9;
+    // Kurma: kameradan (Ödül Köşesi + elektrik) VEYA kutunun yanında (her zaman)
+    const canWind = winding && ((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox));
+    if(canWind) musicBox=Math.min(100, musicBox+dt*34);
+    else musicBox=Math.max(0, musicBox-dt*ncfg().box); // geceye göre hızlanır
+    // KUR butonu görünürlüğü
+    $('#windBtn').classList.toggle('hidden', !((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)));
+    // melodisi (kuruluyken)
+    if(musicBox>0){ boxTuneTimer-=dt; if(boxTuneTimer<=0){ boxTuneTimer=0.5; Audio.tone([1047,988,880,784][Math.floor(Math.random()*4)],0.25,'sine',0.05*(musicBox/100)); } }
+    // puppet evde; süzülerek sallanır, kutu azaldıkça gözleri parlar
+    const pf=Math.sin(perf*0.0012);
+    puppet.position.set(PUP_HOME.x*SC, 0.05+pf*0.07, PUP_HOME.z*SC); puppet.scale.setScalar(puppet.userData.baseScale||1);
+    if(puppet.userData.aL){ puppet.userData.aL.rotation.x=pf*0.14; puppet.userData.aR.rotation.x=-pf*0.14;
+      puppet.userData.head.rotation.y=Math.sin(perf*0.0007)*0.35; }
+    puppet.userData.glowL.visible=puppet.userData.glowR.visible=(musicBox<45);
+    puppet.userData.eyeMat.emissiveIntensity = musicBox<45? (0.6+(45-musicBox)/45*1.6):0.5;
+    // BİTTİ → anında jumpscare + ölüm
+    if(musicBox<=0) startJump(puppet,'PUPPET');
+  }
+
+  // Animatronik yapay zekası (uyanma + kovalama) + gerilim ambiyansı
+  if(state===S.PLAY || state===S.CAMS){ updateAI(dt); driveAmbience(dt); }
+
+  // MENÜ / ÖLÜM / KAZANMA kamerası
+  if(state===S.MENU || state===S.DEAD || state===S.WIN){
+    camera.position.set(Math.sin(perf*0.0003)*1.2*SC,1.7,3.5*SC); camera.lookAt(0,1.5,-7*SC);
+    flash.intensity=0; return;
+  }
+  // KAMERA (tablet) modu
+  if(state===S.CAMS){
+    if(!powered){ closeCamera(); toast('⚡ SİNYAL KESİLDİ'); }
+    else { const c=CAMV[camIndex]; camera.position.set(c.pos[0]*SC,c.pos[1],c.pos[2]*SC); camera.lookAt(c.look[0]*SC,c.look[1],c.look[2]*SC); }
+    let st=parseFloat($('#tabStatic').style.opacity||'0'); if(st>0.14) $('#tabStatic').style.opacity=(st-dt*1.4);
+    flash.intensity += (0-flash.intensity)*Math.min(1,dt*14);
+    return;
+  }
+
+  // === PLAY ===
+  // elektrik zamanlayıcısı / sigorta toplama
+  if(powered){ powerTimer-=dt; if(powerTimer<=0) blackout(); }
+  else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ; if(Math.hypot(dx,dz)<1.1) restorePower(); }
+
+  // hareket girişi
+  let ix=0, iz=0;
+  if(keys['w']) iz-=1; if(keys['s']) iz+=1; if(keys['a']) ix-=1; if(keys['d']) ix+=1;
+  if(moveVec.x||moveVec.y){ ix+=moveVec.x; iz+=moveVec.y; }
+  const len=Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
+  const speed=(running?4.4:2.6);
+  const fwd=new THREE.Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw));
+  const right=new THREE.Vector3(-Math.cos(player.yaw),0,Math.sin(player.yaw));
+  let nx=player.x + (fwd.x*(-iz)+right.x*ix)*speed*dt;
+  let nz=player.z + (fwd.z*(-iz)+right.z*ix)*speed*dt;
+  [nx,nz]=collide(nx,nz);
+  const moved=Math.hypot(nx-player.x,nz-player.z);
+  player.x=nx; player.z=nz;
+  if(moved>0.001){ walkBob+=dt*(running?14:9); stepTimer-=dt;
+    if(stepTimer<=0){ stepTimer=running?0.3:0.45; Audio.step();
+      emitNoise(player.x,player.z, running?1.0:0.35); } }   // koşmak CHİKA'yı çağırır
+
+  // yakın kapı algıla + eylem butonu
+  nearDoor=null;
+  for(const d of doors){ const cx=Math.max(d.x0,Math.min(player.x,d.x1)); if(Math.hypot(player.x-cx,player.z-d.z)<1.9){ nearDoor=d; break; } }
+  const ab=$('#actBtn');
+  if(nearDoor){
+    ab.classList.remove('hidden');
+    if(nearDoor.closed)        ab.textContent='▲ '+nearDoor.name+' — '+Math.ceil(nearDoor.closeT)+'s SONRA AÇILIR';
+    else if(nearDoor.cool>0)   ab.textContent='⏳ '+nearDoor.name+' HAZIR DEĞİL — '+Math.ceil(nearDoor.cool)+'s';
+    else                       ab.textContent='▼ '+nearDoor.name+' KAPAT ('+DOOR_TIME+'s)';
+    ab.style.opacity = (!nearDoor.closed && nearDoor.cool>0)? '0.5' : '1';
+  } else ab.classList.add('hidden');
+
+  // kamera (birinci şahıs) — konum SC ölçekli, bakış yönü (d) ölçeksiz
+  const bob=Math.sin(walkBob)*0.035*(moved>0.001?1:0);
+  camera.position.set(player.x*SC, EYE+bob, player.z*SC);
+  const d=dirVec(); camera.lookAt(player.x*SC+d.x, EYE+bob+d.y, player.z*SC+d.z);
+
+  // fener
+  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?7:5.5)); if(battery<=0){ flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }
+  else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*2.2); }
+  const targetInt = (flashOn&&battery>0)? (5.5+Math.random()*0.6*(battery<15?4:0.3)) : 0;
+  flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
+  flash.position.copy(camera.position);
+  const fd=dirVec(); flashTarget.position.set(camera.position.x+fd.x*3, camera.position.y+fd.y*3, camera.position.z+fd.z*3);
+  nearLight.position.copy(camera.position);
+}
+
+/* ================= HUD ================= */
+function hud(){ $('#roomName').textContent=roomName(); $('#battFill').style.width=battery+'%';
+  $('#battFill').style.filter = battery<15? 'saturate(1.5) brightness(1.2)':'none';
+  // saat / gece
+  const ct=$('#clockTime'); ct.textContent=clockText(); ct.className=clockHour()>=5?'dawn':'';
+  $('#nightLbl').textContent='GECE '+night;
+  $('#clockFill').style.width=Math.min(100, clockT/(NIGHT_HOURS*HOUR_SEC)*100)+'%';
+  const ps=$('#powerStat');
+  if(powered){ ps.textContent='⚡ ELEKTRİK: AÇIK'; ps.className='pw-on'; }
+  else { ps.textContent='⚡ KESİK — SİGORTA: '+(fuse._spot||'?'); ps.className='pw-off'; }
+  // müzik kutusu
+  $('#boxFill').style.width=musicBox+'%';
+  const bl=$('#boxLabel');
+  if(puppetOut){ bl.textContent='🎵 PUPPET DIŞARIDA! OFİSTE KUR!'; bl.className='box-danger'; }
+  else if(musicBox<35){ bl.textContent='🎵 MÜZİK KUTUSU '+Math.ceil(musicBox)+'% — AZALIYOR'; bl.className='box-warn'; }
+  else { bl.textContent='🎵 MÜZİK KUTUSU '+Math.ceil(musicBox)+'%'; bl.className='box-ok'; }
+}
+
+/* ================= DÖNGÜ ================= */
+let last=performance.now(), perf=0;
+function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
+  update(dt); if(state===S.PLAY||state===S.CAMS) hud();
+  renderer.render(scene,camera); requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
