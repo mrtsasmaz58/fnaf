@@ -2162,12 +2162,15 @@ function updateAI(dt){
         }
       } else a.stuck=Math.max(0, a.stuck-dt*2);
     }
-    // Foxo koşarken kapalı kapıya toslarsa: vur, sonra koveye dön
+    // Foxo koşarken kapalı kapıyla durur: ARADA kapalı kapı VARSA (doorBlocks) ya da fiziksel
+    // olarak sıkıştıysa (moved düşük) → vur ve koveye dön. doorBlocks eklendi çünkü Foxo kapıya
+    // yandan sürtüp kaydığında moved yüksek kalıp "durmuyordu" → oyuncuya kapı işlemiyor gibi geliyordu.
     if(a.kind==='cove' && a.mode==='run'){
-      if(moved < sp*dt*0.3){
+      const doorShut = doorBlocks(a.pos.x,a.pos.z,player.x,player.z);   // arada kapalı kapı var mı
+      if(doorShut || moved < sp*dt*0.3){
         a.blocked+=dt; a.bang-=dt;
         if(a.bang<=0){ a.bang=0.45; Audio.bang(); if(navigator.vibrate) navigator.vibrate(60); }
-        if(a.blocked>1.6){ a.mode='back'; toast('🦊 KAPI FOXO\'YU DURDURDU'); }
+        if(a.blocked > (doorShut?0.8:1.6)){ a.mode='back'; a.blocked=0; toast('🦊 KAPI FOXO\'YU DURDURDU'); Audio.growl(); }
       } else a.blocked=Math.max(0,a.blocked-dt*2);
     }
 
