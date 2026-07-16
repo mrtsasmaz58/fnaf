@@ -2599,8 +2599,10 @@ function inOffice(){ return player.x>=-5 && player.x<=5 && player.z>=15 && playe
 function nearVent(){ for(const v of VENTS){ if(Math.hypot(player.x-v.x, player.z-v.z)<1.7) return v; } return null; }
 
 /* ================= ÇOK OYUNCU (P2P — PeerJS oda kodu, host-relay yıldız topoloji) =================
-   M1 = bağlantı temeli + oyuncu görünürlüğü: aynı haritada birbirinizi gerçek zamanlı görürsünüz
-   (avatar + fener). AI/gece/kutu M2'de host-otoriteli gelecek. Tek oyunculu tamamen bozulmadan. */
+   TAM CO-OP: aynı haritada birbirinizi görürsünüz (avatar+fener), kapı senkron; TÜM gece
+   mekanikleri her istemcide çalışır (animatronik/kutu/maske/vent/elektrik/bodrum — ayrı-tehdit).
+   Host lobide gece (1-6/Özel) seçer → herkese yayınlanır. ORTAK sonuç: ölen izleyici olur,
+   06:00'a 1 kişi ulaşırsa herkes kazanır, herkes ölürse ortak kayıp (died/won mesajları). */
 const Net=(()=>{
   let peer=null, host=false, active=false, started=false, myId=null, code=null, myName='Bekçi';
   let conns=[];                 // host: misafir bağlantıları; misafir: [host bağlantısı]
@@ -2841,8 +2843,9 @@ const Net=(()=>{
     }
   }
   function leave(){ try{ if(peer) peer.destroy(); }catch(e){} peer=null; conns=[]; active=false; started=false; host=false; myId=null;
+    hostCustom=false; resolved=false; deadIds.clear();
     for(const id in remotes) removeRemote(id);
-    $('#mpRoom').classList.add('hidden'); $('#mpHome').classList.remove('hidden'); $('#mpStart').classList.add('hidden'); $('#mpWait').classList.add('hidden'); status(''); }
+    $('#mpRoom').classList.add('hidden'); $('#mpHome').classList.remove('hidden'); $('#mpStart').classList.add('hidden'); $('#mpWait').classList.add('hidden'); $('#mpNightSel').classList.add('hidden'); status(''); }
 
   /* ---- lobi butonları ---- */
   $('#mpBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume();
