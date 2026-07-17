@@ -572,8 +572,7 @@
     🪜 Vent: ofis ↔ kulis arası kestirme. Sürünürken savunmasızsın — çıkışta kovalayan varsa kaçış yok.</span><br>
     <span style="color:#8a7a5a">🐻 FREDDO ışık tutunca DONAR &nbsp;•&nbsp; 💜 BONKO ışığı görürse ÇILDIRIR<br>
     🐤 CHİKA sesini duyar (koşma!) &nbsp;•&nbsp; 🦊 FOXO'yu kamerada izle yoksa koşar</span><br>
-    <span style="color:#c9a227">🚪 Kapı 9s kapalı kalır, sonra kendi açılır — tekrar kapatmak için 7s bekleme (🛒 yükseltmeyle kısalır).<br>
-    Kapıda 3s takılan animatronik VAZGEÇER ve çeker gider. Kapı kalkan değil, zaman kazandırır.</span><br>
+    <span style="color:#c9a227" id="doorHelp"></span><br>
     🎵 Müzik kutusu boşalırsa PUPPET seni yer! Elektrik yoksa kamera çalışmaz → Ödül Köşesi'ne gidip elle kur.
   </div>
 </div>
@@ -1259,6 +1258,11 @@ const DOOR_COOL=7;    // açıldıktan sonra tekrar kapatmak için bekleme
 // 🚪 YAĞLANMIŞ KAPI yükseltmesi beklemeyi kısaltır (taban 7s → en iyi ihtimalle 2.5s)
 function doorCool(){ return Math.max(2.5, DOOR_COOL - upgLvl('door')*1.5); }
 const DOOR_FORGET=3;  // animatronik kapalı kapıda bu kadar takılırsa vazgeçer
+// Menüdeki kapı açıklaması SABİTLERDEN üretilir. Elle yazılıydı ve DOOR_TIME 7→9 olunca
+// kaymıştı (menü 7s diyordu, kod 9s uyguluyordu). Artık süreleri değiştirmek yazıyı da düzeltir.
+$('#doorHelp').innerHTML='🚪 Kapı '+DOOR_TIME+'s kapalı kalır, sonra kendi açılır — tekrar kapatmak için '
+  +DOOR_COOL+'s bekleme (🛒 yükseltmeyle '+Math.max(2.5, DOOR_COOL-3*1.5)+'s\'ye iner).<br>Kapıda '
+  +DOOR_FORGET+'s takılan animatronik VAZGEÇER ve çeker gider. Kapı kalkan değil, zaman kazandırır.';
 const GIVEUP_TIME=8;  // vazgeçince bu kadar saniye uzaklaşır
 const RAID_DUR=16;    // "OFİS BASKINI": görmese/duymasa da doğrudan ofise yürür (kapatmazsan girer)
 makeDoorway('BATI KAPI',-4,-2,15);
@@ -2804,7 +2808,7 @@ $('#achBtn').classList.remove('hidden');
 /* ================= TELEFON ADAMI ================= */
 const PHONE={
   1:['Selam, selam! Hoş geldin dostum. İlk gecen, değil mi? Merak etme, alışırsın.',
-     'Feneri idareli kullan — pili biterken köşede sıkışma. Kapılar 7 saniye kapalı kalıp kendi açılır; kalkan değil, zaman kazandırır.',
+     'Feneri idareli kullan — pili biterken köşede sıkışma. Kapılar '+DOOR_TIME+' saniye kapalı kalıp kendi açılır; kalkan değil, zaman kazandırır.',
      'İlk gece genelde sakindir. Yine de... arkanı kollamayı unutma.'],
   2:['Yine buradasın, güzel. Sana Ödül Köşesi\'ndeki o müzik kutusundan bahsetmem lazım.',
      'Kutuyu kurulu tut. Boşalırsa içindeki şey uyanır — inan bana, uyanmasını istemezsin. %55 üstünde tutmaya çalış.',
