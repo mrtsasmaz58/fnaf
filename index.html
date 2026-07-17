@@ -3028,6 +3028,7 @@ I18N.tr={
   ts_door_open:'{n} AÇILDI — {s}s bekleme', ts_door_cool:'⏳ KAPI ISINIYOR — {s}s',
   ts_nopower_door:'⚡ GÜÇ YOK — KAPI ÇALIŞMIYOR', ts_mask_door:'🎭 MASKE TAKILIYKEN KAPI KULLANILMAZ',
   ts_blackout:'⚡ ELEKTRİK KESİLDİ! SİGORTA: {room}', ts_power_back:'⚡ ELEKTRİK GERİ GELDİ',
+  ts_power_warn:'⚠ ELEKTRİK 3sn SONRA KESİLECEK — SİGORTA: {room}',
   // --- toast: kamera ---
   ts_nopower_cam:'⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR', ts_mask_cam:'🎭 MASKE TAKILIYKEN KAMERA AÇILMAZ',
   ts_down_cam:'🩸 YARALIYKEN KAMERA KULLANILMAZ', ts_bas_cam:'🔻 BODRUMDA KAMERA YOK',
@@ -3229,6 +3230,7 @@ I18N.en={
   ts_nopower_door:'⚡ NO POWER — DOOR IS DEAD',
   ts_mask_door:'🎭 CAN\'T USE THE DOOR WITH THE MASK ON',
   ts_blackout:'⚡ POWER IS OUT! FUSE: {room}',
+  ts_power_warn:'⚠ POWER CUTS IN 3s — FUSE: {room}',
   ts_power_back:'⚡ POWER IS BACK',
   ts_nopower_cam:'⚡ NO POWER — CAMERA IS DEAD',
   ts_mask_cam:'🎭 CAN\'T OPEN THE CAMERA WITH THE MASK ON',
@@ -3426,6 +3428,7 @@ I18N.es={
   ts_nopower_door:'⚡ SIN ENERGÍA — PUERTA MUERTA',
   ts_mask_door:'🎭 NO HAY PUERTAS CON LA MÁSCARA',
   ts_blackout:'⚡ ¡APAGÓN! FUSIBLE: {room}',
+  ts_power_warn:'⚠ APAGÓN EN 3s — FUSIBLE: {room}',
   ts_power_back:'⚡ VOLVIÓ LA ENERGÍA',
   ts_nopower_cam:'⚡ SIN ENERGÍA — CÁMARA MUERTA',
   ts_mask_cam:'🎭 NO HAY CÁMARA CON LA MÁSCARA',
@@ -3623,6 +3626,7 @@ I18N.ru={
   ts_nopower_door:'⚡ НЕТ ПИТАНИЯ — ДВЕРЬ НЕ РАБОТАЕТ',
   ts_mask_door:'🎭 В МАСКЕ ДВЕРЬ НЕДОСТУПНА',
   ts_blackout:'⚡ СВЕТ ВЫРУБИЛО! ПРОБКА: {room}',
+  ts_power_warn:'⚠ СВЕТ ПОГАСНЕТ ЧЕРЕЗ 3с — ПРОБКА: {room}',
   ts_power_back:'⚡ ПИТАНИЕ ВЕРНУЛОСЬ',
   ts_nopower_cam:'⚡ НЕТ ПИТАНИЯ — КАМЕРА НЕ РАБОТАЕТ',
   ts_mask_cam:'🎭 В МАСКЕ КАМЕРА НЕ ОТКРОЕТСЯ',
@@ -3820,6 +3824,7 @@ I18N.de={
   ts_nopower_door:'⚡ KEIN STROM — TÜR TOT',
   ts_mask_door:'🎭 MIT MASKE KEINE TÜR',
   ts_blackout:'⚡ STROMAUSFALL! SICHERUNG: {room}',
+  ts_power_warn:'⚠ STROM FÄLLT IN 3s AUS — SICHERUNG: {room}',
   ts_power_back:'⚡ STROM IST ZURÜCK',
   ts_nopower_cam:'⚡ KEIN STROM — KAMERA TOT',
   ts_mask_cam:'🎭 MIT MASKE KEINE KAMERA',
@@ -4017,6 +4022,7 @@ I18N.fr={
   ts_nopower_door:'⚡ PAS DE COURANT — PORTE HORS SERVICE',
   ts_mask_door:'🎭 PORTE IMPOSSIBLE AVEC LE MASQUE',
   ts_blackout:'⚡ PANNE DE COURANT ! FUSIBLE : {room}',
+  ts_power_warn:'⚠ COUPURE DANS 3s — FUSIBLE : {room}',
   ts_power_back:'⚡ LE COURANT EST REVENU',
   ts_nopower_cam:'⚡ PAS DE COURANT — CAMÉRA HORS SERVICE',
   ts_mask_cam:'🎭 CAMÉRA IMPOSSIBLE AVEC LE MASQUE',
@@ -5119,10 +5125,11 @@ let flashOn=false, battery=100, running=false;
 let walkBob=0;
 // Elektrik / sigorta
 let powered=true, powerTimer=0, fuseActive=false, nearDoor=null;
+let powerWarned=false, pendingSpot=null;   // ⚡ kesintiden ~3sn önce sigorta yerini önceden seç + duyur
 let toughUsed=false;    // 💪 DAYANIKLI'nın "ilk yakalanmayı sıyırma" hakkı kullanıldı mı
 let heroBlock=false;    // 🛡 KAHRAMAN'a devredilen darbe işlenirken tekrar devredilmesin
 function randRange(a,b){ return a+Math.random()*(b-a); }
-function resetPowerTimer(){ powerTimer=randRange(100,190); } // elektrik kesintisi artık nadir
+function resetPowerTimer(){ powerTimer=randRange(100,190); powerWarned=false; pendingSpot=null; } // elektrik kesintisi artık nadir
 // Müzik kutusu / Puppet
 let musicBox=100, puppetOut=false, winding=false;
 const puppetPos={x:PUP_HOME.x, z:PUP_HOME.z};
@@ -6090,7 +6097,8 @@ function blackout(){
   doors.forEach(d=>{ d.closed=false; d.closeT=0; d.cool=0; });   // güç yokken kapı zaten kapanamaz, bekleme de anlamsız
   Audio.tone(70,.8,'sawtooth',.3); Audio.noise(.7,.25,400);
   if(wasShut) Audio.bang();
-  const spot=FUSE_SPOTS[Math.floor(randRange(0,FUSE_SPOTS.length))];
+  const spot=pendingSpot || FUSE_SPOTS[Math.floor(randRange(0,FUSE_SPOTS.length))];   // 3sn önce uyarıda seçilen sigorta (varsa) — yer tutarlı olsun
+  pendingSpot=null; powerWarned=false;
   fuseDX=spot.p[0]; fuseDZ=spot.p[2];
   fuse.position.set(spot.p[0]*SC,spot.p[1],spot.p[2]*SC); fuse.visible=true; fuseActive=true; fuse._spot=spot.n;
   toast(tf('ts_blackout',{room:spot.n}));
@@ -6332,22 +6340,26 @@ function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpMode
   $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
   nearLight.intensity=0.25; nearLight.distance=3.5; nearLight.color.setHex(0x9099aa);   // jumpscare ışığını sıfırla
   $('#puppetVig').style.opacity='0';
-  // Ölüm satırı karaktere özel — kimin yakaladığı, NASIL yakaladığı da anlatılsın
-  const DEATH={ dark:ta('death_dark'), light:ta('death_light'), noise:ta('death_noise'), cove:ta('death_cove'), stare:ta('death_stare') };
-  const dl=DEATH[jumpKind];
-  $('#deadWho').textContent = puppetJump? t('death_puppet')
-    : (dl&&dl.length? dl[Math.floor(Math.random()*dl.length)] : tf('death_generic',{n:jumpName}));
+  // Dekoratif kısım (ölüm satırı/ipucu/ödeme) try içinde — biri patlarsa bile ALTTAKİ ölüm ekranı
+  // KESİN gelsin (yoksa oyuncu jumpscare karesinde asılı kalır = "ölünce çöküyor" şikâyeti).
+  try{
+    // Ölüm satırı karaktere özel — kimin yakaladığı, NASIL yakaladığı da anlatılsın
+    const DEATH={ dark:ta('death_dark'), light:ta('death_light'), noise:ta('death_noise'), cove:ta('death_cove'), stare:ta('death_stare') };
+    const dl=DEATH[jumpKind];
+    $('#deadWho').textContent = puppetJump? t('death_puppet')
+      : (dl&&dl.length? dl[Math.floor(Math.random()*dl.length)] : tf('death_generic',{n:jumpName}));
+    const hoursLeft=Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC);
+    const TIPS=ta('tips'); const tip=TIPS.length? TIPS[Math.floor(Math.random()*TIPS.length)] : '';
+    $('#deadWhen').innerHTML='Gece '+(customMode?'ÖZEL':night)+' • '+clockText()+'\'da yakalandın'
+      +(customMode?'':' — 06:00\'a '+hoursLeft+' saat kalmıştı')
+      +(tip?'<br><span style="color:#8a7a5a;font-size:13px">'+tip+'</span>':'');
+    // 💵 YARIM YEVMİYE — kaybettiğin gece de bir şey kazandırsın (eskiden ölünce elin bomboş kalıyordu)
+    paintPay($('#deadPay'), payout(false));
+  }catch(e){ console.error('[onDead dekor hatası — ölüm ekranı yine de açılıyor]', e); }
   puppetJump=false;
-  const hoursLeft=Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC);
-  const TIPS=ta('tips');
-  $('#deadWhen').innerHTML='Gece '+(customMode?'ÖZEL':night)+' • '+clockText()+'\'da yakalandın'
-    +(customMode?'':' — 06:00\'a '+hoursLeft+' saat kalmıştı')
-    +'<br><span style="color:#8a7a5a;font-size:13px">'+TIPS[Math.floor(Math.random()*TIPS.length)]+'</span>';
-  // 💵 YARIM YEVMİYE — kaybettiğin gece de bir şey kazandırsın (eskiden ölünce elin bomboş kalıyordu)
-  paintPay($('#deadPay'), payout(false));
   // 🎂 8-BIT ARA SAHNE — bazen ölüm ekranı yerine önce piksel sahne oynanır, o bitince ekran gelir
-  if(Pix.roll()) Pix.start(()=>$('#dead').classList.remove('hidden'));
-  else $('#dead').classList.remove('hidden'); }
+  try{ if(Pix.roll()){ Pix.start(()=>$('#dead').classList.remove('hidden')); return; } }catch(e){ console.error('[Pix hatası]',e); }
+  $('#dead').classList.remove('hidden'); }
 
 /* ================= GÜNCELLEME ================= */
 let stepTimer=0, flickT=randRange(8,20), flickActive=0, lightFlick=1;
@@ -6617,7 +6629,16 @@ function update(dt){
   // === PLAY ===
   if(spectating){ specCamera(dt); return; }   // İZLEYİCİ: kontrol yok, takımı izle (saat üstte akmaya devam eder)
   // elektrik zamanlayıcısı / sigorta toplama (MP co-op'ta da işler)
-  if(powered && !inBasement){ powerTimer-=dt; if(powerTimer<=0) blackout(); }   // bodrumdayken üst kat elektriği donar
+  if(powered && !inBasement){ powerTimer-=dt;
+    // ⚡ 3sn ÖNCEDEN UYARI: sigortanın nerede olacağını şimdi seç + duyur (ışıklar titremeye başlar),
+    // oyuncu kesinti gelmeden o odaya doğru yola çıkabilsin.
+    if(!powerWarned && powerTimer<=3 && (state===S.PLAY||state===S.CAMS)){
+      powerWarned=true; pendingSpot=FUSE_SPOTS[Math.floor(randRange(0,FUSE_SPOTS.length))];
+      toast(tf('ts_power_warn',{room:pendingSpot.n})); Audio.tone(1800,.05,'square',.06); Audio.tone(1400,.05,'square',.06);
+      flickActive=Math.max(flickActive,3.0);   // 3sn ışık titremesi = görsel geri sayım
+      if(navigator.vibrate) navigator.vibrate([40,60,40]);
+    }
+    if(powerTimer<=0) blackout(); }   // bodrumdayken üst kat elektriği donar
   else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ;
     if(Math.hypot(dx,dz)<1.1){
       /* 🔧 TEKNİSYEN: sigortayı yalnız o takabilir — ama takımda CANLI teknisyen kalmadıysa
@@ -6808,7 +6829,11 @@ function adaptRes(dt){
   else if(fps>57 && renderScale<RS_MAX){ renderScale=Math.min(RS_MAX, renderScale+0.08); renderer.setPixelRatio(renderScale); if(composer)composer.setPixelRatio(renderScale); rsCool=3; }
 }
 const _lFwd=new THREE.Vector3();
-function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
+/* 🛡 SAĞLAMLIK: eskiden loop gövdesinde tek bir istisna (örn. ölüm/ara-sahne yolunda) sondaki
+   requestAnimationFrame'e ulaşmadan zinciri kırıyordu → oyun TAMAMEN donuyordu ("ölünce çöküyor,
+   hiçbir şey yapamıyorum"). Artık her kare try/catch içinde; bir kare patlasa bile döngü hayatta
+   kalır ve bir sonraki kare denenir. Hata konsola yazılır ki kök sebep sessizce kaybolmasın. */
+function frame(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   Pix.update(dt);   // 🎂 ara sahne kendi rAF'ını kurmaz; ölüm sonrası burada sürülür
   update(dt); if(state===S.PLAY||state===S.CAMS) hud();
   Net.tick(dt);
@@ -6832,7 +6857,12 @@ function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   // Bloom kapalıyken bile composer'dan render et → vignette/gren/renk/aberasyon (grade) korunur;
   // yalnız UnrealBloom pass'i devre dışı bırakılır (eskiden bloom kapalı = TÜM grade kayboluyordu, mobil hiç görmüyordu).
   if(composer){ if(bloomPass) bloomPass.enabled=gfxBloom; composer.render(); } else renderer.render(scene,camera);
-  requestAnimationFrame(loop);
+}
+let loopErrs=0;
+function loop(now){
+  try{ frame(now); }
+  catch(err){ if(loopErrs++<8) console.error('[loop kare hatası — döngü hayatta tutuldu]', err); }
+  requestAnimationFrame(loop);   // NE OLURSA OLSUN bir sonraki kare planlanır → oyun asla tamamen donmaz
 }
 requestAnimationFrame(loop);
 </script>
