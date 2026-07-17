@@ -1963,12 +1963,19 @@ function litByFlash(x,z){
    Maske/tablet/bodrum → göremezsin, yani maske burada seni KORUMAZ (Freddo'nun tersi).
    litByFlash'ten ayrı bir koni: bu "ekranımda mı" sorusu (~53°), o "fenerim üstünde mi" (~36°). */
 function seenByPlayer(x,z){
-  if(state!==S.PLAY || masked || inBasement || downed) return false;
-  const dx=x-player.x, dz=z-player.z, d=Math.hypot(dx,dz);
+  /* İZLEYİCİ: bakış açısı İZLENEN ARKADAŞINKİ olmalı. Eskiden burada hep `player` okunuyordu;
+     ama izleyicide `player` senin cesedin — donmuş konum ve yaw. Sonuç: arkadaşın Boş Kostüm'e
+     dik dik bakarken senin ekranında donmuyor, içinden geçip gidiyordu (oyunun merkezî mekaniği
+     hakkında izleyiciye yalan). Uzak oyuncu objesinde yaw ve fener durumu (f) zaten senkron. */
+  const ob = spectating ? Net.specTarget() : player;
+  if(!ob) return false;
+  if(!spectating && (state!==S.PLAY || masked || inBasement || downed)) return false;
+  const dx=x-ob.x, dz=z-ob.z, d=Math.hypot(dx,dz);
   if(d>16) return false;
-  if(d>0.4 && (dx/d)*Math.sin(player.yaw)+(dz/d)*Math.cos(player.yaw) < 0.6) return false;
-  if(!losClear(player.x,player.z,x,z)) return false;
-  return powered || litByFlash(x,z);
+  if(d>0.4 && (dx/d)*Math.sin(ob.yaw)+(dz/d)*Math.cos(ob.yaw) < 0.6) return false;
+  if(!losClear(ob.x,ob.z,x,z)) return false;
+  // ışık: elektrik varsa görür; yoksa fener şart (izleyicide arkadaşın feneri = r.f)
+  return powered || (spectating? !!ob.f : litByFlash(x,z));
 }
 // Boş Kostüm'ün ava çıkma aralığı — gece/özel gece agresifliğiyle kısalır
 const STARE_HUNT=42;   // ava çıkınca ofise kadar gelip odasına dönene kadar geçen süre
@@ -2360,8 +2367,9 @@ function updateAI(dt){
        Parça Servis'te asılı kostümlerin arasında bekler; arada AVA ÇIKAR ve ofise kadar gelir
        (kullanıcı isteği: odasında oturup kalmasın). Avdayken bile SANA BAKMADIĞIN karelerde
        ilerler — baktığın an taş kesilir. Yani onu durdurmak bedava değil: ona bakmak, kutuyu
-       kurmamak / kamerayı açmamak / diğerlerini izlememek demek. Kapı onu durdurur (aşağıdaki
-       ortak takılma bloğu stare'i de kapsar), ama esas savunma GÖZ TEMASIDIR. */
+       kurmamak / kamerayı açmamak / diğerlerini izlememek demek. Kapalı kapı onu fiziksel
+       olarak engeller ama vazgeçirmez ve kapıya VURMAZ (takılma bloğundan muaf — ses ipucu
+       vermez); yalnız STARE_HUNT süresi dolunca çekilir. Esas savunma GÖZ TEMASIDIR. */
     else if(a.kind==='stare'){
       if(a.mode==='hunt'){
         a.run-=dt;
@@ -3247,7 +3255,10 @@ const Pix=(()=>{
   cv.addEventListener('pointermove',e=>{ if(touch.on){ e.preventDefault(); tp(e); } });
   window.addEventListener('pointerup',()=>{ touch.on=false; });
   $('#pixSkip').addEventListener('click',e=>{ e.stopPropagation(); Audio.click(); finish(); });
-  return {roll, start, update, isActive:()=>active};
+  // stop(): dışarıdan iptal (toMenu). finish()'ten farkı: lore YAZMAZ ve callback ÇAĞIRMAZ —
+  // menüye dönen oyuncuya ölüm ekranı açmak istemiyoruz.
+  function stop(){ if(!active) return; active=false; done=null; sc=null; $('#pix').classList.remove('show'); }
+  return {roll, start, update, stop, isActive:()=>active};
 })();
 
 /* ================= 📊 VARDİYA RAPORU =================
@@ -3304,12 +3315,15 @@ function drawReport(){
   }
 }
 function buildReport(win){
-  $('#repSub').textContent = (customMode?'ÖZEL GECE':'GECE '+night) + ' — ' + (win? '06:00, vardiya tamam' : 'yakalandın: '+clockText());
+  // MP'de izleyici olarak takımı izlerken saat AKMAYA DEVAM eder → clockText() teardown anını
+  // gösterirdi ("02:00'de öldün ama rapor 05:00 diyor"). Ölüm anı deathAt.time'da dondu.
+  const endT = win? '06:00' : (deathAt? deathAt.time : clockText());
+  $('#repSub').textContent = (customMode?'ÖZEL GECE':'GECE '+night) + ' — ' + (win? '06:00, vardiya tamam' : 'yakalandın: '+endT);
   drawReport();
   const el=$('#repStats'); el.innerHTML='';
   const add=(n,v,warn)=>{ const d=document.createElement('div'); d.className='repStat'+(warn?' warn':'');
     d.innerHTML=n+'<b>'+v+'</b>'; el.appendChild(d); };
-  add('Hayatta kalınan', clockText());
+  add('Hayatta kalınan', endT);
   add('Yürüdüğün mesafe', Math.round(runStats.dist)+' m');
   add('Kapı kapatma', runStats.doorCount+' kez', runStats.doorCount>10);
   add('Havalandırma', runStats.ventUsed+' kez');
@@ -3868,6 +3882,12 @@ function collide(px,pz){
 /* ================= GİRİŞ ================= */
 const keys={};
 addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
+  /* 🎂 ARA SAHNE OYNANIYORSA HİÇBİR ŞEY YAPMA. Ara sahne state===S.DEAD iken açılıyor ve
+     aşağıdaki satır S.DEAD'de her tuşu toMenu()'ye çeviriyordu → ekranın kendi yazdığı
+     "← → ↑ ↓ / WASD" ile piksel bekçiyi oynatmaya kalkan oyuncu anında menüye atılıyordu
+     (MP'de toMenu() → Net.leave() = sessizce lobiden atılma). Pix kendi dinleyicisini
+     kullanır; buradan çıkmak yeterli. */
+  if(Pix.isActive()) return;
   if(state===S.ENDING){ endingTap(); return; }
   if(state===S.VENT) return;
   if(state===S.MENU){ return; }   // menüde tuşla oto-başlama YOK — TEK/ÇOKLU butonlarından seç (oto-restart düzeltmesi)
@@ -4231,6 +4251,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   startPhone();
 }
 function toMenu(){ state=S.MENU; customMode=false; masked=false; downed=false; exhausted=false; camTask=null; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');
+  Pix.stop(); $('#repPanel').classList.remove('show');   // ara sahne/rapor menünün üstünde asılı kalmasın (z-index 58/60 > menü 40)
   if(inBasement){ inBasement=false; basStatic.visible=false; } risen.active=false; risen.model.visible=false; basTransT=0; $('#basFade').style.opacity='0';
   $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
   $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
@@ -4395,8 +4416,18 @@ function startJump(model,name){
 /* Oyuncu yakalandı — TEK OYUNCU: ölüm (jumpscare). MULTIPLAYER: yaralanır (ölmez), yakalayan geri çekilir.
    Zaten yaralıyken 2. yakalanış = gerçek ölüm. */
 function catchPlayer(model,name){
-  if(state===S.JUMP||state===S.DEAD) return;
-  if(Net.isPlaying() && !downed){ enterDowned(model,name); return; }
+  if(state===S.JUMP||state===S.DEAD||spectating) return;
+  if(Net.isPlaying()){
+    if(!downed){ enterDowned(model,name); return; }
+    /* ZATEN YARALIYKEN ikinci kez yakalandın (kutu boşaldı / vent'ten sızan / bodrumdaki).
+       Eskiden buradan startJump→onDead'e düşülüyordu ve o yol takıma "öldüm" DEMİYOR
+       (sendDied yalnız enterSpectator yolunda). Sonuç: arkadaşların seni canlı sanıyordu,
+       aliveList seni saymaya devam ediyordu, "herkes öldü" kontrolü ASLA dolmuyordu →
+       takım kaybı ekranı hiç gelmiyor, hayatta kalanlar cesedini sonsuza kadar izliyordu.
+       Doğrusu kan kaybıyla ölmekle aynı yol: izleyiciye geç + ağa bildir. */
+    downAttacker = name || downAttacker;
+    bleedOut(); return;
+  }
   startJump(model,name);
 }
 function enterDowned(model,name){
@@ -4423,7 +4454,11 @@ function bleedOut(){ if(state===S.DEAD||spectating) return;
   puppetJump=false; jumpName=downAttacker||'YARALAR';
   onDead(); $('#deadWho').textContent='kan kaybından öldün — kimse yetişemedi'; }
 /* ---- İZLEYİCİ MODU (MP: öldükten sonra takımı izle) ---- */
-function enterSpectator(){ if(spectating) return; spectating=true; downed=false; masked=false; flashOn=false; running=false;
+function enterSpectator(){ if(spectating) return;
+  // 📊 MP ölümü startJump'tan geçmez → deathAt hiç yazılmıyordu: vardiya raporunda kırmızı X
+  // çıkmıyor, saat de takım wipe anında okunduğu için "05:00'te yakalandın" gibi yanlış çıkıyordu.
+  if(!deathAt) deathAt={x:player.x, z:player.z, name:downAttacker||'YARALAR', time:clockText()};
+  spectating=true; downed=false; masked=false; flashOn=false; running=false;
   $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#maskOv').classList.remove('show');
   if(inBasement){ inBasement=false; basStatic.visible=false; }
   // updateRisen() izleyicide çalışmaz → yükselen bozuk animatronik haritada DONMUŞ halde
@@ -4493,7 +4528,10 @@ function updateCamTask(dt){
     return;
   }
   camTaskT-=dt;
-  const awake=AIS.filter(a=>a.awake);
+  // 🧸 BOŞ KOSTÜM görev havuzuna GİRMEZ: hiçbir kamerada görünmüyor (A.spare.visible), yani
+  // "onu kontrol et" görevi bilgi taşımayan bir yem olurdu — üstelik seni tam da ona bakmaman
+  // gereken yere, tablete zorlardı.
+  const awake=AIS.filter(a=>a.awake && a.kind!=='stare');
   if(camTaskT<=0 && awake.length && camMiss<3){
     const a=awake[Math.floor(Math.random()*awake.length)], cam=camForAnimatronic(a);
     camTask={cam, label:CAMV[cam].n, who:a.name}; camTaskWin=12;
@@ -4580,7 +4618,19 @@ function update(dt){
   // halüsinasyonlar (aktif anim her durumda ilerler; yeni tetik yalnız PLAY + ayar açıkken)
   Hallu.update(dt, Math.min(1,dangerLevel), state===S.PLAY && SET.hallu>0);
   // 📞 Telefon Adamı + 🏆 başarım pop zamanlayıcısı
-  if(state===S.PLAY||state===S.CAMS){ updatePhone(dt); updateCalls(dt); }   // ☎ brifing + canlı arama
+  // ☎ brifing + canlı arama — İZLEYİCİ HARİÇ: ölü oyuncuya telefon çalmaz ve onun lokal
+  // simülasyonunda emitNoise ile Chika'yı ofise çekmez (izlediği arkadaşın gerçeğinden sapardı).
+  if(!spectating && (state===S.PLAY||state===S.CAMS)){ updatePhone(dt); updateCalls(dt); }
+  /* 📹 CCTV + kamera görevi — BURADA olmak ZORUNDA (aşağıdaki `if(state===S.CAMS){…return;}`
+     dalının ÜSTÜNDE). Eskiden bu iki çağrı o return'ün ALTINDAydı → tablet açıkken ikisi de
+     hiç çalışmıyordu ve şunlar sessizce ölüydü:
+       • kamera görevi TAMAMLANAMIYORDU (tamamlama koşulu `state===S.CAMS` istiyor ama fonksiyon
+         S.CAMS'te hiç çağrılmıyordu) → kusursuz oynayan oyuncu bile kaçırıyor, camDone hep 0,
+         prim alınamıyor, kademeli ceza boşuna işliyordu;
+       • v39'un parazit/arıza sistemi ve 🔊 mikrofonu tablette hiç çalışmıyordu;
+       • Director'ın 'cam' ekseni hiç beslenmiyordu (tablette kamp exploit'i görünmezdi).
+     İzleyicide çalışmaz (kendi guard'ı), bodrumda kamera yoktur. */
+  if(!spectating && !inBasement && (state===S.PLAY||state===S.CAMS)){ updateCams(dt); updateCamTask(dt); }
   if(achPopT>0){ achPopT-=dt; if(achPopT<=0){ $('#achPop').classList.remove('show'); setTimeout(showNextAch,450); } }
 
   // === JUMPSCARE animasyonu ===
@@ -4839,8 +4889,7 @@ function update(dt){
     }
   }
 
-  if(!inBasement) updateCams(dt);      // 📹 CCTV: parazit + arıza + sensör/mikrofon
-  if(!inBasement) updateCamTask(dt);   // kamera görevi (bodrumdayken donar)
+  // (updateCams/updateCamTask yukarı taşındı — S.CAMS return'ünün altında ölü kod oluyorlardı)
   if(!inBasement) updateRisen(dt);     // bodrumdan çıkan yavaş bozuk animatronik (üst katta)
   updateBasTask(dt);      // gece bodrum görevi (vana kapat) + kan-kaybı benzeri süre
   updateDowned(dt);       // multiplayer: yaralı kan kaybı sayacı + takım kurtarma
