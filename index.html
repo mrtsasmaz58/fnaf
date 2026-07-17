@@ -123,6 +123,23 @@
   #setBtn{position:fixed;top:14px;right:16px;z-index:45;width:44px;height:44px;border-radius:11px;
     background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:1px solid rgba(255,255,255,.18);
     color:#cfd6e0;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  /* 📊 VARDİYA RAPORU */
+  #repPanel{position:fixed;inset:0;z-index:58;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center 40%,rgba(10,12,18,.96),#000 78%);padding:18px;overflow-y:auto;}
+  #repPanel.show{display:flex;}
+  #repPanel h2{color:#c9a227;font-size:min(30px,6.4vw);letter-spacing:2px;margin-bottom:4px;}
+  #repPanel .setSub{color:#7a828c;font-size:13px;margin-bottom:12px;text-align:center;}
+  #repCanvas{width:min(640px,94vw);max-height:52vh;background:#07080b;border:1px solid #232830;border-radius:8px;}
+  #repLegend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:10px 0 4px;font-size:11px;color:#8a929c;}
+  #repLegend span{display:flex;align-items:center;gap:5px;}
+  #repLegend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+  #repStats{width:min(640px,94vw);display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin:10px 0;}
+  .repStat{background:#12151b;border:1px solid #232830;border-radius:6px;padding:8px 10px;font-size:12px;color:#cfd6e0;}
+  .repStat b{display:block;color:#c9a227;font-size:15px;margin-top:2px;}
+  .repStat.warn b{color:#ff8a3a;}
+  #repClose{margin-top:8px;padding:11px 26px;background:#1a1e26;border:1px solid #333a45;color:#cfd6e0;border-radius:7px;font-size:14px;cursor:pointer;}
+  .repBtn{margin-top:14px;padding:10px 22px;background:#1a1e26;border:1px solid #3a4250;color:#c9a227;
+    border-radius:7px;font-size:13px;letter-spacing:1px;cursor:pointer;pointer-events:auto;}
   #setPanel{position:fixed;inset:0;z-index:55;display:none;flex-direction:column;align-items:center;justify-content:center;
     background:radial-gradient(ellipse at center 40%,rgba(12,14,20,.94),#000 78%);padding:24px;}
   #setPanel.show{display:flex;}
@@ -640,6 +657,7 @@
   <div class="sub" id="deadWho">??? seni buldu</div>
   <div class="sub" id="deadWhen" style="color:#6a6a6a"></div>
   <div class="payout" id="deadPay"></div>
+  <button class="repBtn" data-rep="1">📊 VARDİYA RAPORU</button>
   <div class="tapHint">TEKRAR İÇİN DOKUN</div>
 </div>
 
@@ -649,7 +667,23 @@
   <div class="bigTitle" id="winTitle" style="color:#3fae5a;text-shadow:0 0 22px #3fae5a">GECE ATLATILDI</div>
   <div class="sub" id="winSub">Gece 1 bitti</div>
   <div class="payout" id="winPay"></div>
+  <button class="repBtn" data-rep="1">📊 VARDİYA RAPORU</button>
   <div class="tapHint">DEVAM İÇİN DOKUN</div>
+</div>
+
+<!-- 📊 VARDİYA RAPORU — gece sonunda ne olduğunun üstten haritası + sayılar -->
+<div id="repPanel">
+  <h2>📊 VARDİYA RAPORU</h2>
+  <div class="setSub" id="repSub">—</div>
+  <canvas id="repCanvas" width="640" height="440"></canvas>
+  <div id="repLegend">
+    <span><i style="background:#3fae5a"></i>başlangıç</span>
+    <span><i style="background:#4aa3ff"></i>yürüdüğün yol</span>
+    <span><i style="background:#ff3a3a"></i>yakalandığın yer</span>
+    <span><i style="background:#c79bff"></i>animatronik izi</span>
+  </div>
+  <div id="repStats"></div>
+  <button id="repClose">‹ KAPAT</button>
 </div>
 
 <script type="module">
@@ -2309,7 +2343,7 @@ function updateAI(dt){
       // ---- GÖZ TEMASI = TAM DONMA (hareket + animasyon + yakalama durur) ----
       if(seenByPlayer(a.pos.x,a.pos.z)){
         if(a.frozen<=0 && a.chasing) Audio.sting();   // ilk göz göze: bir tık — "fark ettin"
-        a.frozen=1; want=false; a.chasing=false;
+        a.frozen=1; want=false; a.chasing=false; runStats.frozeStare+=dt;   // 📊 rapor: ne kadar göz teması kurdun
       } else a.frozen=0;
     }
 
@@ -2991,8 +3025,88 @@ const ACH=[
   {id:'stare_room',ico:'🧸', n:'KOSTÜMLERİ SAYDIM',d:'Parça Servis Odası\'na gir ve sağ çık.'},
   {id:'stare_calm',ico:'👁️', n:'GÖZÜMÜ AYIRMADIM',d:'Boş Kostüm ava çıktığı bir geceyi sağ atlat.'},
 ];
-const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false};
-function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; }
+const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false, doorCount:0, camOpens:0, dist:0, frozeStare:0};
+function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; runStats.doorCount=0; runStats.camOpens=0; runStats.dist=0; runStats.frozeStare=0; }
+
+/* ================= 📊 VARDİYA RAPORU =================
+   Gece bitince (kazan ya da öl) ne olduğunu ÜSTTEN gösterir: yürüdüğün yol, uyanan her
+   animatroniğin izi, yakalandığın nokta, ve Director'ın seni nasıl okuduğu. Veri zaten
+   toplanıyordu (runStats + Dir.prof) — eksik olan tek şey yolu örneklemek ve çizmekti. */
+const runPath=[]; const aiTrail={}; let pathT=0, deathAt=null;
+function resetReport(){ runPath.length=0; pathT=0; deathAt=null; for(const k in aiTrail) delete aiTrail[k]; }
+function sampleReport(dt){
+  if(state!==S.PLAY && state!==S.CAMS) return;
+  pathT-=dt; if(pathT>0) return;
+  pathT=0.45;
+  // bodrum ayrı kat → izi oraya taşımıyoruz, üst kat haritasında yanıltıcı çizgi olurdu
+  if(!inBasement) runPath.push({x:player.x, z:player.z});
+  for(const a of AIS){ if(a.awake) (aiTrail[a.id]=aiTrail[a.id]||[]).push({x:a.pos.x, z:a.pos.z}); }
+}
+const REP_COL={freddo:'#8a6a3a', bonko:'#a03a8a', chika:'#b5a03a', foxo:'#b5502a', spare:'#8a94a4'};
+function drawReport(){
+  const cv=$('#repCanvas'), g=cv.getContext('2d'), W=cv.width, H=cv.height, pad=14;
+  g.fillStyle='#07080b'; g.fillRect(0,0,W,H);
+  // tasarım koordinatı → canvas (en-boy oranı korunur, ortalanır)
+  const s=Math.min((W-pad*2)/(FMAXX-FMINX), (H-pad*2)/(FMAXZ-FMINZ));
+  const ox=(W-(FMAXX-FMINX)*s)/2, oz=(H-(FMAXZ-FMINZ)*s)/2;
+  const PX=x=>ox+(x-FMINX)*s, PZ=z=>oz+(z-FMINZ)*s;
+  g.font='9px monospace';
+  for(const r of REGIONS){
+    const x0=PX(r.x[0]), z0=PZ(r.z[0]), w=(r.x[1]-r.x[0])*s, h=(r.z[1]-r.z[0])*s;
+    g.fillStyle='#111419'; g.fillRect(x0,z0,w,h);
+    g.strokeStyle='#242a33'; g.lineWidth=1; g.strokeRect(x0,z0,w,h);
+    g.fillStyle='#39424d'; g.fillText(r.n, x0+3, z0+11);
+  }
+  for(const id in aiTrail){
+    const t=aiTrail[id]; if(t.length<2) continue;
+    g.strokeStyle=REP_COL[id]||'#c79bff'; g.lineWidth=1.3; g.globalAlpha=.5;
+    g.beginPath(); t.forEach((p,i)=> i? g.lineTo(PX(p.x),PZ(p.z)) : g.moveTo(PX(p.x),PZ(p.z))); g.stroke();
+    g.globalAlpha=1;
+    const e=t[t.length-1];
+    g.fillStyle=REP_COL[id]||'#c79bff'; g.beginPath(); g.arc(PX(e.x),PZ(e.z),3,0,7); g.fill();
+  }
+  if(runPath.length>1){
+    g.lineWidth=2.2; g.lineCap='round'; g.lineJoin='round';
+    for(let i=1;i<runPath.length;i++){    // geç saatler daha parlak → yolun yönü okunur
+      g.strokeStyle='rgba(74,163,255,'+(0.22+i/runPath.length*0.78).toFixed(2)+')';
+      g.beginPath(); g.moveTo(PX(runPath[i-1].x),PZ(runPath[i-1].z)); g.lineTo(PX(runPath[i].x),PZ(runPath[i].z)); g.stroke();
+    }
+    g.fillStyle='#3fae5a'; g.beginPath(); g.arc(PX(runPath[0].x),PZ(runPath[0].z),4.5,0,7); g.fill();
+  }
+  if(deathAt){
+    const x=PX(deathAt.x), z=PZ(deathAt.z);
+    g.strokeStyle='#ff3a3a'; g.lineWidth=2.6;
+    g.beginPath(); g.moveTo(x-7,z-7); g.lineTo(x+7,z+7); g.moveTo(x+7,z-7); g.lineTo(x-7,z+7); g.stroke();
+    g.fillStyle='#ff3a3a'; g.font='bold 10px monospace';
+    g.fillText(deathAt.name+' • '+deathAt.time, x+10, z-8);
+  }
+}
+function buildReport(win){
+  $('#repSub').textContent = (customMode?'ÖZEL GECE':'GECE '+night) + ' — ' + (win? '06:00, vardiya tamam' : 'yakalandın: '+clockText());
+  drawReport();
+  const el=$('#repStats'); el.innerHTML='';
+  const add=(n,v,warn)=>{ const d=document.createElement('div'); d.className='repStat'+(warn?' warn':'');
+    d.innerHTML=n+'<b>'+v+'</b>'; el.appendChild(d); };
+  add('Hayatta kalınan', clockText());
+  add('Yürüdüğün mesafe', Math.round(runStats.dist)+' m');
+  add('Kapı kapatma', runStats.doorCount+' kez', runStats.doorCount>10);
+  add('Havalandırma', runStats.ventUsed+' kez');
+  add('Kamera açma', runStats.camOpens+' kez');
+  add('Kamera görevi', runStats.camDone+' tamam / '+camMiss+' kaçtı', camMiss>0);
+  add('Müzik kutusu dibi', Math.round(runStats.boxMin)+'%', runStats.boxMin<20);
+  add('Fener', runStats.battDied? 'BİTTİ':'dayandı', runStats.battDied);
+  if(runStats.frozeStare>0) add('🧸 Göz teması', Math.round(runStats.frozeStare)+' sn');
+  // Director ne gördü? — bu raporun asıl ilginç kısmı: oyuna göre DEĞİL, sana göre ne değişti
+  if(Dir.active()){
+    const names={flash:'🔦 fener hep açık',door:'🚪 kapıya güven',vent:'🪜 vent kestirmesi',noise:'🏃 gürültü',camp:'🐻 ofiste kamp'};
+    let top=null, tv=0;
+    for(const k in Dir.prof) if(Dir.prof[k]>tv){ tv=Dir.prof[k]; top=k; }
+    add('🧠 Director seni okudu', tv>0.3? names[top] : 'dengeli oynadın', tv>0.7);
+    const h=Dir.heat;
+    add('🧠 Baskı', h>0.45? 'YÜKSELTTİ (rahattın)' : h<-0.2? 'düşürdü (zorlandın)' : 'sabit', h>0.45);
+  }
+}
+function openReport(){ buildReport(state===S.WIN); $('#repPanel').classList.add('show'); Audio.click(); }
 let achQueue=[], achShowing=false, achPopT=0;
 function unlockAch(id){ if(save.ach.includes(id)) return; save.ach.push(id); saveGame();
   const a=ACH.find(x=>x.id===id); if(a){ achQueue.push(a); if(!achShowing) showNextAch(); } }
@@ -3551,6 +3665,11 @@ $('#soloBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); A
 $('#soloBack').addEventListener('click',e=>{ e.stopPropagation(); showModePick(); Audio.click(); });
 $('#dead').addEventListener('click',toMenu);
 $('#win').addEventListener('click',toMenu);
+// 📊 Rapor butonu ölüm/kazanma overlay'inin İÇİNDE → stopPropagation şart, yoksa tıklama
+// overlay'e geçip toMenu()'yü tetikler ve rapor açılır açılmaz menüye atar.
+document.querySelectorAll('.repBtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openReport(); }));
+$('#repPanel').addEventListener('click',e=>e.stopPropagation());
+$('#repClose').addEventListener('click',e=>{ e.stopPropagation(); $('#repPanel').classList.remove('show'); Audio.click(); });
 $('#ending').addEventListener('click',endingTap);
 $('#actBtn').addEventListener('click',interactDoor);
 $('#camBtn').addEventListener('click',openCamera);
@@ -3619,7 +3738,7 @@ function interactDoor(){
       toast('⏳ KAPI ISINIYOR — '+Math.ceil(nearDoor.cool)+'s');
       Audio.tone(140,.12,'square',.18); return;
     }
-    nearDoor.closed=true; nearDoor.closeT=DOOR_TIME; runStats.doorUsed=true;   // 🏆 kapı kapatıldı
+    nearDoor.closed=true; nearDoor.closeT=DOOR_TIME; runStats.doorUsed=true; runStats.doorCount++;   // 🏆 kapı kapatıldı
     Dir.bump('door', 0.14);   // 🧠 kapıya yaslanan oyuncuya Foxo ısrarcılaşır
     toast(nearDoor.name+' KAPANDI — '+DOOR_TIME+'s');
   }
@@ -3637,7 +3756,7 @@ function openCamera(){
   if(masked){ toast('🎭 MASKE TAKILIYKEN KAMERA AÇILMAZ'); Audio.tone(200,.1,'square',.15); return; }
   if(!inOffice()){ toast('📹 KAMERA SADECE OFİSTE KULLANILIR'); Audio.tone(200,.1,'square',.15); return; }
   if(!powered){ toast('⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR'); Audio.tone(160,.12,'square',.18); return; }
-  state=S.CAMS; $('#tablet').classList.add('show'); $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam();
+  state=S.CAMS; runStats.camOpens++; $('#tablet').classList.add('show'); $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam();
 }
 function closeCamera(){ if(state!==S.CAMS) return; state=S.PLAY; winding=false; $('#tablet').classList.remove('show'); $('#windBtn').classList.add('hidden'); Audio.tone(300,.06,'square',.1); }
 function cycleCam(dir){ camIndex=(camIndex+dir+CAMV.length)%CAMV.length; winding=false; $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam(); }
@@ -3716,7 +3835,7 @@ $('#cheatIn').addEventListener('input',e=>{ const v=(e.target.value||'').trim().
 
 function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Audio.startAmbience(); Audio.setAmbient(true);
   Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show'); $('#mktBtn').classList.add('hidden'); $('#mktPanel').classList.remove('show'); $('#fsBtn').classList.add('hidden');
-  resetRunStats(); Dir.reset();   // 🧠 Director her vardiyada sıfırdan okumaya başlar
+  resetRunStats(); Dir.reset(); resetReport();   // 🧠 Director her vardiyada sıfırdan okumaya başlar
   night=selNight; clockT=0; lastHour=0;
   masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
   ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null; ventCool=0;
@@ -3904,6 +4023,7 @@ const JUMP_STYLE={
 function jumpStyle(){ return puppetJump? {dist:1.5, shake:0.24, scale:1.72, jaw:40, wob:34, flick:30, dur:1.65, eye:0xff88aa} : (JUMP_STYLE[jumpKind]||JUMP_STYLE.dark); }
 function startJump(model,name){
   if(state===S.JUMP||state===S.DEAD) return;
+  deathAt={x:player.x, z:player.z, name:name||'???', time:clockText()};   // 📊 rapor: nerede/ne zaman/kim
   jumpModel=model; jumpName=name||'???'; state=S.JUMP; winding=false; jumpT=0;
   puppetJump=(model===puppet); jumpKind=kindOfModel(model);
   $('#puppetVig').style.opacity='0'; $('#puppetWarn').style.opacity='0';
@@ -4392,6 +4512,9 @@ function update(dt){
     if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast('😮‍💨 NEFES NEFESE — biraz yürü'); }
   } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
+
+  runStats.dist+=moved;      // 📊 rapor: kat edilen mesafe
+  sampleReport(dt);          // 📊 rapor: yol izi + animatronik izleri
 
   // 🏆 Parça Servis'e ayak bastı mı (gece sonunda "sağ çıktın" başarımı için)
   if(!inBasement && player.x>=NX(-13) && player.x<=NX(-9) && player.z>=NZ(-9) && player.z<=NZ(-2)) runStats.partsRoom=true;
