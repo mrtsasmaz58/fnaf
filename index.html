@@ -349,11 +349,42 @@
     letter-spacing:.5px;pointer-events:auto;}
   #abilBtn.ready{border-color:#c9a227;color:#ffe6a0;box-shadow:0 0 12px rgba(201,162,39,.35);}
   #abilBtn.hidden{display:none;}
+  /* 🌙 GECE GÖRÜŞÜ KAMERASI — takma/çıkarma animasyonlu (anında yanıp sönmüyor):
+     nvOv = yeşil fosfor tabakası (açılış/kapanış animasyonu onda), nvScan = dolaşan tarama çizgisi,
+     nvBars = kameranın gövdesi (üst/alt siyah bantlar aşağı/yukarı kayarak "takılır"). */
   #nvOv{position:fixed;inset:0;z-index:14;pointer-events:none;display:none;
     background:radial-gradient(ellipse 70% 70% at 50% 50%,rgba(60,255,120,.13),rgba(0,40,10,.5) 100%);
     mix-blend-mode:screen;}
   #nvOv.show{display:block;animation:nvFlick .09s steps(2) infinite;}
   @keyframes nvFlick{0%{opacity:.92}100%{opacity:1}}
+  /* takarken: iris açılır gibi ortadan genişler + kısa beyaz-yeşil boot parlaması */
+  #nvOv.on{animation:nvIn .45s ease-out, nvFlick .09s steps(2) .45s infinite;}
+  @keyframes nvIn{
+    0%  {opacity:0; clip-path:circle(0% at 50% 50%); filter:brightness(3);}
+    45% {opacity:1; clip-path:circle(62% at 50% 50%); filter:brightness(1.7);}
+    100%{opacity:1; clip-path:circle(150% at 50% 50%); filter:brightness(1);}
+  }
+  /* çıkarırken: eski tüplü ekran gibi yatay çizgiye çöker */
+  #nvOv.off{display:block;animation:nvOut .28s ease-in forwards;}
+  @keyframes nvOut{
+    0%  {opacity:1; transform:scaleY(1);   filter:brightness(1);}
+    70% {opacity:1; transform:scaleY(.04); filter:brightness(2.4);}
+    100%{opacity:0; transform:scaleY(0);   filter:brightness(3);}
+  }
+  #nvBars{position:fixed;inset:0;z-index:15;pointer-events:none;display:none;}
+  #nvBars.show{display:block;}
+  #nvBars::before,#nvBars::after{content:'';position:absolute;left:0;right:0;height:11%;
+    background:linear-gradient(#000,rgba(0,0,0,.72));}
+  #nvBars::before{top:0;animation:nvBarT .45s ease-out;}
+  #nvBars::after{bottom:0;background:linear-gradient(rgba(0,0,0,.72),#000);animation:nvBarB .45s ease-out;}
+  @keyframes nvBarT{0%{transform:translateY(-100%)}100%{transform:translateY(0)}}
+  @keyframes nvBarB{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
+  /* tarama çizgisi: yeteneğin açık olduğu sürece yukarıdan aşağı süzülür */
+  #nvScan{position:fixed;left:0;right:0;height:14%;z-index:15;pointer-events:none;display:none;
+    background:linear-gradient(rgba(120,255,160,0),rgba(120,255,160,.16),rgba(120,255,160,0));
+    mix-blend-mode:screen;}
+  #nvScan.show{display:block;animation:nvScanMove 2.6s linear infinite;}
+  @keyframes nvScanMove{0%{top:-14%}100%{top:100%}}
   #roleHud{position:fixed;left:14px;bottom:96px;z-index:20;color:#c9a227;font-size:12px;letter-spacing:.6px;
     background:rgba(10,12,16,.62);border:1px solid #2a3038;border-radius:6px;padding:4px 9px;display:none;pointer-events:none;}
   #roleHud.show{display:block;}
@@ -753,6 +784,8 @@
 <div id="panicVig"></div>
 <button id="abilBtn" class="hidden">⚡</button>
 <div id="nvOv"></div>
+<div id="nvBars"></div>
+<div id="nvScan"></div>
 
 <!-- 🎂 8-BIT ARA SAHNE — ölümden sonra bazen açılan piksel mini-oyun (lore) -->
 <div id="pix">
@@ -830,16 +863,31 @@ try{
    Dinamik import (addons); yüklenmezse composer null kalır ve normal render devam eder (oyun bozulmaz). */
 let composer=null, bloomPass=null, gradePass=null;
 let gfxBloom = !isMobile;   // masaüstünde açık; mobilde ⚙ Ayarlar'dan açılabilir (perf)
+// Grade ayarları tek yerde: taban + tehlikede eklenen tavan (loop içinde de bunlar kullanılır,
+// eskiden sayılar iki yere elle yazılıydı ve loop taban değerini eziyordu).
+const AB_BASE    = isMobile?0.008:0.012, AB_DANGER    = 0.018;   // tavan 0.030 → 1080p köşede ~14px
+const GRAIN_BASE = isMobile?0.030:0.038, GRAIN_DANGER = 0.030;
 // SİNEMATİK DERECELENDİRME shader'ı (vignette + film grain + kromatik aberasyon + renk grade)
 // → OutputPass'tan SONRA (sRGB görüntü üzerinde), tek tam-ekran geçiş, ucuz ama atmosferi uçurur.
+/* ⚠️ ab (kromatik aberasyon) ÖLÇEĞİ — buraya dikkat, bir kez çok yanlış ayarlandı:
+   köşedeki gerçek kayma = 0.5*0.5*ab UV = 0.25*ab. 1080p'de 1 UV ≈ 1920px, yani
+   ab=0.18 → 86px, tehlikede ab=0.40 → 192px kırmızı/mavi ayrışma. O "lens hissi" değil,
+   bozuk görüntü (v50'ye kadar oyun böyle görünüyordu). Sinematik CA 3-10px arasıdır →
+   ab tabanı ~0.012-0.02 olmalı. Yeni bir değer denerken px karşılığını hesapla. */
 const GradeShader = {
-  uniforms:{ tDiffuse:{value:null}, time:{value:0}, res:{value:new THREE.Vector2(1,1)},
-             vig:{value:0.62}, grain:{value:0.055}, ab:{value:0.18}, sat:{value:1.06} },
+  uniforms:{ tDiffuse:{value:null}, time:{value:0},
+             vig:{value:0.62}, grain:{value:0.038}, ab:{value:0.012}, sat:{value:1.06} },
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader:`
-    uniform sampler2D tDiffuse; uniform float time; uniform vec2 res;
+    uniform sampler2D tDiffuse; uniform float time;
     uniform float vig, grain, ab, sat; varying vec2 vUv;
-    float rand(vec2 c){ return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453); }
+    /* Eski gren hash'i rand(uv*res) idi: sin() argümanı 1080p'de ~109000'e çıkıyordu ve
+       float32'nin hassasiyeti orada bitiyor → gren yerine kayan bantlı moire deseni
+       (ekranın "glitchli" görünmesinin ikinci sebebi). Bu hash (Hoskins hash13) argümanı
+       küçük tutar, her çözünürlükte temiz beyaz gürültü verir. */
+    float hash13(vec3 p3){
+      p3=fract(p3*0.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z);
+    }
     void main(){
       vec2 uv=vUv; vec2 d=uv-0.5; float r2=dot(d,d);
       // KROMATİK ABERASYON — kenarlarda kırmızı/mavi ayrışması (lens hissi)
@@ -856,8 +904,8 @@ const GradeShader = {
       // VİGNET — köşeleri karart (odak merkeze)
       float v=1.0 - smoothstep(0.12,0.62,r2)*vig;
       col*=v;
-      // FİLM GRAİN — animasyonlu ince gren (karanlıkta daha belirgin)
-      float g=(rand(uv*res + fract(time*1.37))-0.5)*grain*(1.0-l*0.55);
+      // FİLM GRAİN — piksel başına gürültü (gl_FragCoord: pixelRatio değişince kendi uyar)
+      float g=(hash13(vec3(gl_FragCoord.xy, floor(time*24.0)))-0.5)*grain*(1.0-l*0.55);
       col+=g;
       gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
     }`
@@ -881,9 +929,8 @@ const GradeShader = {
     composer.addPass(bloomPass);
     composer.addPass(new OP.OutputPass());   // tonemapping + sRGB
     gradePass = new SP.ShaderPass(GradeShader);   // sinematik grade (en sonda)
-    gradePass.uniforms.grain.value = isMobile?0.04:0.055;
-    gradePass.uniforms.ab.value    = isMobile?0.10:0.18;
-    gradePass.material.uniforms.res.value.set(innerWidth, innerHeight);
+    gradePass.uniforms.grain.value = GRAIN_BASE;
+    gradePass.uniforms.ab.value    = AB_BASE;
     composer.addPass(gradePass);
   }catch(e){ composer=null; }   // post-process yok → normal render
 })();
@@ -906,7 +953,7 @@ function fitViewport(){
   document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
   camera.aspect=w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);   // mevcut pixelRatio korunur (adaptif ölçekleyici yönetir)
-  if(composer){ composer.setSize(w,h); if(bloomPass) bloomPass.setSize(w,h); if(gradePass) gradePass.material.uniforms.res.value.set(w,h); }
+  if(composer){ composer.setSize(w,h); if(bloomPass) bloomPass.setSize(w,h); }   // grade artık gl_FragCoord kullanıyor → res yok
   const jb=document.getElementById('joyBase'); if(jb && jb.classList.contains('hint')) jb.style.top=(h-300)+'px';
 }
 addEventListener('resize', fitViewport);
@@ -2338,9 +2385,12 @@ function updateAI(dt){
       u.eyeWhite.emissiveIntensity=0.5; continue;
     }
 
-    // MULTIPLAYER YARALI: sen yerdeysen (downed) canavarlar seni hedef almaz, evlerine çekilir
-    // (helpless'ken üstünde kamp kurmasınlar; tek tehdit 60sn kan kaybı sayacı + takımın yetişmesi)
-    if(downed){
+    /* MULTIPLAYER YARALI — kısa nefes payı. Eskiden şart sadece `downed` idi: yerdeyken
+       animatroniklerin HEPSİ yaralı kaldığın 60-100sn boyunca evine çekiliyordu, yani harita
+       tamamen uyuyordu. MP'ye tek girip yaralanınca da bu 60sn'lik ölü boşlukta kilitleniyordun
+       (ne kurtaracak takım var, ne ölebiliyorsun). Artık yalnız DOWN_CALM(2sn) sürer, sonra
+       normal AI döner ve seni bitirebilir → yaralanmak gerçekten tehlikeli, takım koşmak zorunda. */
+    if(downed && downCalm>0){
       let hx=a.home.x, hz=a.home.z; a.chasing=false;
       if(a.kind==='cove' && a.mode!=='cove') a.mode='back';
       a.navT-=dt;
@@ -2355,11 +2405,7 @@ function updateAI(dt){
 
     let tx=tgt.x, tz=tgt.z, sp=a.speed*sm*camBoost, want=false;   // camBoost: kamera görevi kaçırılınca hızlanır
     const dist0=Math.hypot(tgt.x-a.pos.x, tgt.z-a.pos.z);
-    /* 🎯 YEM — "yaratıklar bu kişiye daha çok odaklanır": algı menzili büyür, vazgeçmeleri zorlaşır,
-       gürültüsü daha uzaktan duyulur. MP'de takım için canlı bir yem: onlar işini yaparken sen
-       üstüne çekersin. Bu rolle geceyi bitirmek 🏆 başarım (hak edilmiş). */
-    const baitM = roleIs('bait')? 1.45 : 1;
-    const see=dist0<cfg.detect*baitM && losClear(a.pos.x,a.pos.z,tgt.x,tgt.z);
+    const see=dist0<cfg.detect && losClear(a.pos.x,a.pos.z,tgt.x,tgt.z);
 
     // ---- KAPALI KAPIYI GÖRDÜ → DOOR_FORGET sn sonra unut ----
     // Kapıya dokunmasına gerek yok (Bonko pusuda durup hiç dokunmuyordu);
@@ -2417,7 +2463,7 @@ function updateAI(dt){
     // Görmez, DUYAR. Koşarsan haritanın öbür ucundan gelir; yürürsen ancak yakınında fark eder.
     // Hiç ses yoksa devriye atar — yani sessiz kalmak onu etkisizleştirir ama yok etmez.
     else if(a.kind==='noise'){
-      if(noiseLvl>0.2 && noiseLvl*26*baitM > Math.hypot(noiseX-a.pos.x, noiseZ-a.pos.z)){ a.hx=noiseX; a.hz=noiseZ; a.hear=noiseLvl; }   // 🎯 YEM'in sesi daha uzaktan duyulur
+      if(noiseLvl>0.2 && noiseLvl*26 > Math.hypot(noiseX-a.pos.x, noiseZ-a.pos.z)){ a.hx=noiseX; a.hz=noiseZ; a.hear=noiseLvl; }
       a.hear=Math.max(0,a.hear-dt*0.25);
       if(see && dist0<4.5){ a.hx=tgt.x; a.hz=tgt.z; a.hear=1; }
       a.chasing=a.hear>0.5;
@@ -3038,8 +3084,7 @@ I18N.tr={
   abil_radio_team:'📡 RADAR MEVKİ VERDİ — 3sn',
   rat_vent:'🐀 VENTTEKİ SANA DOKUNMADI — burası senin evin',
   role_tech_d:'⚡ Elektrik gitse bile bir kez İKİ KAPIYI birden kapatabilirsin. Kapı beklemen 5sn (diğerleri 7sn).',
-  role_bait_d:'Yaratıklar sana daha çok odaklanır. Bu rolle geceyi bitirirsen 🏆 kazanırsın.',
-  role_watch_d:'🌙 Gece görüşü: her 30sn’de bir 5 saniyelik tam görüş.',
+  role_watch_d:'🌙 Gece görüşü kamerası: her 25sn’de bir 5 saniyeliğine takarsın, karanlık kalkar ve her yeri görürsün.',
   role_runner:'KOŞUCU',
   role_runner_d:'Biraz daha hızlısın ve nefesin biraz daha uzun dayanır.',
   role_cop:'POLİS',
@@ -3118,12 +3163,11 @@ I18N.tr={
   mp_name:'Ad:', mp_name_ph:'Bekçi', mp_skin:'👤 Görünüm (skin):', mp_role:'🎭 Rolün (takımda iş bölümü):',
   mp_code:'ODA KODU:', mp_copy:'📋 KOPYALA', mp_night:'🌙 GECE SEÇ:', mp_sel:'Seçili:',
   mp_start:'▶ GECEYİ BAŞLAT', mp_wait:'Host\'un başlatması bekleniyor…',
-  // NOT: role_tech_d/role_watch_d/role_bait_d yukarıda (v46 rol listesinde) tanımlı.
+  // NOT: role_tech_d/role_watch_d yukarıda (v46 rol listesinde) tanımlı.
   // Burada v43'ten kalma eski metinler duruyordu; aynı objede ikinci kez tanımlanınca
   // doğru olanları EZİYOR ve menü kodun yapmadığı şeyleri vaat ediyordu. Silindi.
   role_tech:'TEKNİSYEN',
   role_watch:'GÖZCÜ',
-  role_bait:'YEM',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — hareket et', pix_skip:'ATLA ▸',
 };
@@ -3235,8 +3279,7 @@ I18N.en={
   abil_radio_team:'📡 RADAR MARKED THEM — 3s',
   rat_vent:'🐀 THE VENT THING LET YOU PASS — this is your house',
   role_tech_d:'⚡ Once per night you can slam BOTH DOORS shut — even with the power out. Your door cooldown is 5s (everyone else 7s).',
-  role_bait_d:'They focus on you more. Survive a night as bait and you earn a 🏆.',
-  role_watch_d:'🌙 Night vision: 5 seconds of full sight every 30s.',
+  role_watch_d:'🌙 Night-vision camera: strap it on every 25s for 5 seconds — the dark lifts and you see everything.',
   role_runner:'RUNNER',
   role_runner_d:'A bit faster, and your breath lasts a bit longer.',
   role_cop:'COP',
@@ -3317,7 +3360,6 @@ I18N.en={
   mp_start:'▶ START THE NIGHT', mp_wait:'Waiting for the host to start…',
   role_tech:'TECHNICIAN',
   role_watch:'LOOKOUT',
-  role_bait:'BAIT',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — move', pix_skip:'SKIP ▸',
 };
@@ -3429,8 +3471,7 @@ I18N.es={
   abil_radio_team:'📡 EL RADAR LOS MARCÓ — 3s',
   rat_vent:'🐀 LO DEL CONDUCTO TE DEJÓ PASAR — esta es tu casa',
   role_tech_d:'⚡ Una vez por noche cierras LAS DOS PUERTAS — aunque no haya luz. Tu espera de puerta es 5s (los demás 7s).',
-  role_bait_d:'Se centran más en ti. Sobrevive una noche así y ganas un 🏆.',
-  role_watch_d:'🌙 Visión nocturna: 5 segundos de visión total cada 30s.',
+  role_watch_d:'🌙 Cámara de visión nocturna: cada 25s te la pones 5 segundos — la oscuridad desaparece y lo ves todo.',
   role_runner:'CORREDOR',
   role_runner_d:'Algo más rápido y tu aliento dura un poco más.',
   role_cop:'POLICÍA',
@@ -3511,7 +3552,6 @@ I18N.es={
   mp_start:'▶ EMPEZAR NOCHE', mp_wait:'Esperando al host…',
   role_tech:'TÉCNICO',
   role_watch:'VIGÍA',
-  role_bait:'CEBO',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — muévete', pix_skip:'SALTAR ▸',
 };
@@ -3623,8 +3663,7 @@ I18N.ru={
   abil_radio_team:'📡 РАДАР ИХ ОТМЕТИЛ — 3с',
   rat_vent:'🐀 ТО, ЧТО В ВЕНТИЛЯЦИИ, ТЕБЯ ПРОПУСТИЛО — это твой дом',
   role_tech_d:'⚡ Раз за ночь закрываешь ОБЕ ДВЕРИ — даже без света. Твоя перезарядка двери 5с (у остальных 7с).',
-  role_bait_d:'Они охотятся на тебя активнее. Переживи ночь так — получишь 🏆.',
-  role_watch_d:'🌙 Ночное зрение: 5 секунд полного обзора каждые 30с.',
+  role_watch_d:'🌙 Камера ночного видения: каждые 25с надеваешь на 5 секунд — темнота уходит, видно всё.',
   role_runner:'БЕГУН',
   role_runner_d:'Чуть быстрее, и дыхания хватает чуть дольше.',
   role_cop:'ПОЛИЦЕЙСКИЙ',
@@ -3705,7 +3744,6 @@ I18N.ru={
   mp_start:'▶ НАЧАТЬ НОЧЬ', mp_wait:'Ждём старт от хоста…',
   role_tech:'ТЕХНИК',
   role_watch:'НАБЛЮДАТЕЛЬ',
-  role_bait:'ПРИМАНКА',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — двигайся', pix_skip:'ПРОПУСТИТЬ ▸',
 };
@@ -3817,8 +3855,7 @@ I18N.de={
   abil_radio_team:'📡 RADAR HAT SIE MARKIERT — 3s',
   rat_vent:'🐀 DAS DING IM SCHACHT LIESS DICH DURCH — das hier ist dein Zuhause',
   role_tech_d:'⚡ Einmal pro Nacht schließt du BEIDE TÜREN — auch ohne Strom. Deine Tür-Wartezeit ist 5s (alle anderen 7s).',
-  role_bait_d:'Sie halten sich mehr an dich. Überlebe so eine Nacht und du bekommst einen 🏆.',
-  role_watch_d:'🌙 Nachtsicht: alle 30s 5 Sekunden volle Sicht.',
+  role_watch_d:'🌙 Nachtsichtkamera: alle 25s setzt du sie 5 Sekunden auf — die Dunkelheit weicht, du siehst alles.',
   role_runner:'LÄUFER',
   role_runner_d:'Etwas schneller, und dein Atem hält etwas länger.',
   role_cop:'POLIZIST',
@@ -3899,7 +3936,6 @@ I18N.de={
   mp_start:'▶ NACHT STARTEN', mp_wait:'Warte auf den Host…',
   role_tech:'TECHNIKER',
   role_watch:'BEOBACHTER',
-  role_bait:'KÖDER',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — bewegen', pix_skip:'ÜBERSPRINGEN ▸',
 };
@@ -4011,8 +4047,7 @@ I18N.fr={
   abil_radio_team:'📡 LE RADAR LES A MARQUÉS — 3s',
   rat_vent:'🐀 LA CHOSE DU CONDUIT T’A LAISSÉ PASSER — c’est chez toi ici',
   role_tech_d:'⚡ Une fois par nuit, tu fermes LES DEUX PORTES — même sans courant. Ton attente de porte est de 5s (les autres 7s).',
-  role_bait_d:'Ils se concentrent sur toi. Survis une nuit ainsi et tu gagnes un 🏆.',
-  role_watch_d:'🌙 Vision nocturne : 5 secondes de vue totale toutes les 30s.',
+  role_watch_d:'🌙 Caméra à vision nocturne : toutes les 25s, tu la mets 5 secondes — l’obscurité se lève, tu vois tout.',
   role_runner:'COUREUR',
   role_runner_d:'Un peu plus rapide, et ton souffle tient un peu plus.',
   role_cop:'POLICIER',
@@ -4093,7 +4128,6 @@ I18N.fr={
   mp_start:'▶ LANCER LA NUIT', mp_wait:'En attente de l\'hôte…',
   role_tech:'TECHNICIEN',
   role_watch:'GUETTEUR',
-  role_bait:'APPÂT',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — déplace-toi', pix_skip:'PASSER ▸',
 };
@@ -4195,8 +4229,7 @@ function moveVecLen(){ return Math.hypot(moveVec.x||0, moveVec.y||0) + ((keys['w
 const ROLES=[
   // AKTİF yetenekli roller `ab` taşır: {cd: bekleme sn, dur: etki sn, uses: toplam kullanım (0=sınırsız)}
   {id:'tech',  ico:'🔧', ab:{cd:0,  dur:0,  uses:1}, get n(){return t('role_tech');},   get d(){return t('role_tech_d');}},
-  {id:'bait',  ico:'🎯',                             get n(){return t('role_bait');},   get d(){return t('role_bait_d');}},
-  {id:'watch', ico:'🌙', ab:{cd:30, dur:5,  uses:0}, get n(){return t('role_watch');},  get d(){return t('role_watch_d');}},
+  {id:'watch', ico:'🌙', ab:{cd:25, dur:5,  uses:0}, get n(){return t('role_watch');},  get d(){return t('role_watch_d');}},
   {id:'runner',ico:'🏃',                             get n(){return t('role_runner');}, get d(){return t('role_runner_d');}},
   {id:'cop',   ico:'👮', ab:{cd:0.8,dur:10, uses:4}, get n(){return t('role_cop');},    get d(){return t('role_cop_d');}},
   {id:'camman',ico:'🎥',                             get n(){return t('role_camman');}, get d(){return t('role_camman_d');}},
@@ -4214,7 +4247,7 @@ const ROLES=[
 /* ---- 🎇 ROL YETENEĞİ (G tuşu / ⚡ butonu) ----
    Dört rolün aktif yeteneği var; hepsi tek bir düğmeden çalışır, fark rolün `ab` tanımında:
      🔧 TEKNİSYEN — elektrik yokken bile İKİ KAPIYI birden kapatır (gecede 1 kez, acil batarya)
-     🌙 GÖZCÜ     — 5sn gece görüşü (30sn bekleme): karanlık kalksın, her şeyi gör
+     🌙 GÖZCÜ     — 5sn gece görüşü kamerası (25sn bekleme): karanlık kalksın, her şeyi gör
      👮 POLİS     — 4 mermi; vurduğu animatroniği 10sn dondurur
      👤 GÖLGE     — 5sn boyunca TÜM TAKIMI animatroniklere görünmez yapar (30sn bekleme)
    Ortak durum: abilCd (bekleme), abilLeft (kalan kullanım), abilT (etki süresi). */
@@ -4222,9 +4255,27 @@ let abilCd=0, abilLeft=0, abilT=0, nvOn=false, shadowT=0, pingT=0;
 let seerT=0, seerId=null;              // 👁 KÂHİN: izlenen animatronik + kalan süre
 let lockT=0, lockDoor=-1;              // 🚪 ÇİLİNGİR: kilitli kapı + kalan süre (o süre diğer kapı çalışmaz)
 function roleAb(){ const r=roleDef(myRole); return (Net.isPlaying() && r && r.ab)? r.ab : null; }
-function resetAbil(){ const ab=roleAb(); abilCd=0; abilLeft=ab? (ab.uses||0) : 0; abilT=0; nvOn=false; shadowT=0; pingT=0;
+/* 🌙 Gece görüşü kamerasını TAK / ÇIKAR — üç yerde (useAbility, süre bitişi, resetAbil) elle
+   sınıf ekleyip çıkarılıyordu; animasyon gelince tek kapıdan geçmesi şart oldu.
+   on=takma animasyonu (iris+bantlar), off=çöküş animasyonu, instant=animasyonsuz (reset/menü). */
+function setNV(on, instant){
+  const ov=$('#nvOv'), bars=$('#nvBars'), scan=$('#nvScan');
+  nvOn=!!on;
+  ov.classList.remove('on','off');
+  if(on){
+    ov.classList.add('show'); scan.classList.add('show');
+    if(!instant){ void ov.offsetWidth; ov.classList.add('on'); bars.classList.add('show'); }
+    return;
+  }
+  scan.classList.remove('show'); bars.classList.remove('show');
+  if(instant){ ov.classList.remove('show'); return; }
+  // çıkarma animasyonu bitince gerçekten gizle (animationend beklemek yerine süreyle: .28s)
+  void ov.offsetWidth; ov.classList.add('off');
+  setTimeout(()=>{ if(!nvOn){ ov.classList.remove('show','off'); } }, 300);
+}
+function resetAbil(){ const ab=roleAb(); abilCd=0; abilLeft=ab? (ab.uses||0) : 0; abilT=0; shadowT=0; pingT=0;
   seerT=0; seerId=null; lockT=0; lockDoor=-1; heroBlock=false;
-  $('#abilBtn').classList.add('hidden'); $('#nvOv').classList.remove('show'); }
+  $('#abilBtn').classList.add('hidden'); setNV(false, true); }
 let myRole = 'tech';
 function roleIs(r){ return Net.isPlaying() && myRole===r; }        // tek oyuncuda hep false → kısıt/bonus yok
 function roleDef(id){ return ROLES.find(r=>r.id===id); }
@@ -4241,8 +4292,10 @@ function useAbility(){
     doors.forEach(d=>{ d.closed=true; d.closeT=DOOR_TIME; d.cool=0; Net.sendDoor(doors.indexOf(d)); });
     abilLeft--; abilCd=2; toast(t('abil_tech')); Audio.tone(520,.14,'square',.16); Audio.bang();
   } else if(myRole==='watch'){
-    nvOn=true; abilT=ab.dur; abilCd=ab.cd; $('#nvOv').classList.add('show');
-    toast(t('abil_watch')); Audio.tone(880,.12,'sine',.12);
+    abilT=ab.dur; abilCd=ab.cd; setNV(true);
+    // takma sesi: röle klik + tüpün ısınma cıyaklaması (animasyonla aynı süre)
+    toast(t('abil_watch')); Audio.click(); Audio.tone(320,.06,'square',.14);
+    setTimeout(()=>{ if(nvOn) Audio.tone(880,.22,'sine',.10); }, 120);
   } else if(myRole==='shadow'){
     shadowT=ab.dur; abilT=ab.dur; abilCd=ab.cd; Net.sendShadow(ab.dur);
     toast(t('abil_shadow')); Audio.tone(140,.35,'sine',.14); Audio.whisper();
@@ -4349,7 +4402,7 @@ function updateAbil(dt){
   if(abilCd>0) abilCd-=dt;
   if(abilT>0){
     abilT-=dt;
-    if(abilT<=0){ nvOn=false; $('#nvOv').classList.remove('show'); }
+    if(abilT<=0 && nvOn) setNV(false);   // süre doldu → kamera çıkarma animasyonu
   }
   if(shadowT>0) shadowT-=dt;
   if(lockT>0){ lockT-=dt; if(lockT<=0){ lockDoor=-1; toast(t('lock_over')); } }   // 🚪 mühür bitti
@@ -4627,7 +4680,6 @@ const ACH=[
   {id:'stare_room',ico:'🧸', n:'KOSTÜMLERİ SAYDIM',d:'Parça Servis Odası\'na gir ve sağ çık.'},
   {id:'stare_calm',ico:'👁️', n:'GÖZÜMÜ AYIRMADIM',d:'Boş Kostüm ava çıktığı bir geceyi sağ atlat.'},
   {id:'lore_all',  ico:'🎂', n:'HİKÂYEYİ TOPLADIM',d:'Üç 8-bit ara sahnenin hepsini gör.'},
-  {id:'bait_win',  ico:'🎯', n:'CANLI YEM',        d:'ÇOK OYUNCU: 🎯 YEM rolüyle bir geceyi bitir.'},
 ];
 const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false, doorCount:0, camOpens:0, dist:0, frozeStare:0, panicMax:0};
 function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; runStats.doorCount=0; runStats.camOpens=0; runStats.dist=0; runStats.frozeStare=0; runStats.panicMax=0; }
@@ -4905,7 +4957,6 @@ function evalAch(){
   if(runStats.ventUsed>=3)unlockAch('vent3');
   if(runStats.partsRoom)  unlockAch('stare_room');
   if(runStats.stareHunt)  unlockAch('stare_calm');
-  if(Net.isPlaying() && myRole==='bait') unlockAch('bait_win');   // 🎯 yem olarak geceyi bitirmek hak edilmiş
 }
 function renderAch(){ const el=$('#achList'); el.innerHTML='';
   ACH.forEach(a=>{ const unl=save.ach.includes(a.id); const row=document.createElement('div');
@@ -5049,6 +5100,8 @@ let stamina=100, exhausted=false, breathT=0;
 let camTaskT=randRange(35,55), camTask=null, camTaskWin=0, camMiss=0, camBoost=1, camBoostT=0, camDwell=0;
 // YARALANMA / KURTARMA (yalnız multiplayer) — yakalanınca ölmezsin, yaralanırsın: 60sn içinde kurtarılmazsan ölürsün, o sürede koşamazsın
 let downed=false, downT=0, reviveHold=0, downAttacker=null;
+const DOWN_CALM=2;      // yaralandıktan sonra animatroniklerin geri çekildiği süre (sonra normal AI)
+let downCalm=0;
 function inOffice(){ return player.x>=-5 && player.x<=5 && player.z>=15 && player.z<=21; }
 function nearVent(){ for(const v of VENTS){ if(Math.hypot(player.x-v.x, player.z-v.z)<1.7) return v; } return null; }
 
@@ -5850,7 +5903,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   resetCalls();  // ☎ canlı arama sayacı
   resetPanic();  // 🫀 panik metresi
   resetAbil(); toughUsed=false;   // 🎇 rol yeteneği + 💪 dayanıklı hakkı
-  downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');   // yaralanma/izleyici sıfırla
+  downed=false; downT=0; downCalm=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');   // yaralanma/izleyici sıfırla
   basUnlocked = customMode || night>=2;                            // BODRUM: 1. gece kilitli
   resetBasement(); resetRisen(); basTransT=0; $('#basFade').style.opacity='0';   // bodrum + yükselen düşman sıfırla
   $('#camTask').classList.remove('show','urgent'); $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
@@ -6011,7 +6064,7 @@ function hidePlayUI(){
   $('#puppetWarn').style.opacity='0'; endPhone(); $('#roleHud').classList.remove('show');
   // 🎇 yetenek butonu + 🌙 gece görüşü: updateAbil izleyicide/ölümde ÇALIŞMAZ (guard'lı), yani
   // kendini gizleyemez → burada elle kapatılmalı, yoksa ölüm/izleyici ekranında asılı kalır.
-  $('#abilBtn').classList.add('hidden'); $('#nvOv').classList.remove('show'); nvOn=false;
+  $('#abilBtn').classList.add('hidden'); setNV(false, true);   // animasyonsuz: ölüm/izleyici anında kapansın
 }
 function showPlayUI(){
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
@@ -6094,14 +6147,16 @@ function enterDowned(model,name){
   heroBlock=false;
   // 🩺 SAĞLIKÇI kendi kanamasını da durdurabiliyor: yerde 2× uzun dayanır (takım ona yetişsin)
   downed=true; downT=(60+upgLvl('med')*20)*(roleIs('medic')?2:1); reviveHold=0; downAttacker=name||'???';   // 🩹 İLK YARDIM: daha uzun dayanırsın
+  downCalm=DOWN_CALM;   // 2sn nefes payı — sonra AI normale döner (updateAI'daki downed bloğu)
   masked=false; flashOn=false; running=false; winding=false;
   $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
   $('#hurtOv').classList.add('show');
   Audio.animScream(kindOfModel(model)); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
   toast(t('ts_downed'));
-  // seni yakalayan geri çekilir (sahnesine/evine döner) — helpless'ken üstünde kalmasın
+  // Seni yakalayan da yalnız DOWN_CALM kadar çekilir (eskiden GIVEUP_TIME*1.6 = 12.8sn idi;
+  // "2sn'ye gitsinler" kuralı onun için de geçerli, yoksa uyuma hissi onda devam ederdi).
   const a=AIS.find(x=>x.model===model);
-  if(a){ a.chasing=false; a.rage=0; a.hear=0; a.stuck=0; a.doorT=0; a.giveUp=GIVEUP_TIME*1.6; if(a.kind==='cove') a.mode='back'; }
+  if(a){ a.chasing=false; a.rage=0; a.hear=0; a.stuck=0; a.doorT=0; a.giveUp=DOWN_CALM; if(a.kind==='cove') a.mode='back'; }
   if(model===puppet){ puppetOut=false; puppetStage=0; musicBox=Math.max(musicBox,60); puppetJump=false; }
   Net.sendDown();
 }
@@ -6203,6 +6258,7 @@ function updateCamTask(dt){
 function updateDowned(dt){
   if(downed){
     downT-=dt;
+    if(downCalm>0) downCalm-=dt;   // 2sn dolunca updateAI'daki geri-çekilme bloğu düşer, canavarlar döner
     const hh=$('#hurtHud'); hh.classList.add('show'); hh.textContent='🩸 YARALISIN — '+Math.ceil(downT)+'s • takım seni sarmalı';
     $('#reviveBtn').classList.remove('show');
     if(downT<=0) bleedOut();
@@ -6647,7 +6703,7 @@ function update(dt){
 
   // fener
   // 🔋 GÜÇLÜ PİL yükseltmesi tüketimi kısar (BUFF: pil zaten yavaş bitiyordu, yükseltme üstüne biner)
-  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)*(1-upgLvl('batt')*0.12)*(roleIs('lamp')?0.5:1)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent=t('flash_dead'); } }   // 🎯 YEM'in pili 2× hızlı biter
+  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)*(1-upgLvl('batt')*0.12)*(roleIs('lamp')?0.5:1)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent=t('flash_dead'); } }   // 🔦 IŞIKÇI'nın pili 2× uzun gider
   else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*3.0); }   // BUFF: daha hızlı şarj
   const targetInt = (flashOn&&battery>0)? (8.0+Math.random()*0.7*(battery<15?4:0.3)) : 0;   // BUFF: daha parlak (5.5→8.0)
   flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
@@ -6713,8 +6769,8 @@ function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   if(gradePass){ gradePass.material.uniforms.time.value = now*0.001;
     // tehlikede grain + aberasyon artar (panik hissi), karanlıkta vignette güçlenir
     const dl=Math.min(1,dangerLevel||0);
-    gradePass.material.uniforms.ab.value   = (isMobile?0.10:0.18) + dl*0.22;
-    gradePass.material.uniforms.grain.value= (isMobile?0.04:0.055)+ dl*0.05;
+    gradePass.material.uniforms.ab.value   = AB_BASE    + dl*AB_DANGER;
+    gradePass.material.uniforms.grain.value= GRAIN_BASE + dl*GRAIN_DANGER;
     gradePass.material.uniforms.vig.value  = 0.62 + (powered?0:0.12) + dl*0.1;
   }
   /* 🧸 BOŞ KOSTÜM KAMERADA GÖRÜNMEZ — imzası bu: tablete bakarken haritada onu ARAYAMAZSIN,
