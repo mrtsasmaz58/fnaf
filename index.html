@@ -322,6 +322,22 @@
   #mpSkinPick{margin-top:16px;}
   .mpSkinLbl{color:#8a929c;font-size:13px;margin-bottom:8px;}
   #mpSkins{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  /* 👥 rol seçimi */
+  #mpRolePick{margin-top:14px;width:min(360px,86vw);}
+  #mpRoles{display:flex;flex-direction:column;gap:7px;margin-top:8px;}
+  .mpRole{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:#12151b;border:1px solid #262c36;
+    border-radius:8px;cursor:pointer;text-align:left;transition:border-color .12s,background .12s;}
+  .mpRole:hover{border-color:#3a4250;}
+  .mpRole.sel{border-color:#c9a227;background:#1c1a12;}
+  .mpRole .ri{font-size:19px;line-height:1.1;}
+  .mpRole .rn{color:#cfd6e0;font-weight:bold;font-size:13px;letter-spacing:.5px;}
+  .mpRole.sel .rn{color:#c9a227;}
+  .mpRole .rd{color:#7a828c;font-size:11px;line-height:1.45;margin-top:2px;}
+  .mpPlayer .rtag{color:#c9a227;font-size:10px;letter-spacing:.4px;background:#1c1a12;border:1px solid #3a3320;
+    border-radius:4px;padding:1px 5px;}
+  #roleHud{position:fixed;left:14px;bottom:96px;z-index:20;color:#c9a227;font-size:12px;letter-spacing:.6px;
+    background:rgba(10,12,16,.62);border:1px solid #2a3038;border-radius:6px;padding:4px 9px;display:none;pointer-events:none;}
+  #roleHud.show{display:block;}
   .mpSkin{width:40px;height:40px;border-radius:9px;border:2px solid rgba(255,255,255,.18);cursor:pointer;position:relative;}
   .mpSkin.sel{border-color:#fff;box-shadow:0 0 12px rgba(255,255,255,.5);transform:scale(1.08);}
   .mpSkin .cap{position:absolute;left:6px;right:6px;top:5px;height:10px;border-radius:4px 4px 0 0;}
@@ -651,6 +667,7 @@
     <div id="mpJoinRow"><input id="mpCodeIn" maxlength="5" placeholder="ODA KODU" autocomplete="off"><button id="mpJoinBtn">↪ KATIL</button></div>
     <div id="mpName">Ad: <input id="mpNameIn" maxlength="10" placeholder="Bekçi"></div>
     <div id="mpSkinPick"><div class="mpSkinLbl">👤 Görünüm (skin):</div><div id="mpSkins"></div></div>
+    <div id="mpRolePick"><div class="mpSkinLbl">🎭 Rolün (takımda iş bölümü):</div><div id="mpRoles"></div></div>
   </div>
   <div id="mpRoom" class="hidden">
     <div id="mpCodeBox">ODA KODU: <span id="mpCode">-----</span> <button id="mpCopy">📋 KOPYALA</button></div>
@@ -698,6 +715,8 @@
   <button class="repBtn" data-rep="1">📊 VARDİYA RAPORU</button>
   <div class="tapHint">DEVAM İÇİN DOKUN</div>
 </div>
+
+<div id="roleHud"></div>
 
 <!-- 🎂 8-BIT ARA SAHNE — ölümden sonra bazen açılan piksel mini-oyun (lore) -->
 <div id="pix">
@@ -1373,7 +1392,8 @@ function makeDoorway(name,x0,x1,z){
 const DOOR_TIME=9;    // kapı bu kadar saniye kapalı kalır, sonra otomatik açılır
 const DOOR_COOL=7;    // açıldıktan sonra tekrar kapatmak için bekleme
 // 🚪 YAĞLANMIŞ KAPI yükseltmesi beklemeyi kısaltır (taban 7s → en iyi ihtimalle 2.5s)
-function doorCool(){ return Math.max(2.5, DOOR_COOL - upgLvl('door')*1.5); }
+// 🔧 TEKNİSYEN kapıyı daha çabuk tekrar kapatır (elektronik onun işi)
+function doorCool(){ return Math.max(2.0, DOOR_COOL - upgLvl('door')*1.5 - (roleIs('tech')?3:0)); }
 const DOOR_FORGET=3;  // animatronik kapalı kapıda bu kadar takılırsa vazgeçer
 // Menüdeki kapı açıklaması SABİTLERDEN üretilir. Elle yazılıydı ve DOOR_TIME 7→9 olunca
 // kaymıştı (menü 7s diyordu, kod 9s uyguluyordu). Artık süreleri değiştirmek yazıyı da düzeltir.
@@ -1953,7 +1973,7 @@ function litByFlash(x,z){
   if(state!==S.PLAY || !flashOn || battery<=0) return false;
   const lu=upgLvl('lamp');
   const dx=x-player.x, dz=z-player.z, dist=Math.hypot(dx,dz);
-  if(dist>15*(1+lu*0.15) || dist<0.001) return false;
+  if(dist>15*(1+lu*0.15)*(roleIs('watch')?0.7:1) || dist<0.001) return false;   // 📹 GÖZCÜ feneri zayıf (görsel menzille aynı çarpan)
   const dot=(dx*Math.sin(player.yaw)+dz*Math.cos(player.yaw))/dist;
   return dot>(0.80-lu*0.03) && losClear(player.x,player.z,x,z);   // ~±36° koni (mercekle biraz genişler)
 }
@@ -2830,6 +2850,27 @@ function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,c
 // ve tavan menü/başarım/skin/kazanma ekranında ayrı ayrı yazılıydı. Hepsi buradan türer.
 const CN_MAX=100;   // 5 karakter × 20
 function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.foxo+custom.spare; }
+/* ================= 👥 MP ROLLERİ =================
+   Şimdiye kadar 4 oyuncu da birebir aynı şeyi yapabiliyordu → co-op "aynı işi 4 kez" demekti.
+   Roller iş bölümü yaratır: her rol BİR ŞEYDE üstün, BİR ŞEYDE zayıf, yani birbirinize
+   mecbursunuz. Yalnız MULTIPLAYER'da geçerli — tek oyuncuda hepsi sende (roleIs() null döner),
+   yoksa tek başına oynayan oyuncuyu sebepsiz sakatlamış olurduk.
+     🔧 TEKNİSYEN — elektriği yalnız o geri getirir; kapıyı daha çabuk tekrar kapatır.
+     📹 GÖZCÜ     — CCTV onda tam çalışır (sensör+mikrofon bedava, parazit yarı); feneri zayıf.
+     🎯 YEM       — hızlı koşar, nefesi geç tükenir; ama pili hızla biter.
+   Takımda o rolden CANLI kimse kalmadıysa kısıt düşer (bkz. restorePower) — yoksa teknisyen
+   ölünce elektrik bir daha hiç gelmez ve takım çaresiz kalırdı. */
+const ROLES=[
+  {id:'tech',  ico:'🔧', n:'TEKNİSYEN', d:'Elektriği yalnız sen getirebilirsin. Kapı beklemesi -3sn.'},
+  {id:'watch', ico:'📹', n:'GÖZCÜ',     d:'CCTV sende tam: sensör+mikrofon bedava, parazit yarı. Fener menzilin -30%.'},
+  {id:'bait',  ico:'🎯', n:'YEM',       d:'Koşu +30%, nefes 2× dayanır. Ama pilin 2× hızlı biter.'},
+];
+let myRole = 'tech';
+function roleIs(r){ return Net.isPlaying() && myRole===r; }        // tek oyuncuda hep false → kısıt/bonus yok
+function roleDef(id){ return ROLES.find(r=>r.id===id); }
+// 📹 GÖZCÜ CCTV yükseltmesini bedava alır (satın aldıysa daha iyisi korunur)
+function camLvl(){ return roleIs('watch')? Math.max(2, upgLvl('cam')) : upgLvl('cam'); }
+
 /* ================= 🧠 DIRECTOR AI =================
    Zorluk eskiden geceye SABİTTİ: NIGHT_CFG'den okunan tek tablo, oyuncu ne yaparsa yapsın aynı.
    Bu, işleyen tek bir taktiği bulan oyuncunun (kapı spam'i / fener hep açık / vent kestirmesi)
@@ -2938,6 +2979,7 @@ let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[], skin:0, money:0, up
 try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save={...save,...s}; }catch(e){}
 if(!Array.isArray(save.ach)) save.ach=[];
 if(!Array.isArray(save.lore)) save.lore=[];   // 🎂 görülen 8-bit ara sahneler
+if(save.role && ROLES.some(r=>r.id===save.role)) myRole=save.role;   // 👥 son seçilen MP rolü
 if(typeof save.skin!=='number') save.skin=0;
 if(typeof save.money!=='number') save.money=0;                              // eski kayıtlar parasız açılır
 if(!save.upg || typeof save.upg!=='object' || Array.isArray(save.upg)) save.upg={};
@@ -3476,6 +3518,7 @@ let flashOn=false, battery=100, running=false;
 let walkBob=0;
 // Elektrik / sigorta
 let powered=true, powerTimer=0, fuseActive=false, nearDoor=null;
+let fuseDenied=false;   // 🔧 "sadece teknisyen" uyarısı bir kez gösterilsin (sigortadan uzaklaşınca sıfırlanır)
 function randRange(a,b){ return a+Math.random()*(b-a); }
 function resetPowerTimer(){ powerTimer=randRange(100,190); } // elektrik kesintisi artık nadir
 // Müzik kutusu / Puppet
@@ -3585,8 +3628,9 @@ const Net=(()=>{
     g.add(lL,lR,torso,belt,aL,aR,hL,hR,head,eL,eR,dome,brim,flB,fl,tag);
     g.userData={fl,tag,skin:skinId||0}; scene.add(g); return g;
   }
-  function ensureRemote(id,nm,skin){ if(id===myId||id==null) return null;
-    if(!remotes[id]) remotes[id]={name:nm||'?',skin:skin||0,x:0,z:19.7,yaw:Math.PI,tx:0,tz:19.7,tyaw:Math.PI,f:0,obj:buildAvatar(nm||'?',skin||0)};
+  function ensureRemote(id,nm,skin,role){ if(id===myId||id==null) return null;
+    if(!remotes[id]) remotes[id]={name:nm||'?',skin:skin||0,role:role||'tech',x:0,z:19.7,yaw:Math.PI,tx:0,tz:19.7,tyaw:Math.PI,f:0,obj:buildAvatar(nm||'?',skin||0)};
+    else if(role) remotes[id].role=role;
     return remotes[id]; }
   // avatarı sahneden çıkarmak yetmiyordu: geometry/material/texture GPU'da kalıyordu (sızıntı —
   // uzun oturumda oyuncu girip çıktıkça birikiyor). Artık hepsi dispose ediliyor.
@@ -3615,16 +3659,31 @@ const Net=(()=>{
     return best; }
 
   /* ---- host: bağlantı + relay ---- */
-  function roster(){ const l=[{id:'H',name:myName,skin:mySkin,host:true}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name,skin:c._skin||0}); }); return l; }
+  function roster(){ const l=[{id:'H',name:myName,skin:mySkin,host:true,role:myRole}]; conns.forEach(c=>{ if(c._pid) l.push({id:c._pid,name:c._name,skin:c._skin||0,role:c._role||'tech'}); }); return l; }
+  // 👥 Takımda BU ROLDEN canlı biri var mı? (kısıtın düşüp düşmeyeceğini belirler:
+  // teknisyen ölünce elektriği kimse getiremezse takım çaresiz kalır.)
+  function roleAlive(r){
+    if(!active||!started) return false;
+    if(myRole===r && !deadIds.has(myId)) return true;
+    for(const id in remotes){ if(!deadIds.has(id) && remotes[id].role===r) return true; }
+    return false;
+  }
+  function sendRole(){ if(host){ broadcast({t:'roster',roster:roster()}); refreshList(); }
+    else if(conns[0]&&conns[0].open){ try{conns[0].send({t:'role',id:myId,role:myRole});}catch(e){} } }
   function broadcast(m,except){ conns.forEach(c=>{ if(c.open && c._pid!==except){ try{c.send(m);}catch(e){} } }); }
   function hookHostConn(c){
     c.on('open',()=>{});
     c.on('data',d=>{
-      if(d.t==='hello'){ c._pid=c.peer; c._name=(d.name||'Bekçi').slice(0,10); c._skin=d.skin||0; ensureRemote(c.peer,c._name,c._skin);
+      if(d.t==='hello'){ c._pid=c.peer; c._name=(d.name||'Bekçi').slice(0,10); c._skin=d.skin||0; c._role=d.role||'tech'; ensureRemote(c.peer,c._name,c._skin,c._role);
         try{ c.send({t:'welcome',yourId:c.peer,roster:roster(),started}); }catch(e){}
         broadcast({t:'roster',roster:roster()}); refreshList();
         if(started){ try{c.send({t:'start',night:hostCustom?1:hostNight, custom:hostCustom?{...custom}:null});}catch(e){} }
-      } else if(d.t==='pose'){ applyPose(d); broadcast(d,d.id); }
+      } else if(d.t==='role'){   // 👥 misafir rolünü değiştirdi → roster'ı tazele ve herkese yay
+        const cc=conns.find(x=>x._pid===d.id); if(cc) cc._role=d.role;
+        const rr=remotes[d.id]; if(rr) rr.role=d.role;
+        broadcast({t:'roster',roster:roster()}); refreshList();
+      }
+      else if(d.t==='pose'){ applyPose(d); broadcast(d,d.id); }
       else if(d.t==='door'){ applyDoor(d); broadcast(d,d.id); }
       else if(d.t==='down'){ applyDown(d); broadcast(d,d.id); }
       else if(d.t==='up'){ applyUp(d); broadcast(d,d.id); }
@@ -3649,7 +3708,7 @@ const Net=(()=>{
   }
   /* ---- misafir: host'a bağlan ---- */
   function hookGuestConn(c){ conns=[c];
-    c.on('open',()=>{ active=true; try{c.send({t:'hello',name:myName,skin:mySkin});}catch(e){} status('bağlandı ✓ — host\'un başlatması bekleniyor'); });
+    c.on('open',()=>{ active=true; try{c.send({t:'hello',name:myName,skin:mySkin,role:myRole});}catch(e){} status('bağlandı ✓ — host\'un başlatması bekleniyor'); });
     c.on('data',d=>{
       if(d.t==='welcome'){ myId=d.yourId; applyRoster(d.roster); if(d.started){ /* devam eden oturuma katıl */ } }
       else if(d.t==='roster'){ applyRoster(d.roster); }
@@ -3679,12 +3738,21 @@ const Net=(()=>{
   }
 
   function applyRoster(list){ const ids=new Set();
-    list.forEach(p=>{ if(p.id!==myId){ ids.add(p.id); const r=ensureRemote(p.id,p.name,p.skin); if(r) r.name=p.name; } });
+    list.forEach(p=>{ if(p.id!==myId){ ids.add(p.id); const r=ensureRemote(p.id,p.name,p.skin,p.role); if(r){ r.name=p.name; if(p.role) r.role=p.role; } } });
     for(const id in remotes){ if(!ids.has(id)) removeRemote(id); }
     renderList(list);
   }
   function refreshList(){ renderList(roster()); }
   function hex6(n){ return (n>>>0).toString(16).padStart(6,'0'); }
+  // 👥 rol seçimi (lobide, oyun başlamadan). Aynı rolü birden çok kişi seçebilir — takımı
+  // zorla dengelemek yerine seçim oyuncularda; roleAlive() zaten eksik rolü telafi ediyor.
+  function renderRoles(){ const el=$('#mpRoles'); if(!el) return; el.innerHTML='';
+    ROLES.forEach(r=>{ const b=document.createElement('div'); b.className='mpRole'+(r.id===myRole?' sel':'');
+      b.innerHTML='<div class="ri">'+r.ico+'</div><div><div class="rn">'+r.n+'</div><div class="rd">'+r.d+'</div></div>';
+      b.addEventListener('click',e=>{ e.stopPropagation(); myRole=r.id; save.role=r.id; saveGame();
+        renderRoles(); sendRole(); Audio.click(); });
+      el.appendChild(b); });
+  }
   function renderSkins(){ const el=$('#mpSkins'); if(!el) return; el.innerHTML='';
     // lobide yalnız AÇIK skinler seçilebilir (kilitliler Mağaza'dan açılır)
     SKINS.forEach((s,i)=>{ if(!skinUnlocked(i)) return; const b=document.createElement('div'); b.className='mpSkin'+(i===mySkin?' sel':'');
@@ -3741,7 +3809,10 @@ const Net=(()=>{
   function renderList(list){ const el=$('#mpList'); if(!el) return; el.innerHTML='';
     list.forEach(p=>{ const d=document.createElement('div'); d.className='mpPlayer'+(p.host?' host':'');
       const sk=SKINS[p.skin||0]||SKINS[0];
-      d.innerHTML='<span class="dot" style="background:#'+hex6(sk.shirt)+';box-shadow:0 0 8px #'+hex6(sk.shirt)+'"></span><span>'+(p.name||'?')+'</span><span style="color:#6a7480;font-size:11px">'+sk.n+'</span>'+(p.host?'<span class="tag">HOST</span>':''); el.appendChild(d); });
+      const rd=roleDef(p.role||'tech')||ROLES[0];
+      d.innerHTML='<span class="dot" style="background:#'+hex6(sk.shirt)+';box-shadow:0 0 8px #'+hex6(sk.shirt)+'"></span><span>'+(p.name||'?')+'</span>'
+        +'<span class="rtag">'+rd.ico+' '+rd.n+'</span>'
+        +'<span style="color:#6a7480;font-size:11px">'+sk.n+'</span>'+(p.host?'<span class="tag">HOST</span>':''); el.appendChild(d); });
   }
 
   /* ---- lobi gece seçici (yalnız host) ---- */
@@ -3812,7 +3883,7 @@ const Net=(()=>{
 
   /* ---- lobi butonları ---- */
   $('#mpBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume();
-    $('#mpHome').classList.remove('hidden'); $('#mpRoom').classList.add('hidden'); $('#mpPanel').classList.add('show'); renderSkins();
+    $('#mpHome').classList.remove('hidden'); $('#mpRoom').classList.add('hidden'); $('#mpPanel').classList.add('show'); renderSkins(); renderRoles();
     if(typeof Peer==='undefined') status('⚠ çevrimiçi kütüphane yüklenemedi — internet gerekli'); });
   $('#mpHostBtn').addEventListener('click',e=>{ e.stopPropagation(); startHost(); });
   $('#mpJoinBtn').addEventListener('click',e=>{ e.stopPropagation(); join($('#mpCodeIn').value); });
@@ -3826,7 +3897,7 @@ const Net=(()=>{
   $('#mktBtn').classList.remove('hidden');
 
   return { tick, leave, sendDoor, sendDown, sendUp, sendRevive, nearestDowned, sendDied, sendWon, sendBas,
-           specTarget, specNext, specCount,
+           specTarget, specNext, specCount, sendRole, roleAlive,
            startHostCustom, isHost:()=>host, isPlaying:()=>active&&started, active:()=>active,
            resolved:()=>resolved };
 })();
@@ -4089,9 +4160,10 @@ function updateCams(dt){
   Dir.feed('cam', state===S.CAMS, dt);
   if(state===S.CAMS) Dir.update(dt);
   for(let i=0;i<CAMV.length;i++){
-    const target=Math.min(1, camHeat(i)*0.45);
+    // 📹 GÖZCÜ: sistemi o tanıyor → aynı tehdit onun ekranında yarı parazit yapar
+    const target=Math.min(1, camHeat(i)*0.45*(roleIs('watch')?0.5:1));
     camStatic[i] += (target-camStatic[i])*Math.min(1, dt*2.2);
-    if(camDown[i]>0) camDown[i]-=dt;
+    if(camDown[i]>0) camDown[i]-= dt*(roleIs('watch')?2:1);   // 📹 GÖZCÜ arızayı 2× hızlı toparlar
   }
   // rastgele kamera arızası — geceyle sıklaşır
   camFailT-=dt;
@@ -4128,17 +4200,21 @@ function updateCams(dt){
 }
 // Tablet üstü: hareket LED listesi (📡 yükseltmesi) + dinleme butonu (📡 lvl2)
 function updateCamHud(){
-  const el=$('#camMotion'), lvl=upgLvl('cam');
-  if(lvl<1 || state!==S.CAMS){ el.innerHTML=''; $('#camListen').classList.add('hidden'); return; }
+  const el=$('#camMotion'), lvl=camLvl();   // 📹 GÖZCÜ sensör+mikrofonu bedava alır
+  if(lvl<1 || state!==S.CAMS){ if(el.innerHTML){ el.innerHTML=''; camHudSig=''; } $('#camListen').classList.add('hidden'); return; }
   $('#camListen').classList.toggle('hidden', lvl<2);
-  let html='';
+  // Bu fonksiyon artık HER KARE çağrılıyor (updateCams içinden). Aynı tabloyu her karede
+  // yeniden yazmak mobilde bedava değil → durum imzası değişmedikçe DOM'a dokunma.
+  let sig=lvl+'|'+camIndex, rows=[];
   for(let i=0;i<CAMV.length;i++){
     const dead=camDown[i]>0, hot=!dead && camHeat(i)>0;
-    const cls='mrow'+(hot?' hot':'')+(i===camIndex?' cur':'');
-    html+='<div class="'+cls+'"><span>'+(dead?'✕ ':'')+CAMV[i].n+'</span><i></i></div>';
+    sig += dead?'x':(hot?'h':'-');
+    rows.push('<div class="mrow'+(hot?' hot':'')+(i===camIndex?' cur':'')+'"><span>'+(dead?'✕ ':'')+CAMV[i].n+'</span><i></i></div>');
   }
-  el.innerHTML=html;
+  if(sig===camHudSig) return;
+  camHudSig=sig; el.innerHTML=rows.join('');
 }
+let camHudSig='';
 // KUR (müzik kutusu) — basılı tutulur. Kameradan (elektrik varken) VEYA yanına gidip (her zaman)
 function startWind(){ if(downed) return; if((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)) winding=true; }
 function stopWind(){ winding=false; }
@@ -4225,7 +4301,8 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   $('#maskBtn').classList.remove('hidden'); $('#maskBox').classList.remove('hidden');
   player.x=0; player.z=19.7; player.yaw=Math.PI; player.pitch=-0.05; battery=100; flashOn=false; running=false;
   // 🔦 MERCEK yükseltmesinin görsel karşılığı — ışık konisi de gerçekten genişler
-  flash.distance=44*(1+upgLvl('lamp')*0.15); flash.angle=Math.PI*0.25*(1+upgLvl('lamp')*0.06);
+  // 📹 GÖZCÜ'nün feneri zayıf (CCTV üstünlüğünün bedeli) — hem görsel menzil hem litByFlash birlikte
+  flash.distance=44*(1+upgLvl('lamp')*0.15)*(roleIs('watch')?0.7:1); flash.angle=Math.PI*0.25*(1+upgLvl('lamp')*0.06);
   powered=true; fuseActive=false; fuse.visible=false; resetPowerTimer();
   doors.forEach(d=>{ d.closed=false; d.closeT=0; d.cool=0; });
   musicBox=100; puppetOut=false; winding=false; puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z;
@@ -4374,10 +4451,14 @@ function hidePlayUI(){
   $('#boxWrap').classList.add('hidden'); joyZone.classList.add('hidden'); showJoy(false);
   $('#maskBtn').classList.add('hidden'); $('#ventBtn').classList.add('hidden'); $('#ventWarn').classList.add('hidden');
   $('#camTask').classList.remove('show','urgent'); $('#reviveBtn').classList.remove('show'); $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
-  $('#puppetWarn').style.opacity='0'; endPhone();
+  $('#puppetWarn').style.opacity='0'; endPhone(); $('#roleHud').classList.remove('show');
 }
 function showPlayUI(){
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
+  // 👥 rol rozeti yalnız MP'de (tek oyuncuda rol yok → rozet de yok)
+  const rd = Net.isPlaying()? roleDef(myRole) : null;
+  $('#roleHud').classList.toggle('show', !!rd);
+  if(rd) $('#roleHud').textContent=rd.ico+' '+rd.n;
   $('#flashBtn').classList.remove('hidden'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#maskBtn').classList.remove('hidden'); $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden');
   if(isTouch){ joyZone.classList.remove('hidden'); showJoy(true); }
@@ -4852,7 +4933,14 @@ function update(dt){
   if(spectating){ specCamera(dt); return; }   // İZLEYİCİ: kontrol yok, takımı izle (saat üstte akmaya devam eder)
   // elektrik zamanlayıcısı / sigorta toplama (MP co-op'ta da işler)
   if(powered && !inBasement){ powerTimer-=dt; if(powerTimer<=0) blackout(); }   // bodrumdayken üst kat elektriği donar
-  else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ; if(Math.hypot(dx,dz)<1.1) restorePower(); }
+  else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ;
+    if(Math.hypot(dx,dz)<1.1){
+      /* 🔧 TEKNİSYEN: sigortayı yalnız o takabilir — ama takımda CANLI teknisyen kalmadıysa
+         kısıt düşer, yoksa teknisyen öldüğü an elektrik bir daha hiç gelmez ve takım kilitlenir. */
+      if(!Net.isPlaying() || myRole==='tech' || !Net.roleAlive('tech')) restorePower();
+      else if(!fuseDenied){ fuseDenied=true; toast('🔧 SİGORTAYI SADECE TEKNİSYEN TAKABİLİR'); Audio.tone(160,.12,'square',.16); }
+    } else fuseDenied=false;
+  }
 
   // === MASKE sayacı ===   (🎭 MASKE FİLTRESİ yükseltmesi oksijeni uzatır)
   if(masked){
@@ -4901,7 +4989,7 @@ function update(dt){
   if(moveVec.x||moveVec.y){ ix+=moveVec.x; iz+=moveVec.y; }
   const len=Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
   if(masked||exhausted||downed) running=false;   // maske/yorgun/yaralı → koşamaz
-  let speed=masked? 1.5 : (running?3.6:2.2);   // hafif nerf (çok hızlıydı); maskeliyken daha yavaş
+  let speed=masked? 1.5 : (running?3.6*(roleIs('bait')?1.30:1):2.2);   // 🎯 YEM daha hızlı koşar; maskeliyken herkes yavaş
   if(downed) speed=1.05;                        // yaralı: yavaş sürünme
   const fwd=new THREE.Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw));
   const right=new THREE.Vector3(-Math.cos(player.yaw),0,Math.sin(player.yaw));
@@ -4916,7 +5004,7 @@ function update(dt){
   // KOŞU BARI (cömert ~10sn): koşarken tükenir, yürüyünce dolar; bitince yorgun (koşamaz + nefes nefese → Chika'yı çeker)
   // 🏃 DAYANIKLILIK yükseltmesi: daha yavaş tükenir, daha hızlı dolar
   const stamU=upgLvl('stam');
-  if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10*(1-stamU*0.15));
+  if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10*(1-stamU*0.15)*(roleIs('bait')?0.5:1));   // 🎯 YEM'in nefesi 2× dayanır
     if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast('😮‍💨 NEFES NEFESE — biraz yürü'); }
   } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
@@ -4978,7 +5066,7 @@ function update(dt){
 
   // fener
   // 🔋 GÜÇLÜ PİL yükseltmesi tüketimi kısar (BUFF: pil zaten yavaş bitiyordu, yükseltme üstüne biner)
-  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)*(1-upgLvl('batt')*0.12)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }
+  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)*(1-upgLvl('batt')*0.12)*(roleIs('bait')?2:1)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }   // 🎯 YEM'in pili 2× hızlı biter
   else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*3.0); }   // BUFF: daha hızlı şarj
   const targetInt = (flashOn&&battery>0)? (8.0+Math.random()*0.7*(battery<15?4:0.3)) : 0;   // BUFF: daha parlak (5.5→8.0)
   flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
