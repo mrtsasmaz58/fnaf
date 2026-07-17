@@ -96,6 +96,20 @@
   #tabStatic{position:absolute;inset:3%;border-radius:14px;pointer-events:none;opacity:0;mix-blend-mode:screen;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");}
   #camName{position:absolute;top:5.5%;left:7%;z-index:2;color:#7fff9f;font-weight:bold;font-size:16px;text-shadow:0 0 8px #0f0;pointer-events:none;}
+  /* 📹 CCTV: sinyal kaybı + hareket sensörü LED listesi + ses dinleme */
+  #camSignal{position:absolute;top:44%;left:0;right:0;z-index:3;text-align:center;color:#ff5a4a;font-weight:bold;
+    font-size:min(26px,5vw);letter-spacing:3px;text-shadow:0 0 14px #f00;pointer-events:none;display:none;
+    animation:blink .42s steps(1) infinite;}
+  #camSignal.show{display:block;}
+  #camMotion{position:absolute;top:5.5%;right:7%;z-index:2;display:flex;flex-direction:column;gap:3px;align-items:flex-end;pointer-events:none;}
+  #camMotion .mrow{font-size:10px;color:#5a6470;letter-spacing:.5px;display:flex;align-items:center;gap:5px;}
+  #camMotion .mrow.hot{color:#ff6a4a;text-shadow:0 0 6px #f00;}
+  #camMotion .mrow.cur{color:#7fff9f;}
+  #camMotion .mrow i{width:6px;height:6px;border-radius:50%;background:#2a3038;display:inline-block;}
+  #camMotion .mrow.hot i{background:#ff3a2a;box-shadow:0 0 6px #f00;}
+  #camListen{position:absolute;bottom:6%;left:7%;z-index:3;padding:9px 16px;background:rgba(10,26,18,.85);
+    border:1px solid #2a6a44;color:#7fff9f;border-radius:7px;font-size:13px;cursor:pointer;}
+  #camListen.on{background:#1a5a3a;color:#dfffe8;}
   #camClose{position:absolute;top:5%;right:7%;z-index:2;font-family:'Courier New',monospace;font-weight:bold;color:#dfffe8;background:#123;border:1px solid #3fae7a;border-radius:8px;padding:8px 12px;cursor:pointer;}
   #camPrev,#camNext{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:52px;height:72px;font-size:30px;color:#cfe;background:rgba(10,20,16,.55);border:1px solid rgba(120,200,160,.3);border-radius:8px;cursor:pointer;}
   #camPrev{left:5%;} #camNext{right:5%;}
@@ -555,7 +569,10 @@
 <div id="tablet">
   <div id="tabFrame"></div>
   <div id="tabStatic"></div>
+  <div id="camSignal">⚠ SİNYAL YOK</div>
   <div id="camName">CAM • SAHNE</div>
+  <div id="camMotion"></div>
+  <button id="camListen" class="hidden">🔊 DİNLE</button>
   <button id="camClose">▼ İNDİR</button>
   <button id="camPrev">‹</button>
   <button id="camNext">›</button>
@@ -2799,7 +2816,7 @@ function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.f
    mantık) — herkes kendi oynayışının baskısını görür, kamp kuran arkadaşının değil. */
 const Dir={
   heat:0, calm:0,
-  prof:{flash:0, door:0, vent:0, noise:0, camp:0},
+  prof:{flash:0, door:0, vent:0, noise:0, camp:0, cam:0},
   noted:{},
   active(){ return SET.director!==0 && !customMode; },
   reset(){ this.heat=0; this.calm=0; this.noted={}; for(const k in this.prof) this.prof[k]=0; },
@@ -2810,7 +2827,9 @@ const Dir={
   bump(k,v){ const p=this.prof; if(p[k]!==undefined) p[k]=Math.min(1, p[k]+v); },
   hint(k,msg){ if(this.prof[k]>0.74 && !this.noted[k]){ this.noted[k]=1; toast(msg); } },
   update(dt){
-    if(!this.active() || state!==S.PLAY || downed) return;
+    // S.CAMS de sayılır: tablet açıkken tehdit durmuyor, dolayısıyla heat de akmalı
+    // (eskiden yalnız S.PLAY'di → kamerada geçirilen süre Director'a görünmüyordu).
+    if(!this.active() || (state!==S.PLAY && state!==S.CAMS) || downed) return;
     const d=Math.min(1, dangerLevel);
     // rahatlık ısıtır, tehdit soğutur — 8sn'lik sakinlik payı (her küçük boşlukta ısınmasın)
     // 10sn'lik sakinlik payından sonra ısınır (~110sn'de tam = gecenin üçte biri); tehdit 3-4× hızlı soğutur
@@ -2829,6 +2848,7 @@ const Dir={
     this.hint('door', '🦊 FOXO KAPILARI ÖĞRENDİ — kapı tek başına yetmeyecek');
     this.hint('vent', '🪜 VENTLER İZLENİYOR — kestirmeyi bırak');
     this.hint('camp', '🐻 FREDDO OFİSİ BULDU — bir yerde kök salma');
+    this.hint('cam',  '🧸 TABLETE ÇOK BAKIYORSUN — o sırada sana bakan bir şey var');
   },
   // per-animatronik hız çarpanı: karşı-taktik burada karakterleşiyor
   mult(id){
@@ -2839,6 +2859,8 @@ const Dir={
     if(id==='chika')  m += p.noise*0.28;
     if(id==='foxo')   m += p.door*0.26;
     if(id==='freddo') m += p.camp*0.26;
+    // tablet açıkken Boş Kostüm'e bakmıyorsun demektir → kamerada yaşayan oyuncu onu besler
+    if(id==='spare')  m += p.cam*0.30;
     return Math.max(0.75, Math.min(1.6, m));
   },
   // gece config'ini modüle et (hız hariç — o per-AI mult() ile veriliyor)
@@ -2897,6 +2919,7 @@ const UPG=[
   {id:'stam', ico:'🏃', n:'DAYANIKLILIK',     d:'Daha uzun koşarsın, nefesin çabuk toplanır.',   max:3, cost:[110,240,440], eff:l=>'koşu +'+(l*20)+'%'},
   {id:'mask', ico:'🎭', n:'MASKE FİLTRESİ',   d:'Maskede oksijenin daha uzun dayanır.',          max:3, cost:[130,280,500], eff:l=>'oksijen -'+(l*15)+'%'},
   {id:'med',  ico:'🩹', n:'İLK YARDIM ÇANTASI',d:'ÇOK OYUNCU: yaralıyken daha uzun dayanırsın, arkadaşını daha hızlı sararsın.', max:2, cost:[180,380], eff:l=>'+'+(l*20)+'s dayanma / -'+(l*0.6).toFixed(1)+'s sarma'},
+  {id:'cam',  ico:'📡', n:'CCTV YÜKSELTMESİ', d:'1) Tablette hangi kamerada hareket olduğunu gösterir. 2) Kameranın mikrofonunu açar. 🧸 Boş Kostüm sensöre GÖRÜNMEZ.', max:2, cost:[240,480], eff:l=>l>1?'hareket LED\'i + 🔊 dinleme':'hareket LED\'i'},
 ];
 function upgLvl(id){ const v=save.upg[id]; return typeof v==='number'? Math.max(0,v) : 0; }
 function upgDef(id){ return UPG.find(u=>u.id===id); }
@@ -3098,7 +3121,7 @@ function buildReport(win){
   if(runStats.frozeStare>0) add('🧸 Göz teması', Math.round(runStats.frozeStare)+' sn');
   // Director ne gördü? — bu raporun asıl ilginç kısmı: oyuna göre DEĞİL, sana göre ne değişti
   if(Dir.active()){
-    const names={flash:'🔦 fener hep açık',door:'🚪 kapıya güven',vent:'🪜 vent kestirmesi',noise:'🏃 gürültü',camp:'🐻 ofiste kamp'};
+    const names={flash:'🔦 fener hep açık',door:'🚪 kapıya güven',vent:'🪜 vent kestirmesi',noise:'🏃 gürültü',camp:'🐻 ofiste kamp',cam:'📹 tablete gömüldün'};
     let top=null, tv=0;
     for(const k in Dir.prof) if(Dir.prof[k]>tv){ tv=Dir.prof[k]; top=k; }
     add('🧠 Director seni okudu', tv>0.3? names[top] : 'dengeli oynadın', tv>0.7);
@@ -3760,10 +3783,96 @@ function openCamera(){
 }
 function closeCamera(){ if(state!==S.CAMS) return; state=S.PLAY; winding=false; $('#tablet').classList.remove('show'); $('#windBtn').classList.add('hidden'); Audio.tone(300,.06,'square',.1); }
 function cycleCam(dir){ camIndex=(camIndex+dir+CAMV.length)%CAMV.length; winding=false; $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam(); }
+$('#camListen').addEventListener('click',e=>{ e.stopPropagation();
+  camListen=!camListen; $('#camListen').classList.toggle('on',camListen);
+  $('#camListen').textContent = camListen? '🔊 DİNLENİYOR' : '🔊 DİNLE'; Audio.click(); });
 function refreshCam(){ $('#camName').textContent='CAM • '+CAMV[camIndex].n;
   // Müzik kutusu kurma butonu sadece Ödül Köşesi kamerasında
   $('#windBtn').classList.toggle('hidden', !CAMV[camIndex].prize);
   if(!CAMV[camIndex].prize) winding=false;
+  updateCamHud();
+}
+
+/* ================= 📹 CCTV =================
+   Kamera bir dekordu: 8 sabit açı, hepsi her zaman tertemiz. Artık gerçek bir güvenlik
+   sistemi gibi davranır ve BİLGİ VERMEYİ REDDEDEBİLİR:
+     • PARAZİT — bir kameraya animatronik yaklaştıkça o feed bozulur. Yani "ekran karlanıyorsa"
+       bu bir arıza değil, ipucu: orada biri var. (Boş Kostüm HARİÇ — o hiçbir kameraya, hiçbir
+       sensöre görünmez; sessizliği onun imzası.)
+     • ARIZA — gece ilerledikçe kameralar tek tek düşer (SİNYAL YOK). Düşen kamera geri gelene
+       kadar o oda kör. Kamera görevinin hedefi olan kamera ASLA arızalanmaz (haksızlık olurdu).
+     • 📡 SENSÖR / 🔊 MİKROFON — mağazadan alınır, bedava değil.
+   Ayrıca tablet açıkken Boş Kostüm'e bakmıyorsun demektir → Director'ın 'cam' ekseni onu besler. */
+const camStatic=CAMV.map(()=>0);      // 0..1 parazit
+const camDown=CAMV.map(()=>0);        // >0 iken arızalı (saniye)
+let camFailT=randRange(45,80), camListen=false, camListenT=0;
+function resetCams(){ camStatic.fill(0); camDown.fill(0); camFailT=randRange(45,80); camListen=false; camListenT=0;
+  $('#camListen').classList.remove('on'); $('#camSignal').classList.remove('show'); }
+// Bir kameranın gördüğü alanda kaç uyanık animatronik var (spare sayılmaz — kameraya görünmez)
+function camHeat(i){
+  const c=CAMV[i]; let n=0;
+  for(const a of AIS){
+    if(!a.awake || a.kind==='stare') continue;
+    if(Math.hypot(a.pos.x-c.pos[0], a.pos.z-c.pos[2])<5.5) n++;
+  }
+  if(puppetOut && Math.hypot(puppetPos.x-c.pos[0], puppetPos.z-c.pos[2])<5.5) n++;
+  return n;
+}
+function updateCams(dt){
+  // 🧠 Director 'cam' ekseni: tablette geçen süre. update()'in S.PLAY guard'ından önce çalıştığı
+  // için besleme buradan yapılır (oradaki feed'ler kamerada dururken hiç işlemezdi).
+  Dir.feed('cam', state===S.CAMS, dt);
+  if(state===S.CAMS) Dir.update(dt);
+  for(let i=0;i<CAMV.length;i++){
+    const target=Math.min(1, camHeat(i)*0.45);
+    camStatic[i] += (target-camStatic[i])*Math.min(1, dt*2.2);
+    if(camDown[i]>0) camDown[i]-=dt;
+  }
+  // rastgele kamera arızası — geceyle sıklaşır
+  camFailT-=dt;
+  if(camFailT<=0){
+    const gap = customMode? Math.max(26, 78-cnLevelMax()*2.2) : Math.max(30, 92-night*10);
+    camFailT = gap*(0.7+Math.random()*0.7);
+    const cand=[];
+    for(let i=0;i<CAMV.length;i++){ if(camDown[i]<=0 && !(camTask && camTask.cam===i)) cand.push(i); }
+    if(cand.length){
+      const i=cand[Math.floor(Math.random()*cand.length)];
+      camDown[i]=4.5+Math.random()*5;
+      if(state===S.CAMS) Audio.noise(.5,.16,900);
+    }
+  }
+  if(state===S.CAMS){
+    // ekran paraziti: taban + o kameranın ısısı + arızada tam kar
+    const dead=camDown[camIndex]>0;
+    const st = dead? 0.92 : Math.min(0.8, 0.10+camStatic[camIndex]*0.62);
+    $('#tabStatic').style.opacity=st.toFixed(2);
+    $('#camSignal').classList.toggle('show', dead);
+    // 🔊 mikrofon: o odadaki animatronik sesleri (yükseltme 2)
+    if(camListen && !dead){
+      camListenT-=dt;
+      if(camListenT<=0){
+        camListenT=0.5+Math.random()*0.7;
+        const h=camHeat(camIndex);
+        if(h>0){ const c=CAMV[camIndex];
+          if(Math.random()<0.5) Audio.step({x:c.pos[0],z:c.pos[2]}); else Audio.robotGlitch({x:c.pos[0],z:c.pos[2]});
+        } else if(Math.random()<0.25) Audio.noise(.35,.03,420);   // boş oda: sadece hava
+      }
+    }
+    updateCamHud();
+  }
+}
+// Tablet üstü: hareket LED listesi (📡 yükseltmesi) + dinleme butonu (📡 lvl2)
+function updateCamHud(){
+  const el=$('#camMotion'), lvl=upgLvl('cam');
+  if(lvl<1 || state!==S.CAMS){ el.innerHTML=''; $('#camListen').classList.add('hidden'); return; }
+  $('#camListen').classList.toggle('hidden', lvl<2);
+  let html='';
+  for(let i=0;i<CAMV.length;i++){
+    const dead=camDown[i]>0, hot=!dead && camHeat(i)>0;
+    const cls='mrow'+(hot?' hot':'')+(i===camIndex?' cur':'');
+    html+='<div class="'+cls+'"><span>'+(dead?'✕ ':'')+CAMV[i].n+'</span><i></i></div>';
+  }
+  el.innerHTML=html;
 }
 // KUR (müzik kutusu) — basılı tutulur. Kameradan (elektrik varken) VEYA yanına gidip (her zaman)
 function startWind(){ if(downed) return; if((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)) winding=true; }
@@ -3841,6 +3950,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null; ventCool=0;
   stamina=100; exhausted=false; breathT=0;                       // koşu barı sıfırla
   camTask=null; camTaskT=randRange(35,55); camMiss=0; camBoost=1; camBoostT=0; camDwell=0;   // kamera görevi sıfırla
+  resetCams();   // 📹 CCTV parazit/arıza durumu
   downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');   // yaralanma/izleyici sıfırla
   basUnlocked = customMode || night>=2;                            // BODRUM: 1. gece kilitli
   resetBasement(); resetRisen(); basTransT=0; $('#basFade').style.opacity='0';   // bodrum + yükselen düşman sıfırla
@@ -4481,6 +4591,7 @@ function update(dt){
     }
   }
 
+  if(!inBasement) updateCams(dt);      // 📹 CCTV: parazit + arıza + sensör/mikrofon
   if(!inBasement) updateCamTask(dt);   // kamera görevi (bodrumdayken donar)
   if(!inBasement) updateRisen(dt);     // bodrumdan çıkan yavaş bozuk animatronik (üst katta)
   updateBasTask(dt);      // gece bodrum görevi (vana kapat) + kan-kaybı benzeri süre
