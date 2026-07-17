@@ -173,6 +173,41 @@
   #mktPanel h2{color:#5aa0e0;font-size:min(32px,7vw);letter-spacing:2px;margin-bottom:4px;}
   #mktPanel .setSub{color:#7a828c;font-size:13px;margin-bottom:16px;text-align:center;}
   #mktGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;width:min(560px,94vw);max-height:62vh;overflow-y:auto;padding:4px;}
+  #mktGrid.hidden,#mktUpg.hidden{display:none;}
+  /* ---- 💵 para + yükseltme sekmesi ---- */
+  #menuMoney{font-family:'Courier New',monospace;font-weight:bold;font-size:16px;color:#ffd76a;
+    text-shadow:0 0 12px rgba(255,200,70,.4);margin:-4px 0 10px;letter-spacing:1px;}
+  #mktMoney{font-family:'Courier New',monospace;font-weight:bold;font-size:22px;color:#ffd76a;
+    text-shadow:0 0 14px rgba(255,200,70,.45);margin:-6px 0 12px;letter-spacing:1px;}
+  #mktTabs{display:flex;gap:8px;margin-bottom:12px;}
+  #mktTabs button{font-family:'Courier New',monospace;font-size:12px;font-weight:bold;color:#8a929c;
+    background:rgba(255,255,255,.04);border:1px solid #2a3340;border-radius:8px;padding:8px 16px;cursor:pointer;}
+  #mktTabs button.sel{color:#ffe6a0;border-color:#c9a227;background:rgba(200,160,40,.12);}
+  #mktUpg{display:flex;flex-direction:column;gap:8px;width:min(560px,94vw);max-height:62vh;overflow-y:auto;padding:4px;}
+  .upgRow{display:flex;align-items:center;gap:12px;border-radius:10px;border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.04);padding:10px 12px;text-align:left;}
+  .upgRow.maxed{border-color:#3fae5a;background:rgba(60,170,90,.10);}
+  .upgRow .ico{font-size:24px;width:32px;text-align:center;flex:none;}
+  .upgRow .txt{flex:1;min-width:0;}
+  .upgRow .n{font-size:12px;font-weight:bold;color:#dfe4ea;}
+  .upgRow .d{font-size:10px;color:#7a828c;line-height:1.3;margin-top:2px;}
+  .upgRow .e{font-size:10px;color:#7fd0ff;margin-top:3px;}
+  .upgPips{display:flex;gap:3px;margin-top:5px;}
+  .upgPips i{width:16px;height:4px;border-radius:2px;background:rgba(255,255,255,.14);}
+  .upgPips i.on{background:#c9a227;box-shadow:0 0 6px rgba(200,160,40,.7);}
+  .upgBuy{font-family:'Courier New',monospace;font-size:11px;font-weight:bold;color:#0d1117;background:#c9a227;
+    border:none;border-radius:7px;padding:9px 12px;cursor:pointer;flex:none;min-width:74px;}
+  .upgBuy.poor{background:#3a4048;color:#7a828c;cursor:default;}
+  .upgBuy.done{background:none;color:#3fae5a;font-size:16px;}
+  /* ---- 💵 gece sonu ödeme dökümü (kazanma + ölüm ekranı) ---- */
+  .payout{display:none;margin:14px auto 0;width:min(360px,88vw);border-radius:10px;
+    border:1px solid rgba(200,160,40,.3);background:rgba(20,16,8,.6);padding:12px 14px;text-align:left;}
+  .payout.show{display:block;}
+  .payTtl{font-family:'Courier New',monospace;font-weight:bold;font-size:19px;color:#ffd76a;text-align:center;margin-bottom:8px;}
+  .payRow{display:flex;justify-content:space-between;gap:10px;font-family:'Courier New',monospace;font-size:11px;color:#a8b0ba;margin-top:3px;}
+  .payRow span:last-child{color:#c9a227;font-weight:bold;}
+  .payBal{font-family:'Courier New',monospace;font-size:11px;color:#7a828c;text-align:right;
+    margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);}
   .mktCard{border-radius:10px;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:8px 6px;text-align:center;cursor:pointer;position:relative;}
   .mktCard.locked{opacity:.55;cursor:default;}
   .mktCard.equipped{border-color:#7fd0ff;box-shadow:0 0 14px rgba(90,180,255,.5);}
@@ -341,6 +376,14 @@
     font-family:'Courier New',monospace;font-weight:bold;font-size:15px;color:#c9b0b0;letter-spacing:1px;text-shadow:0 0 12px #000;white-space:nowrap;}
   #specOv::after{content:"06:00'a en az bir bekçi ulaşırsa beraber çıkarsınız";position:absolute;bottom:9%;left:50%;transform:translateX(-50%);
     font-family:'Courier New',monospace;font-size:12px;color:#7a828c;white-space:nowrap;}
+  /* kimi izlediğin + sıradakine geçiş (izleyicinin eskiden hiç bilgisi/kontrolü yoktu) */
+  #specWho{position:fixed;top:calc(8% + 26px);left:50%;transform:translateX(-50%);z-index:30;display:none;
+    font-family:'Courier New',monospace;font-size:13px;color:#8ab4d8;letter-spacing:.5px;text-shadow:0 0 10px #000;white-space:nowrap;pointer-events:none;}
+  #specOv.show ~ #specWho{display:block;}
+  #specNext{position:fixed;bottom:15%;left:50%;transform:translateX(-50%);z-index:30;display:none;
+    font-family:'Courier New',monospace;font-size:13px;font-weight:bold;color:#bfe0ff;background:rgba(12,20,32,.8);
+    border:1px solid #3a5a7a;border-radius:9px;padding:9px 16px;cursor:pointer;}
+  #specNext.show{display:block;}
 
   /* ---- ÖZEL GECE PANELİ ---- */
   #cnPanel{position:fixed;inset:0;z-index:45;background:radial-gradient(ellipse at center 40%,rgba(30,20,8,.6),#000 72%);
@@ -440,8 +483,11 @@
 <button id="mktBtn" class="hidden">🛒</button>
 <div id="mktPanel">
   <h2>🛒 MAĞAZA</h2>
-  <div class="setSub">başarımlarla skin aç • <span id="mktCount">0 / 15</span> açık — birini seçip <b>KUŞAN</b></div>
-  <div id="mktGrid"></div>
+  <div id="mktMoney">💵 $0</div>
+  <div id="mktTabs"><button data-t="upg" class="sel">🧰 YÜKSELTME</button><button data-t="skin">👤 GÖRÜNÜM</button></div>
+  <div class="setSub" id="mktSub"></div>
+  <div id="mktUpg"></div>
+  <div id="mktGrid" class="hidden"></div>
   <button id="mktClose">‹ KAPAT</button>
 </div>
 
@@ -462,6 +508,8 @@
 <div id="hurtHud"></div>
 <button id="reviveBtn"></button>
 <div id="specOv"></div>
+<div id="specWho"></div>
+<button id="specNext">⟳ SIRADAKİ BEKÇİ</button>
 <div id="basFade"></div>
 
 <!-- Dokunmatik kontroller -->
@@ -502,6 +550,7 @@
 <div id="menu" class="overlay">
   <div class="bigTitle">GECE BEKÇİSİ</div>
   <div class="sub">— 06:00'a kadar dayan —</div>
+  <div id="menuMoney">💵 $0</div>
   <div id="modePick">
     <button id="soloBtn" class="mpBig" style="border-color:#c9a227;color:#ffe6a0;">🎮 TEK OYUNCU</button>
     <button id="mpBtn" class="mpBig" style="border-color:#3a7abf;color:#bfe0ff;">👥 ÇOK OYUNCU</button>
@@ -523,7 +572,7 @@
     🪜 Vent: ofis ↔ kulis arası kestirme. Sürünürken savunmasızsın — çıkışta kovalayan varsa kaçış yok.</span><br>
     <span style="color:#8a7a5a">🐻 FREDDO ışık tutunca DONAR &nbsp;•&nbsp; 💜 BONKO ışığı görürse ÇILDIRIR<br>
     🐤 CHİKA sesini duyar (koşma!) &nbsp;•&nbsp; 🦊 FOXO'yu kamerada izle yoksa koşar</span><br>
-    <span style="color:#c9a227">🚪 Kapı 7s kapalı kalır, sonra kendi açılır — tekrar kapatmak için 7s bekleme.<br>
+    <span style="color:#c9a227">🚪 Kapı 9s kapalı kalır, sonra kendi açılır — tekrar kapatmak için 7s bekleme (🛒 yükseltmeyle kısalır).<br>
     Kapıda 3s takılan animatronik VAZGEÇER ve çeker gider. Kapı kalkan değil, zaman kazandırır.</span><br>
     🎵 Müzik kutusu boşalırsa PUPPET seni yer! Elektrik yoksa kamera çalışmaz → Ödül Köşesi'ne gidip elle kur.
   </div>
@@ -588,6 +637,7 @@
   <div class="bigTitle">YAKALANDIN</div>
   <div class="sub" id="deadWho">??? seni buldu</div>
   <div class="sub" id="deadWhen" style="color:#6a6a6a"></div>
+  <div class="payout" id="deadPay"></div>
   <div class="tapHint">TEKRAR İÇİN DOKUN</div>
 </div>
 
@@ -596,6 +646,7 @@
   <div id="winClock">06:00</div>
   <div class="bigTitle" id="winTitle" style="color:#3fae5a;text-shadow:0 0 22px #3fae5a">GECE ATLATILDI</div>
   <div class="sub" id="winSub">Gece 1 bitti</div>
+  <div class="payout" id="winPay"></div>
   <div class="tapHint">DEVAM İÇİN DOKUN</div>
 </div>
 
@@ -1038,8 +1089,13 @@ wallZ(NZ(-4),NZ(6),  NX(9), [NZ(-1.5),NZ(1.5)]);  // doğu duvar, mutfak kapıs�
 // Masalar: hem oyuncu (colliders) hem animatronik (tableCols) çarpışır → içinden GEÇİLMEZ,
 // etrafından dolanılır. tableCols yol bulmada (losWide) da engel; ama losClear/görüşte DEĞİL
 // (masa alçak, üstünden görülür + algı dengesi bozulmasın).
+// 4x3 gridin 4'ü (1/3) BOŞ: yemekhane tıkalı hissettiriyordu, hem oyuncu hem animatronik
+// sürekli masa dolanıyordu. Boşluklar dağınık seçildi → sıra düzeni korunur, koridor açılır.
+// (Yan fayda: tableCols küçüldü → losWide/navTarget ışın testi ucuzladı.)
+const TABLE_SKIP=new Set(['-6,1','-2,4','2,-2','6,1']);
 const tableCols=[];
 for(let mx=-6; mx<=6; mx+=4){ for(let mz=-2; mz<=4; mz+=3){
+  if(TABLE_SKIP.has(mx+','+mz)) continue;
   decoBox(NX(mx),0.5,NZ(mz),1.1,0.08,1.1,M.table); decoBox(NX(mx),0.25,NZ(mz),0.08,0.5,0.08,M.metal);
   const c={minX:NX(mx)-0.55,maxX:NX(mx)+0.55,minZ:NZ(mz)-0.55,maxZ:NZ(mz)+0.55};
   colliders.push(c); tableCols.push(c);
@@ -1200,6 +1256,8 @@ function makeDoorway(name,x0,x1,z){
 }
 const DOOR_TIME=9;    // kapı bu kadar saniye kapalı kalır, sonra otomatik açılır
 const DOOR_COOL=7;    // açıldıktan sonra tekrar kapatmak için bekleme
+// 🚪 YAĞLANMIŞ KAPI yükseltmesi beklemeyi kısaltır (taban 7s → en iyi ihtimalle 2.5s)
+function doorCool(){ return Math.max(2.5, DOOR_COOL - upgLvl('door')*1.5); }
 const DOOR_FORGET=3;  // animatronik kapalı kapıda bu kadar takılırsa vazgeçer
 const GIVEUP_TIME=8;  // vazgeçince bu kadar saniye uzaklaşır
 const RAID_DUR=16;    // "OFİS BASKINI": görmese/duymasa da doğrudan ofise yürür (kapatmazsan girer)
@@ -1749,12 +1807,15 @@ CHIKA_PATH.forEach(p=>{ if(p.z<6){ p.x=NX(p.x); p.z=NZ(p.z); } });   // kuzey de
 
 // Fener konisi testi — bu noktaya ışık tutuyor muyuz?
 // FREDDO'yu dondurur, BONKO'yu çıldırtır: aynı alet, iki zıt sonuç.
+// 🔦 MERCEK yükseltmesi: hem oyun mantığındaki "aydınlattım mı" menzili/konisi (burada)
+// hem de ışığın görsel menzili (aşağıda flash.distance/angle) birlikte büyür — ikisi ayrışmasın.
 function litByFlash(x,z){
   if(state!==S.PLAY || !flashOn || battery<=0) return false;
+  const lu=upgLvl('lamp');
   const dx=x-player.x, dz=z-player.z, dist=Math.hypot(dx,dz);
-  if(dist>15 || dist<0.001) return false;
+  if(dist>15*(1+lu*0.15) || dist<0.001) return false;
   const dot=(dx*Math.sin(player.yaw)+dz*Math.cos(player.yaw))/dist;
-  return dot>0.80 && losClear(player.x,player.z,x,z);   // ~±36° koni
+  return dot>(0.80-lu*0.03) && losClear(player.x,player.z,x,z);   // ~±36° koni (mercekle biraz genişler)
 }
 // Animatronik ile oyuncunun arasında KAPALI KAPI var mı?
 // "Takılma" ölçmek yetmiyordu: BONKO pusu mesafesinde durup kapıya hiç dokunmadığı için
@@ -1872,7 +1933,7 @@ function updateRisen(dt){
   if(!risen.active){
     if(basUnlocked){ risenT-=dt; if(risenT<=0 && AIS.some(a=>a.awake)){
       risen.active=true; risen.x=HATCH.x; risen.z=HATCH.z; risen.model.visible=true; risen.navT=0;
-      toast('🔻 BODRUMDAN BİR ŞEY ÇIKTI — yavaş ama durmuyor!'); Audio.growl(); Audio.noise(.6,.16,300); if(navigator.vibrate) navigator.vibrate([120,60,120]); } }
+      toast('🔻 BODRUMDAN BİR ŞEY ÇIKTI — yavaş ama durmuyor!'); Audio.growl(risen); Audio.noise(.6,.16,300,risen); if(navigator.vibrate) navigator.vibrate([120,60,120]); } }
     return;
   }
   risen.navT-=dt;
@@ -1884,7 +1945,7 @@ function updateRisen(dt){
   if(risen.eyeMat) risen.eyeMat.emissiveIntensity=2.4;
   const dp=Math.hypot(player.x-risen.x,player.z-risen.z);
   dangerLevel=Math.max(dangerLevel, 1-Math.min(dp,14)/14);
-  if(Math.random()<dt*0.4) Audio.robotGlitch();
+  if(Math.random()<dt*0.4) Audio.robotGlitch(risen);   // arızası kendi konumundan → arkandan mı geliyor duyarsın
   if(dp<1.2) catchPlayer(risen.model, risen.name);
 }
 risen.eyeMat=risen.model.userData.eyeMat;
@@ -1983,6 +2044,11 @@ function stepToward(a,tx,tz,sp,dt){
 let aiStep=0;
 function updateAI(dt){
   const cfg=ncfg(), sm=cfg.sm;
+  // İZLEYİCİ: AI eskiden hiç çalışmıyordu (update'te `!spectating` şartı vardı) → öldükten sonra
+  // arkadaşını izlerken bütün animatronikler heykel gibi donuyordu, arkadaşın hiçbir şeyden
+  // kaçmıyor gibi görünüyordu. Artık AI işler ve hedefi İZLENEN arkadaş olur (senin cesedin değil).
+  // Bu kopya yalnız görsel: izleyici yakalanamaz, kimseyi öldüremez (aşağıda catch kapalı).
+  const tgt = spectating ? (Net.specTarget()||player) : player;
   noiseLvl=Math.max(0, noiseLvl-dt*0.55);   // gürültü sönümlenir
   aiStep-=dt;
   let dmax=0;
@@ -1991,7 +2057,7 @@ function updateAI(dt){
 
     // ---- UYANMA (gece tablosuna göre) ----
     if(!a.awake){
-      if(clockT>=a.wakeAt){ a.awake=true; toast('⚠ '+a.name+' UYANDI'); Audio.tone(78,.55,'sawtooth',.28); Audio.noise(.4,.16,320); }
+      if(clockT>=a.wakeAt){ a.awake=true; toast('⚠ '+a.name+' UYANDI'); Audio.tone(78,.55,'sawtooth',.28,a.pos); Audio.noise(.4,.16,320,a.pos); }
       else {
         a.phase+=dt*1.2;
         u.glowL.visible=u.glowR.visible=false; u.eyeWhite.emissiveIntensity=0.25;
@@ -2017,18 +2083,18 @@ function updateAI(dt){
       u.eyeWhite.emissiveIntensity=0.9; continue;
     }
 
-    let tx=player.x, tz=player.z, sp=a.speed*sm*camBoost, want=false;   // camBoost: kamera görevi kaçırılınca hızlanır
-    const dist0=Math.hypot(player.x-a.pos.x, player.z-a.pos.z);
-    const see=dist0<cfg.detect && losClear(a.pos.x,a.pos.z,player.x,player.z);
+    let tx=tgt.x, tz=tgt.z, sp=a.speed*sm*camBoost, want=false;   // camBoost: kamera görevi kaçırılınca hızlanır
+    const dist0=Math.hypot(tgt.x-a.pos.x, tgt.z-a.pos.z);
+    const see=dist0<cfg.detect && losClear(a.pos.x,a.pos.z,tgt.x,tgt.z);
 
     // ---- KAPALI KAPIYI GÖRDÜ → DOOR_FORGET sn sonra unut ----
     // Kapıya dokunmasına gerek yok (Bonko pusuda durup hiç dokunmuyordu);
     // arada kapalı kapı varsa sayaç işler.
-    if(a.kind!=='cove' && a.giveUp<=0 && dist0<12 && doorBlocks(a.pos.x,a.pos.z,player.x,player.z)){
+    if(a.kind!=='cove' && a.giveUp<=0 && dist0<12 && doorBlocks(a.pos.x,a.pos.z,tgt.x,tgt.z)){
       a.doorT+=dt;
       if(a.doorT>DOOR_FORGET){
         a.doorT=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0; a.stuck=0; a.raid=0; a.raidNext=raidInterval();
-        toast('😮‍💨 '+a.name+' VAZGEÇTİ — KAPIDAN GİTTİ'); Audio.growl();
+        toast('😮‍💨 '+a.name+' VAZGEÇTİ — KAPIDAN GİTTİ'); Audio.growl(a.pos);
       }
     } else a.doorT=0;
 
@@ -2044,7 +2110,7 @@ function updateAI(dt){
     // Seni asla kaybetmez ama ışık tutunca donar. Işıklar yanarken ağır, karanlıkta hızlı.
     else if(a.kind==='dark'){
       const lit=litByFlash(a.pos.x,a.pos.z);
-      if(lit){ if(a.frozen<=0) Audio.growl(); a.frozen=0.5; }
+      if(lit){ if(a.frozen<=0) Audio.growl(a.pos); a.frozen=0.5; }
       else a.frozen=Math.max(0,a.frozen-dt);
       if(masked){                     // MASKE: kendi maskesini görüp seni "içlerinden biri" sanır → yönünü şaşırır
         tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>1.2; sp*=0.75; a.chasing=false;
@@ -2053,7 +2119,7 @@ function updateAI(dt){
         want = a.frozen<=0;
         a.chasing = want;
       }
-      a.cry-=dt; if(a.cry<=0){ a.cry=8+Math.random()*9; if(!lit&&!masked) Audio.laugh(); }
+      a.cry-=dt; if(a.cry<=0){ a.cry=8+Math.random()*9; if(!lit&&!masked) Audio.laugh(a.pos); }
     }
     // ================= BONKO — IŞIĞA SALDIRIR =================
     // Sinsice yaklaşır ve birkaç adım ötende PUSUYA YATAR — ışık yakmadıkça saldırmaz.
@@ -2064,7 +2130,7 @@ function updateAI(dt){
         a.rage=Math.max(0,a.rage-dt*3); a.chasing=false;
         tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>1.2; sp*=0.7;
       } else {
-        if(lit){ if(a.rage<=0){ Audio.screech(); toast('💜 BONKO IŞIĞI GÖRDÜ!'); } a.rage=6.5; }
+        if(lit){ if(a.rage<=0){ Audio.screech(a.pos); toast('💜 BONKO IŞIĞI GÖRDÜ!'); } a.rage=6.5; }
         else a.rage=Math.max(0,a.rage-dt);
         if(a.rage<=0 && dist0<2.2){ a.rage=4; Audio.sting(); }   // üstüne basarsan yine atlar
         a.chasing=a.rage>0;
@@ -2078,7 +2144,7 @@ function updateAI(dt){
     else if(a.kind==='noise'){
       if(noiseLvl>0.2 && noiseLvl*26 > Math.hypot(noiseX-a.pos.x, noiseZ-a.pos.z)){ a.hx=noiseX; a.hz=noiseZ; a.hear=noiseLvl; }
       a.hear=Math.max(0,a.hear-dt*0.25);
-      if(see && dist0<4.5){ a.hx=player.x; a.hz=player.z; a.hear=1; }
+      if(see && dist0<4.5){ a.hx=tgt.x; a.hz=tgt.z; a.hear=1; }
       a.chasing=a.hear>0.5;
       if(a.hear>0.05){
         tx=a.hx; tz=a.hz;
@@ -2090,7 +2156,7 @@ function updateAI(dt){
         a.wpT-=dt;
         if(Math.hypot(tx-a.pos.x,tz-a.pos.z)<1.2 || a.wpT<=0){ a.wp++; a.wpT=16; }
       }
-      a.cry-=dt; if(a.cry<=0){ a.cry=6+Math.random()*7; Audio.clang(); }
+      a.cry-=dt; if(a.cry<=0){ a.cry=6+Math.random()*7; Audio.clang(a.pos); }
     }
     // ================= FOXO — PIRATE COVE =================
     // Kamerada perdeye bakmazsan kademe kademe çıkar, sonra KOŞAR. Kapı kapatarak durdurulur.
@@ -2099,16 +2165,16 @@ function updateAI(dt){
         const watched=(state===S.CAMS && CAMV[camIndex].cove);
         a.coveT=Math.max(0, a.coveT + (watched? -dt*3.5 : dt));
         const ns=Math.min(3, Math.floor(a.coveT/cfg.coveStep));
-        if(ns>a.stage){ Audio.creak(); toast(['','🦊 PERDE KIPIRDADI','🦊 PERDE ARALANDI','🦊 FOXO PERDEDEN ÇIKTI'][ns]); }
+        if(ns>a.stage){ Audio.creak(a.pos); toast(['','🦊 PERDE KIPIRDADI','🦊 PERDE ARALANDI','🦊 FOXO PERDEDEN ÇIKTI'][ns]); }
         a.stage=ns; a.left=false;
         // Perdeden çıkış yemekhane zemininde kalmalı: z=6 güney duvarı, x[-9,-4] aralığında SAĞIR.
         // Daha uzağa taşırsak Foxo duvarın arkasındaki kapalı boşluğa sıkışıp asla ulaşamaz.
         a.pos.x=a.home.x+a.stage*0.10; a.pos.z=a.home.z+a.stage*0.55;
         if(a.stage>=3){ a.mode='run'; a.run=13; a.blocked=0;
-          Audio.foxRun(); toast('🦊 FOXO KOŞUYOR — KAPIYI KAPAT!'); if(navigator.vibrate) navigator.vibrate(200); }
+          Audio.foxRun(a.pos); toast('🦊 FOXO KOŞUYOR — KAPIYI KAPAT!'); if(navigator.vibrate) navigator.vibrate(200); }
         a.phase+=dt*1.5;
         m.position.set(a.pos.x*SC, a.homeY*(1-a.stage/3*0.95), a.pos.z*SC);   // çıktıkça platformdan iner
-        m.lookAt(player.x*SC,1.4,player.z*SC);
+        m.lookAt(tgt.x*SC,1.4,tgt.z*SC);
         poseRig(m,{phase:a.phase, walk:0.08, lean:0.05*a.stage, jaw:0.06*a.stage, headYaw:0, headPitch:0});
         u.eyeWhite.emissiveIntensity=0.8+a.stage*0.5;
         dmax=Math.max(dmax, a.stage/3*0.35);
@@ -2129,12 +2195,12 @@ function updateAI(dt){
     if(a.kind!=='cove' && !masked && a.giveUp<=0){
       if(a.raid>0){
         a.raid-=dt;
-        tx=player.x; tz=player.z; want=true; a.chasing=true; sp=a.speed*sm*camBoost*1.12;
+        tx=tgt.x; tz=tgt.z; want=true; a.chasing=true; sp=a.speed*sm*camBoost*1.12;
         if(a.raid<=0) a.raidNext=raidInterval();
       } else {
         a.raidNext-=dt;
         if(a.raidNext<=0 && !a.chasing){ a.raid=RAID_DUR;
-          toast('🚨 '+a.name+' OFİSE GELİYOR — KAPILARI KONTROL ET!'); Audio.growl(); Audio.noise(.4,.14,300); if(navigator.vibrate) navigator.vibrate([80,40,80]); }
+          toast('🚨 '+a.name+' OFİSE GELİYOR — KAPILARI KONTROL ET!'); Audio.growl(a.pos); Audio.noise(.4,.14,300,a.pos); if(navigator.vibrate) navigator.vibrate([80,40,80]); }
       }
     }
 
@@ -2155,10 +2221,10 @@ function updateAI(dt){
     if(a.kind!=='cove' && a.chasing && want){
       if(moved < sp*dt*0.3){
         a.stuck+=dt;
-        a.bang-=dt; if(a.bang<=0){ a.bang=0.5; Audio.bang(); if(navigator.vibrate) navigator.vibrate(45); }
+        a.bang-=dt; if(a.bang<=0){ a.bang=0.5; Audio.bang(a.pos); if(navigator.vibrate) navigator.vibrate(45); }
         if(a.stuck>DOOR_FORGET){
           a.stuck=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0; a.raid=0; a.raidNext=raidInterval();
-          toast('😮‍💨 '+a.name+' VAZGEÇTİ'); Audio.growl();
+          toast('😮‍💨 '+a.name+' VAZGEÇTİ'); Audio.growl(a.pos);
         }
       } else a.stuck=Math.max(0, a.stuck-dt*2);
     }
@@ -2166,11 +2232,11 @@ function updateAI(dt){
     // olarak sıkıştıysa (moved düşük) → vur ve koveye dön. doorBlocks eklendi çünkü Foxo kapıya
     // yandan sürtüp kaydığında moved yüksek kalıp "durmuyordu" → oyuncuya kapı işlemiyor gibi geliyordu.
     if(a.kind==='cove' && a.mode==='run'){
-      const doorShut = doorBlocks(a.pos.x,a.pos.z,player.x,player.z);   // arada kapalı kapı var mı
+      const doorShut = doorBlocks(a.pos.x,a.pos.z,tgt.x,tgt.z);   // arada kapalı kapı var mı
       if(doorShut || moved < sp*dt*0.3){
         a.blocked+=dt; a.bang-=dt;
-        if(a.bang<=0){ a.bang=0.45; Audio.bang(); if(navigator.vibrate) navigator.vibrate(60); }
-        if(a.blocked > (doorShut?0.8:1.6)){ a.mode='back'; a.blocked=0; toast('🦊 KAPI FOXO\'YU DURDURDU'); Audio.growl(); }
+        if(a.bang<=0){ a.bang=0.45; Audio.bang(a.pos); if(navigator.vibrate) navigator.vibrate(60); }
+        if(a.blocked > (doorShut?0.8:1.6)){ a.mode='back'; a.blocked=0; toast('🦊 KAPI FOXO\'YU DURDURDU'); Audio.growl(a.pos); }
       } else a.blocked=Math.max(0,a.blocked-dt*2);
     }
 
@@ -2183,7 +2249,7 @@ function updateAI(dt){
     const bob=poseRig(m,{phase:a.phase, walk:a.walk, lean:a.lean, jaw:a.jaw,
                          headYaw:a.chasing?0:Math.sin(a.phase*0.22)*0.3, headPitch:0});
     // baktığı yön: kovalarken oyuncu, değilse yürüdüğü ara nokta
-    if(a.chasing){ a.lx=player.x; a.lz=player.z; }
+    if(a.chasing){ a.lx=tgt.x; a.lz=tgt.z; }
     else if(want && Math.hypot(a.ntx-a.pos.x,a.ntz-a.pos.z)>0.5){ a.lx=a.ntx; a.lz=a.ntz; }
     m.position.set(a.pos.x*SC, (a.left?0.02:a.homeY)+bob, a.pos.z*SC);
     m.lookAt(a.lx*SC, 1.4, a.lz*SC);
@@ -2191,10 +2257,11 @@ function updateAI(dt){
     // ---- GÖZLER / SES / TEHLİKE ----
     u.eyeWhite.emissiveIntensity = (a.kind==='dark'&&a.frozen>0)? 2.6 : (a.chasing? 1.9 : 1.1);
     if(a.chasing){
-      if(aiStep<=0 && a.walk>0.3) Audio.step();
-      const dnow=Math.hypot(player.x-a.pos.x, player.z-a.pos.z);
+      if(aiStep<=0 && a.walk>0.3) Audio.step(a.pos);   // ayak sesi kendi konumundan → yaklaştığını duyarsın
+      const dnow=Math.hypot(tgt.x-a.pos.x, tgt.z-a.pos.z);
       dmax=Math.max(dmax, 1-Math.min(dnow,13)/13);
-      if(dnow<1.15 && losClear(a.pos.x,a.pos.z,player.x,player.z)) catchPlayer(m, a.name);
+      // İZLEYİCİ zaten elenmiş: gördüğü kovalamaca yalnız görsel, kimseyi yakalayamaz
+      if(!spectating && dnow<1.15 && losClear(a.pos.x,a.pos.z,tgt.x,tgt.z)) catchPlayer(m, a.name);
     }
   }
   if(aiStep<=0) aiStep=0.32;
@@ -2218,8 +2285,10 @@ function driveAmbience(dt){
   }
   ambT-=dt;
   if(ambT<=0){ ambT=5+Math.random()*7; const r=Math.random();
-    // uyanık animatronikler arada bozuk robot arızası çıkarır (yaklaştıkça daha sık)
-    if(AIS.some(a=>a.awake) && Math.random()<0.35+dangerLevel*0.35) Audio.robotGlitch();
+    // uyanık animatronikler arada bozuk robot arızası çıkarır (yaklaştıkça daha sık).
+    // Sesi arızayı çıkaranın konumundan gelir → hangi yönde uyanık biri var, kulakla anlaşılır.
+    const awake=AIS.filter(a=>a.awake);
+    if(awake.length && Math.random()<0.35+dangerLevel*0.35) Audio.robotGlitch(awake[Math.floor(Math.random()*awake.length)].pos);
     if(dangerLevel>0.4) Audio.pad([49,55,58][Math.floor(Math.random()*3)],2.5);
     else if(r<0.45) Audio.creak();
     else if(r<0.75) Audio.pad([55,58,65,49][Math.floor(Math.random()*4)],4);
@@ -2238,6 +2307,33 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
   }catch(e){} }
   function resume(){ if(ac&&ac.state==='suspended') ac.resume(); }
   function setMaster(v){ if(mas) mas.gain.value = Math.max(0, Math.min(1, v))*0.9; }
+
+  /* ---- KONUMSAL SES (HRTF) ----
+     Sesler artık nereden geldiği duyulur: Chika'nın tenceresi mutfaktan, Freddo'nun kahkahası
+     arkandan, müzik kutusunun ninnisi Ödül Köşesi'nden. Kulaklıkla yön bulunabilir.
+     spat(gx,gz) OYUN birimi alır (a.pos/player ile aynı), içeride SC ile dünya birimine çevirir —
+     dinleyici de camera.position'dan (zaten SC'li) beslendiği için iki uzay birebir örtüşür. */
+  function spat(gx,gz,y){ if(!ac) return mas;
+    const p=ac.createPanner();
+    // HRTF masaüstünde çok daha iyi yön verir ama her ses için konvolüsyon demek → mobilde
+    // equalpower (basit L/R + mesafe). Yön hissi korunur, CPU maliyeti neredeyse sıfır.
+    p.panningModel = isMobile? 'equalpower' : 'HRTF';
+    p.distanceModel='inverse';
+    p.refDistance=6; p.rolloffFactor=1.0; p.maxDistance=140;
+    const wx=gx*SC, wy=(y==null?1.4:y), wz=gz*SC;
+    if(p.positionX){ p.positionX.value=wx; p.positionY.value=wy; p.positionZ.value=wz; }
+    else p.setPosition(wx,wy,wz);
+    p.connect(mas); return p; }
+  // pos verilmezse eski davranış (mono master) — çağıranların hepsini değiştirmek gerekmesin
+  function dest(pos){ return pos? spat(pos.x,pos.z,pos.y) : mas; }
+  let lupSet=false;
+  // Her frame kameradan beslenir → izleyici/kamera/bodrum modlarında da doğru çalışır
+  function setListener(px,py,pz,fx,fy,fz){ if(!ac) return; const L=ac.listener;
+    if(L.positionX){ const t=ac.currentTime, S=0.02;
+      L.positionX.setTargetAtTime(px,t,S); L.positionY.setTargetAtTime(py,t,S); L.positionZ.setTargetAtTime(pz,t,S);
+      L.forwardX.setTargetAtTime(fx,t,S); L.forwardY.setTargetAtTime(fy,t,S); L.forwardZ.setTargetAtTime(fz,t,S);
+      if(!lupSet){ L.upX.value=0; L.upY.value=1; L.upZ.value=0; lupSet=true; }
+    } else { L.setPosition(px,py,pz); L.setOrientation(fx,fy,fz,0,1,0); } }
   // Telefon Adamı: klasik iki tonlu zil + boğuk konuşma "blip"leri (bandpass = telefon hattı)
   function phoneRing(){ if(!ac)return; const t=ac.currentTime;
     for(let r=0;r<2;r++){ const off=r*0.42; [0,0.1].forEach(o=>{ const osc=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
@@ -2262,7 +2358,7 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+.018); g.gain.exponentialRampToValueAtTime(.0001,t+d);
     o.start(t); o2.start(t); lfo.start(t); o.stop(t+d+.02); o2.stop(t+d+.02); lfo.stop(t+d+.02); }
   // Animatronik BOZUK ROBOT arızası — cızırtılı, akortsuz, düşen kesik dijital hırıltı + statik
-  function robotGlitch(){ if(!ac)return; const t=ac.currentTime;
+  function robotGlitch(pos){ if(!ac)return; const t=ac.currentTime, out=dest(pos);
     const steps=3+Math.floor(Math.random()*3);
     for(let i=0;i<steps;i++){ const off=i*(0.05+Math.random()*0.06);
       const o=ac.createOscillator(), g=ac.createGain(), f=ac.createBiquadFilter();
@@ -2270,16 +2366,16 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
       const fr=90+Math.random()*270; o.frequency.setValueAtTime(fr,t+off);
       o.frequency.linearRampToValueAtTime(fr*(0.38+Math.random()*0.5),t+off+.05);   // düşen glitch
       f.type='bandpass'; f.frequency.value=650+Math.random()*950; f.Q.value=9;
-      o.connect(f); f.connect(g); g.connect(mas);
+      o.connect(f); f.connect(g); g.connect(out);
       g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.055,t+off+.006); g.gain.exponentialRampToValueAtTime(.0001,t+off+.06);
       o.start(t+off); o.stop(t+off+.08); }
-    noise(.12,.045,2200); }   // dijital cızırtı katmanı
+    noise(.12,.045,2200,pos); }   // dijital cızırtı katmanı
   function achievePop(){ if(!ac)return; const t=ac.currentTime; [660,880,1320].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain();
     o.type='triangle'; o.frequency.value=fr; g.gain.setValueAtTime(.0001,t+i*.08); g.gain.linearRampToValueAtTime(.12,t+i*.08+.02); g.gain.exponentialRampToValueAtTime(.0001,t+i*.08+.3);
     o.connect(g); g.connect(mas); o.start(t+i*.08); o.stop(t+i*.08+.32); }); }
   function setAmbient(on){ if(!ac||!ambGain)return; const t=ac.currentTime; ambGain.gain.cancelScheduledValues(t); ambGain.gain.setValueAtTime(Math.max(.0001,ambGain.gain.value),t); ambGain.gain.linearRampToValueAtTime(on?0.85:0.0, t+0.4); }
-  function tone(f,d,ty,v){ if(!ac)return; const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.type=ty||'sine'; o.frequency.value=f; o.connect(g); g.connect(mas); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v||.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.start(t); o.stop(t+d+.02); }
-  function noise(d,v,ff){ if(!ac)return; const n=Math.floor(ac.sampleRate*d),buf=ac.createBuffer(1,n,ac.sampleRate),da=buf.getChannelData(0); for(let i=0;i<n;i++)da[i]=Math.random()*2-1; const s=ac.createBufferSource(); s.buffer=buf; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=ff||1000; const g=ac.createGain(); g.gain.value=v||.2; s.connect(f); f.connect(g); g.connect(mas); s.start(); }
+  function tone(f,d,ty,v,pos){ if(!ac)return; const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.type=ty||'sine'; o.frequency.value=f; o.connect(g); g.connect(dest(pos)); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v||.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.start(t); o.stop(t+d+.02); }
+  function noise(d,v,ff,pos){ if(!ac)return; const n=Math.floor(ac.sampleRate*d),buf=ac.createBuffer(1,n,ac.sampleRate),da=buf.getChannelData(0); for(let i=0;i<n;i++)da[i]=Math.random()*2-1; const s=ac.createBufferSource(); s.buffer=buf; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=ff||1000; const g=ac.createGain(); g.gain.value=v||.2; s.connect(f); f.connect(g); g.connect(dest(pos)); s.start(); }
   function startHum(){ if(!ac||hum.length)return; const hg=ac.createGain(); hg.gain.value=.04; hg.connect(ambGain); [52,78].forEach(fr=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=fr;const g=ac.createGain();g.gain.value=.5;o.connect(g);g.connect(hg);o.start();hum.push(o);}); }
   // Gerilim ambiyansı: düşük dron + yavaş LFO ile nefes alan karanlık ped (ambGain üzerinden → state ile susar)
   function startAmbience(){ startHum(); if(!ac||hum.length>3)return;
@@ -2306,44 +2402,44 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
   // algılama/dikkat "sting"
   function sting(){ if(!ac)return; const t=ac.currentTime; [740,784,932].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sawtooth'; o.frequency.value=fr*(1+i*.008); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.11,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.7); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.72); }); noise(.3,.09,2500); }
   // gıcırtı / uzak ses
-  function creak(){ if(!ac)return; const t=ac.currentTime; const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter(); o.type='sawtooth'; o.frequency.setValueAtTime(170+Math.random()*130,t); o.frequency.linearRampToValueAtTime(85,t+.6); f.type='bandpass'; f.frequency.value=420; f.Q.value=7; o.connect(f); f.connect(g); g.connect(mas); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+.12); g.gain.exponentialRampToValueAtTime(.0001,t+.7); o.start(t); o.stop(t+.72); }
+  function creak(pos){ if(!ac)return; const t=ac.currentTime; const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter(); o.type='sawtooth'; o.frequency.setValueAtTime(170+Math.random()*130,t); o.frequency.linearRampToValueAtTime(85,t+.6); f.type='bandpass'; f.frequency.value=420; f.Q.value=7; o.connect(f); f.connect(g); g.connect(dest(pos)); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+.12); g.gain.exponentialRampToValueAtTime(.0001,t+.7); o.start(t); o.stop(t+.72); }
   function click(){ tone(660,.05,'square',.12); }
-  function step(){ tone(70+Math.random()*20,.07,'sine',.05); noise(.05,.03,300); }
-  // --- KARAKTER İPUÇLARI ---
+  function step(pos){ tone(70+Math.random()*20,.07,'sine',.05,pos); noise(.05,.03,300,pos); }
+  // --- KARAKTER İPUÇLARI --- (hepsi pos alır → sesin yönü haritada duyulur)
   // FREDDO: karanlıkta gelen kahkaha
-  function laugh(){ if(!ac)return; const t=ac.currentTime;
+  function laugh(pos){ if(!ac)return; const t=ac.currentTime, out=dest(pos);
     for(let i=0;i<4;i++){ const off=i*0.16, o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
       o.type='sawtooth'; o.frequency.setValueAtTime(215-i*18,t+off); o.frequency.linearRampToValueAtTime(148-i*14,t+off+.13);
-      f.type='bandpass'; f.frequency.value=600; f.Q.value=3; o.connect(f); f.connect(g); g.connect(mas);
+      f.type='bandpass'; f.frequency.value=600; f.Q.value=3; o.connect(f); f.connect(g); g.connect(out);
       g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.09,t+off+.02); g.gain.exponentialRampToValueAtTime(.0001,t+off+.15);
       o.start(t+off); o.stop(t+off+.17); } }
   // FREDDO: fenerle dondurulunca hırlama
-  function growl(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+  function growl(pos){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
     o.type='sawtooth'; o.frequency.setValueAtTime(58,t); o.frequency.linearRampToValueAtTime(44,t+.9);
-    f.type='lowpass'; f.frequency.value=260; o.connect(f); f.connect(g); g.connect(mas);
+    f.type='lowpass'; f.frequency.value=260; o.connect(f); f.connect(g); g.connect(dest(pos));
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.13,t+.1); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
     o.start(t); o.stop(t+1.05); }
   // CHİKA: mutfaktan tencere sesi (nerede olduğunu ele verir)
-  function clang(){ if(!ac)return; const t=ac.currentTime;
+  function clang(pos){ if(!ac)return; const t=ac.currentTime, out=dest(pos);
     [1800,2400,3100].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='square'; o.frequency.value=fr*(1+Math.random()*.05);
       g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.045,t+.005); g.gain.exponentialRampToValueAtTime(.0001,t+.5+i*.1);
-      o.connect(g); g.connect(mas); o.start(t); o.stop(t+.66); }); noise(.12,.05,4000); }
+      o.connect(g); g.connect(out); o.start(t); o.stop(t+.66); }); noise(.12,.05,4000,pos); }
   // BONKO: ışığı görünce çıldırma
-  function screech(){ if(!ac)return; const t=ac.currentTime;
+  function screech(pos){ if(!ac)return; const t=ac.currentTime, out=dest(pos);
     [620,930,1240].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sawtooth';
       o.frequency.setValueAtTime(fr,t); o.frequency.linearRampToValueAtTime(fr*1.5,t+.35);
       g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.09,t+.03); g.gain.exponentialRampToValueAtTime(.0001,t+.55);
-      o.connect(g); g.connect(mas); o.start(t); o.stop(t+.6); }); noise(.3,.1,3000); }
+      o.connect(g); g.connect(out); o.start(t); o.stop(t+.6); }); noise(.3,.1,3000,pos); }
   // FOXO: perdeden fırlayıp koşma alarmı
-  function foxRun(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain();
+  function foxRun(pos){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain();
     o.type='sawtooth'; o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(880,t+.5);
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.15,t+.05); g.gain.exponentialRampToValueAtTime(.0001,t+.9);
-    o.connect(g); g.connect(mas); o.start(t); o.stop(t+.95); noise(.5,.12,1800); }
+    o.connect(g); g.connect(dest(pos)); o.start(t); o.stop(t+.95); noise(.5,.12,1800,pos); }
   // Kapalı kapıya vurma
-  function bang(){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain();
+  function bang(pos){ if(!ac)return; const t=ac.currentTime, o=ac.createOscillator(),g=ac.createGain();
     o.type='sine'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(45,t+.18);
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.3);
-    o.connect(g); g.connect(mas); o.start(t); o.stop(t+.32); noise(.16,.18,900); }
+    o.connect(g); g.connect(dest(pos)); o.start(t); o.stop(t+.32); noise(.16,.18,900,pos); }
   // --- SAAT ---
   function hourBell(){ if(!ac)return; const t=ac.currentTime;
     [880,1320].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.value=fr;
@@ -2356,31 +2452,31 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
   // --- PUPPET ---
   // Müzik kutusu ninnisi (Pop Goes the Weasel benzeri). health 0..1: düşükse pesleşir/kirlenir.
   const LULLA=[659,784,880,784,659,587,523,587,659,784,880,988,880,784,659,587];
-  function lullaby(i,health){ if(!ac)return; const t=ac.currentTime;
+  function lullaby(i,health,pos){ if(!ac)return; const t=ac.currentTime;
     const det=0.55+0.45*health, f=LULLA[((i%LULLA.length)+LULLA.length)%LULLA.length]*det;
     const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain();
     o.type='triangle'; o2.type='sine'; o.frequency.value=f; o2.frequency.value=f*2.002;
     const dur=0.30+ (1-health)*0.25;
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(0.05*(0.5+health*0.5),t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-    o.connect(g); o2.connect(g); g.connect(mas); o.start(t); o2.start(t); o.stop(t+dur+.05); o2.stop(t+dur+.05);
-    if(health<0.45) noise(.05,.02*(0.45-health)*4,1400);   // kirli tık
+    o.connect(g); o2.connect(g); g.connect(dest(pos)); o.start(t); o2.start(t); o.stop(t+dur+.05); o2.stop(t+dur+.05);
+    if(health<0.45) noise(.05,.02*(0.45-health)*4,1400,pos);   // kirli tık
   }
   // Nefesli fısıltı — puppet yaklaşırken
-  function whisper(){ if(!ac)return; const t=ac.currentTime;
+  function whisper(pos){ if(!ac)return; const t=ac.currentTime;
     const n=Math.floor(ac.sampleRate*0.95),buf=ac.createBuffer(1,n,ac.sampleRate),da=buf.getChannelData(0);
     for(let i=0;i<n;i++){ const env=Math.sin(Math.PI*i/n); da[i]=(Math.random()*2-1)*env*env; }
     const s=ac.createBufferSource(); s.buffer=buf;
     const f=ac.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(650,t); f.frequency.linearRampToValueAtTime(1900,t+.9); f.Q.value=7;
-    const g=ac.createGain(); g.gain.value=.14; s.connect(f); f.connect(g); g.connect(mas); s.start();
+    const g=ac.createGain(); g.gain.value=.14; s.connect(f); f.connect(g); g.connect(dest(pos)); s.start();
   }
   // Puppet kutudan çıkarken — disonan şişen akor
-  function puppetRise(){ if(!ac)return; const t=ac.currentTime;
+  function puppetRise(pos){ if(!ac)return; const t=ac.currentTime, out=dest(pos);
     [55,98,138.6,146.8].forEach(fr=>{ const o=ac.createOscillator(),g=ac.createGain();
       o.type='sawtooth'; o.frequency.setValueAtTime(fr,t); o.frequency.linearRampToValueAtTime(fr*1.5,t+2.6);
       const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=700;
       g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.07,t+1.8); g.gain.exponentialRampToValueAtTime(.0001,t+2.8);
-      o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+2.9); });
-    noise(2.2,.05,500);
+      o.connect(f); f.connect(g); g.connect(out); o.start(t); o.stop(t+2.9); });
+    noise(2.2,.05,500,pos);
   }
   // Puppet jumpscare çığlığı — katmanlı, sert (ama limiter sayesinde artık klipslemez)
   function puppetScream(){ if(!ac)return; const t=ac.currentTime;
@@ -2392,23 +2488,39 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(28,t+.55);
     g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.0001,t+.8); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.85);
   }
-  // Ana dörtlü jumpscare — mekanik/hayvani kükreme + metal çığlık (puppet'ten farklı, sert)
-  function animScream(){ if(!ac)return; const t=ac.currentTime;
-    // bozuk düşük kükreme
-    [110,146,175].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
-      o.type='sawtooth'; o.frequency.setValueAtTime(fr*1.3,t); o.frequency.linearRampToValueAtTime(fr*0.6,t+.5); o.frequency.linearRampToValueAtTime(fr*0.9,t+1.1);
-      f.type='lowpass'; f.frequency.value=900; f.Q.value=6;
-      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.13,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.2);
-      o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+1.25); });
-    // metalik çığlık üstü
-    [1300,1900,2600].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type='square';
-      o.frequency.setValueAtTime(fr*0.8,t); o.frequency.linearRampToValueAtTime(fr*1.25,t+.18); o.frequency.linearRampToValueAtTime(fr*0.5,t+.9);
-      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.07,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
+  // ---- KARAKTERE ÖZEL JUMPSCARE ÇIĞLIKLARI ----
+  // Dördü de aynı sesi çıkarıyordu → kim yakaladığını duymuyordun. Artık her biri kendi gırtlağıyla:
+  //  dark/FREDDO  = derin ayı kükremesi (bas ağırlıklı, ağır, gövdeli)
+  //  light/BONKO  = tiz delici tavşan çığlığı (yükselen, kulak tırmalayan)
+  //  noise/CHİKA  = metalik kuş gaklaması (kare dalga + tencere gibi parlak çarpma)
+  //  cove/FOXO    = boğuk hırıltılı korsan çığlığı + kanca takırtısı (hızlı, kesik)
+  const SCREAM={
+    dark:  {low:[76,101,127], lowV:.16, lowLp:620, hi:[900,1240,1700], hiV:.045, hiType:'sawtooth', rise:1.06, fall:.55, nHi:[.9,.14,1800], nLo:[1.0,.22,340], sub:[150,24,.44,.85], dur:1.3},
+    light: {low:[190,240,300], lowV:.09, lowLp:1500, hi:[1750,2450,3350], hiV:.105, hiType:'sawtooth', rise:1.42, fall:.62, nHi:[.85,.3,5200], nLo:[.7,.09,900], sub:[120,40,.24,.5], dur:1.15},
+    noise: {low:[150,196,247], lowV:.11, lowLp:1100, hi:[820,1180,1560], hiV:.095, hiType:'square', rise:1.3, fall:.42, nHi:[.75,.28,6000], nLo:[.8,.13,700], sub:[130,34,.3,.6], dur:1.1},
+    cove:  {low:[104,131,165], lowV:.14, lowLp:800, hi:[1450,2050,2750], hiV:.075, hiType:'sawtooth', rise:1.2, fall:.38, nHi:[.95,.32,4200], nLo:[.9,.19,520], sub:[160,28,.38,.7], dur:1.25},
+  };
+  function animScream(kind){ if(!ac)return; const t=ac.currentTime, S=SCREAM[kind]||SCREAM.dark;
+    // gövde: bozuk kükreme/çığlık (karakterin ana perdesi)
+    S.low.forEach(fr=>{ const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.setValueAtTime(fr*1.3,t); o.frequency.linearRampToValueAtTime(fr*S.fall,t+.5); o.frequency.linearRampToValueAtTime(fr*0.9,t+1.1);
+      f.type='lowpass'; f.frequency.value=S.lowLp; f.Q.value=6;
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(S.lowV,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+S.dur);
+      o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+S.dur+.05); });
+    // üst katman: metalik/tiz kısım — karakteri asıl ayıran şey bu
+    S.hi.forEach(fr=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type=S.hiType;
+      o.frequency.setValueAtTime(fr*0.8,t); o.frequency.linearRampToValueAtTime(fr*S.rise,t+.18); o.frequency.linearRampToValueAtTime(fr*0.5,t+.9);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(S.hiV,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
       o.connect(g); g.connect(mas); o.start(t); o.stop(t+1.05); });
-    noise(.9,.26,3200); noise(.9,.16,600);
-    // sub darbe
-    const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(32,t+.5);
-    g.gain.setValueAtTime(.36,t); g.gain.exponentialRampToValueAtTime(.0001,t+.75); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.8);
+    noise(S.nHi[0],S.nHi[1],S.nHi[2]); noise(S.nLo[0],S.nLo[1],S.nLo[2]);
+    // FOXO: kanca/metal takırtısı — koşarak gelen korsanın imzası
+    if(kind==='cove'){ for(let i=0;i<3;i++){ const off=i*.09, o=ac.createOscillator(),g=ac.createGain();
+      o.type='square'; o.frequency.value=2600+Math.random()*900;
+      g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.05,t+off+.004); g.gain.exponentialRampToValueAtTime(.0001,t+off+.14);
+      o.connect(g); g.connect(mas); o.start(t+off); o.stop(t+off+.16); } }
+    // sub darbe (göğse vuran alt uç)
+    const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(S.sub[0],t); o.frequency.exponentialRampToValueAtTime(S.sub[1],t+S.sub[3]*0.65);
+    g.gain.setValueAtTime(S.sub[2],t); g.gain.exponentialRampToValueAtTime(.0001,t+S.sub[3]); o.connect(g); g.connect(mas); o.start(t); o.stop(t+S.sub[3]+.05);
   }
   // ---- KORKU / GERİLİM MÜZİĞİ ---- (puppet tehdidiyle tırmanır)
   // Düşük ürkütücü bas nabız — minör hareket
@@ -2460,7 +2572,7 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(v,t+.45); g.gain.linearRampToValueAtTime(.0001,t+dur);
     o.start(t); lfo.start(t); o.stop(t+dur+.1); lfo.stop(t+dur+.1);
   }
-  return {init,resume,setMaster,setAmbient,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
+  return {init,resume,setMaster,setAmbient,setListener,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
           phoneRing,phoneBlip,phoneVoice,robotGlitch,achievePop,
           laugh,growl,clang,screech,foxRun,bang,hourBell,chime6,
           lullaby,whisper,puppetRise,puppetScream,animScream,dreadBass,dreadStab,
@@ -2491,6 +2603,7 @@ const custom={freddo:10, bonko:10, chika:10, foxo:10};
 // 0..20 → uyanma saniyesi (yüksek AI = erken uyanır) ve hız çarpanı
 function cnWake(ai){ const lv=custom[ai]; if(lv<=0) return 9e9; return Math.max(3, 150 - lv*7.2); } // lv20≈6s, lv1≈143s
 function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,custom.foxo); }
+function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.foxo; }   // 0-80 → özel gece yevmiyesi
 function ncfg(){
   if(!customMode) return NIGHT_CFG[night]||NIGHT_CFG[6];
   const mx=cnLevelMax();
@@ -2512,11 +2625,56 @@ function clockText(){ const h=clockHour(); return (h===0?12:h)+':00'; }
 
 /* ================= KAYIT ================= */
 const SAVE_KEY='gb3d_save_v1';
-let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[], skin:0};
+let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[], skin:0, money:0, upg:{}};
 try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save={...save,...s}; }catch(e){}
 if(!Array.isArray(save.ach)) save.ach=[];
 if(typeof save.skin!=='number') save.skin=0;
+if(typeof save.money!=='number') save.money=0;                              // eski kayıtlar parasız açılır
+if(!save.upg || typeof save.upg!=='object' || Array.isArray(save.upg)) save.upg={};
 function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+/* ================= 💵 PARA + YÜKSELTMELER =================
+   Mağaza eskiden bir vitrindi: para yoktu, ödül yalnız kozmetik skin'di ve o skin de SADECE
+   multiplayer'da (uzak oyuncunun avatarında) görünüyordu — tek oyuncu bir gece atlatınca
+   oynanışa dair hiçbir şey kazanmıyordu. Artık her vardiya para ödüyor (ölsen bile yarım
+   yevmiye) ve para KALICI yükseltmeye gidiyor. Yükseltmeler tek oyuncuda da MP'de de işler. */
+const UPG=[
+  {id:'batt', ico:'🔋', n:'GÜÇLÜ PİL',       d:'Fener pili daha yavaş biter.',                  max:3, cost:[120,260,480], eff:l=>'pil tüketimi -'+(l*12)+'%'},
+  {id:'lamp', ico:'🔦', n:'MERCEK',           d:'Fenerin menzili ve konisi genişler.',           max:2, cost:[200,420],     eff:l=>'menzil +'+(l*15)+'%'},
+  {id:'door', ico:'🚪', n:'YAĞLANMIŞ KAPI',   d:'Kapıyı tekrar kapatmak için daha az beklersin.',max:3, cost:[140,300,540], eff:l=>'bekleme -'+(l*1.5)+'s'},
+  {id:'box',  ico:'🎵', n:'KUTU YAYI',        d:'Müzik kutusu daha yavaş boşalır.',              max:3, cost:[160,340,600], eff:l=>'boşalma -'+(l*10)+'%'},
+  {id:'stam', ico:'🏃', n:'DAYANIKLILIK',     d:'Daha uzun koşarsın, nefesin çabuk toplanır.',   max:3, cost:[110,240,440], eff:l=>'koşu +'+(l*20)+'%'},
+  {id:'mask', ico:'🎭', n:'MASKE FİLTRESİ',   d:'Maskede oksijenin daha uzun dayanır.',          max:3, cost:[130,280,500], eff:l=>'oksijen -'+(l*15)+'%'},
+  {id:'med',  ico:'🩹', n:'İLK YARDIM ÇANTASI',d:'ÇOK OYUNCU: yaralıyken daha uzun dayanırsın, arkadaşını daha hızlı sararsın.', max:2, cost:[180,380], eff:l=>'+'+(l*20)+'s dayanma / -'+(l*0.6).toFixed(1)+'s sarma'},
+];
+function upgLvl(id){ const v=save.upg[id]; return typeof v==='number'? Math.max(0,v) : 0; }
+function upgDef(id){ return UPG.find(u=>u.id===id); }
+function upgCost(id){ const u=upgDef(id), l=upgLvl(id); return (u && l<u.max)? u.cost[l] : null; }
+function addMoney(n){ save.money=Math.max(0, Math.round(save.money+n)); saveGame(); }
+// Yevmiye: temel ücret geceyle (ya da özel gecenin zorluğuyla) büyür.
+function basePay(){ return customMode? (100 + cnLevelTotal()*8) : (100 + night*30); }
+/* Vardiya ödemesi. win=false ise YARIM yevmiye (hayatta kalınan saat oranında) — böylece
+   kaybettiğin gece de bir şey kazandırır; eskiden ölünce hiçbir ilerleme kaydedilmiyordu. */
+function payout(win){
+  const base=basePay(), frac = win? 1 : Math.min(1, clockT/(NIGHT_HOURS*HOUR_SEC))*0.5;
+  const lines=[]; let m=Math.max(10, Math.floor(base*frac));
+  lines.push([win?'💼 Vardiya tamamlandı':'💼 Yarım vardiya ('+clockText()+')', m]);
+  if(win){
+    if(runStats.boxMin>=20){ m+=40; lines.push(['🎵 Kutu hiç kritiğe düşmedi', 40]); }
+    if(!runStats.battDied){  m+=25; lines.push(['🔦 Fener hiç bitmedi', 25]); }
+    if(camMiss===0 && runStats.camDone>0){ m+=35; lines.push(['📹 Kamera görevleri eksiksiz', 35]); }
+    if(basTaskDone){ m+=30; lines.push(['🔻 Bodrum vanaları kapatıldı', 30]); }
+  }
+  addMoney(m);
+  return {total:m, lines};
+}
+// Ödeme dökümünü kazanma/ölüm ekranına bas (parayı payout() zaten yatırdı — bu yalnız gösterim)
+function paintPay(el, p){ if(!el||!p) return;
+  el.innerHTML='<div class="payTtl">💵 +$'+p.total+'</div>'
+    + p.lines.map(([n,v])=>'<div class="payRow"><span>'+n+'</span><span>+$'+v+'</span></div>').join('')
+    + '<div class="payBal">kasa: $'+save.money+'  •  🛒 Mağaza\'da yükseltmeye harca</div>';
+  el.classList.add('show');
+}
 
 /* ================= AYARLAR ================= */
 const SET_KEY='gb3d_set_v1';
@@ -2614,8 +2772,8 @@ const ACH=[
   {id:'vent3',     ico:'🪜', n:'VANTİLATÖR FARESİ',d:'Bir gecede 3 kez havalandırmaya gir.'},
   {id:'legend20',  ico:'★',  n:'EFSANE',         d:'20/20/20/20 Özel Gece\'yi bitir.'},
 ];
-const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0};
-function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; }
+const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0};
+function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; }
 let achQueue=[], achShowing=false, achPopT=0;
 function unlockAch(id){ if(save.ach.includes(id)) return; save.ach.push(id); saveGame();
   const a=ACH.find(x=>x.id===id); if(a){ achQueue.push(a); if(!achShowing) showNextAch(); } }
@@ -2811,7 +2969,13 @@ const Net=(()=>{
   function ensureRemote(id,nm,skin){ if(id===myId||id==null) return null;
     if(!remotes[id]) remotes[id]={name:nm||'?',skin:skin||0,x:0,z:19.7,yaw:Math.PI,tx:0,tz:19.7,tyaw:Math.PI,f:0,obj:buildAvatar(nm||'?',skin||0)};
     return remotes[id]; }
-  function removeRemote(id){ const r=remotes[id]; if(r&&r.obj) scene.remove(r.obj); delete remotes[id]; deadIds.delete(id); if(started) checkAllDead(); }
+  // avatarı sahneden çıkarmak yetmiyordu: geometry/material/texture GPU'da kalıyordu (sızıntı —
+  // uzun oturumda oyuncu girip çıktıkça birikiyor). Artık hepsi dispose ediliyor.
+  function disposeAvatar(g){ if(!g) return; scene.remove(g);
+    g.traverse(o=>{ if(o.geometry) o.geometry.dispose();
+      const ms=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);
+      ms.forEach(m=>{ if(m.map) m.map.dispose(); m.dispose(); }); }); }
+  function removeRemote(id){ const r=remotes[id]; if(r) disposeAvatar(r.obj); delete remotes[id]; deadIds.delete(id); if(started) checkAllDead(); }
   function applyPose(d){ if(d.id===myId) return; const r=ensureRemote(d.id,d.name,d.skin); if(!r)return; r.tx=d.x; r.tz=d.z; r.tyaw=d.yaw; r.f=d.f; }
   // KAPI senkronu — herkes aynı kapı durumunu görsün (arkadaşın kapatınca sende de kapansın)
   function applyDoor(d){ const dr=doors[d.i]; if(!dr) return; dr.closed=!!d.cl; dr.closeT=d.ct||0; dr.cool=d.co||0; }
@@ -2911,7 +3075,30 @@ const Net=(()=>{
       el.appendChild(b); });
     const hint=document.createElement('div'); hint.style.cssText='width:100%;color:#5a6470;font-size:11px;margin-top:6px'; hint.textContent='🛒 daha fazla skin için Mağaza (başarımlar)'; el.appendChild(hint);
   }
-  function renderMarket(){ const el=$('#mktGrid'); if(!el) return; el.innerHTML=''; let unl=0;
+  /* ---- MAĞAZA: 🧰 YÜKSELTME (parayla) + 👤 GÖRÜNÜM (başarımla) ----
+     Skinler eskiden olduğu gibi başarımla açılır (kozmetik, MP'de görünür); asıl ödül döngüsü
+     artık parayla alınan ve TEK OYUNCUDA DA işleyen kalıcı yükseltmelerde. */
+  let mktTab='upg';
+  function renderMoney(){ const m=$('#mktMoney'); if(m) m.textContent='💵 $'+save.money; }
+  function renderUpg(){ const el=$('#mktUpg'); if(!el) return; el.innerHTML='';
+    UPG.forEach(u=>{ const l=upgLvl(u.id), maxed=l>=u.max, cost=upgCost(u.id), poor=!maxed && save.money<cost;
+      const row=document.createElement('div'); row.className='upgRow'+(maxed?' maxed':'');
+      let pips=''; for(let i=0;i<u.max;i++) pips+='<i class="'+(i<l?'on':'')+'"></i>';
+      row.innerHTML='<div class="ico">'+u.ico+'</div>'
+        +'<div class="txt"><div class="n">'+u.n+(l?' — Sv.'+l:'')+'</div><div class="d">'+u.d+'</div>'
+        +'<div class="e">'+(l? 'şu an: '+u.eff(l) : 'henüz alınmadı')+(maxed?'':' → '+u.eff(l+1))+'</div>'
+        +'<div class="upgPips">'+pips+'</div></div>';
+      const b=document.createElement('button');
+      b.className='upgBuy'+(maxed?' done':(poor?' poor':''));
+      b.textContent = maxed? '✓' : '$'+cost;
+      if(!maxed && !poor) b.addEventListener('click',ev=>{ ev.stopPropagation(); buyUpg(u.id); });
+      row.appendChild(b); el.appendChild(row); });
+  }
+  function buyUpg(id){ const cost=upgCost(id); if(cost==null || save.money<cost) return;
+    addMoney(-cost); save.upg[id]=upgLvl(id)+1; saveGame();
+    Audio.achievePop(); toast('🧰 '+upgDef(id).n+' → Sv.'+upgLvl(id));
+    renderMoney(); renderUpg(); }
+  function renderSkinGrid(){ const el=$('#mktGrid'); if(!el) return; el.innerHTML=''; let unl=0;
     SKINS.forEach((s,i)=>{ const ok=skinUnlocked(i); if(ok) unl++; const eq=(i===mySkin&&ok);
       const card=document.createElement('div'); card.className='mktCard'+(ok?'':' locked')+(eq?' equipped':'');
       card.innerHTML='<div class="mktAv"><div class="cap" style="background:#'+hex6(s.cap)+'"></div><div class="face" style="background:#'+hex6(s.skin)+'"></div><div class="body" style="background:#'+hex6(s.shirt)+'"></div></div>'
@@ -2920,8 +3107,17 @@ const Net=(()=>{
         +(ok?'':'<div class="mktLock">🔒</div>')+(eq?'<div class="mktTag">SEÇİLİ</div>':'');
       if(ok) card.addEventListener('click',()=>equip(i));
       el.appendChild(card); });
-    const c=$('#mktCount'); if(c) c.textContent=unl+' / '+SKINS.length;
+    return unl;
   }
+  function renderMarket(){ renderMoney();
+    const upg=(mktTab==='upg');
+    $('#mktUpg').classList.toggle('hidden',!upg); $('#mktGrid').classList.toggle('hidden',upg);
+    document.querySelectorAll('#mktTabs button').forEach(b=>b.classList.toggle('sel', b.dataset.t===mktTab));
+    if(upg){ renderUpg(); $('#mktSub').textContent='her vardiya para öder — ölsen bile yarım yevmiye alırsın'; }
+    else { const unl=renderSkinGrid(); $('#mktSub').innerHTML='başarımlarla açılır • <b>'+unl+' / '+SKINS.length+'</b> açık — birini seçip kuşan'; }
+  }
+  document.querySelectorAll('#mktTabs button').forEach(b=> b.addEventListener('click',e=>{ e.stopPropagation();
+    mktTab=b.dataset.t; Audio.click(); renderMarket(); }));
   function equip(i){ if(!skinUnlocked(i)) return; mySkin=i; save.skin=i; saveGame(); renderMarket(); renderSkins(); Audio.click(); }
   function renderList(list){ const el=$('#mpList'); if(!el) return; el.innerHTML='';
     list.forEach(p=>{ const d=document.createElement('div'); d.className='mpPlayer'+(p.host?' host':'');
@@ -2950,11 +3146,25 @@ const Net=(()=>{
   /* ---- ORTAK KAZANMA / KAYBETME (co-op) ---- */
   // ölüm → izleyici + 'died' yayını; herkes ölürse takım kaybeder; biri 06:00'a ulaşırsa herkes kazanır
   function sendDied(){ deadIds.add(myId); relay({t:'died',id:myId}); checkAllDead(); }
-  function applyDied(id){ deadIds.add(id); const r=remotes[id]; if(r) r.dead=true; checkAllDead(); }
+  // ölen oyuncunun avatarı haritada dikilmeye devam ediyordu (sadece bayrak yazılıyordu) →
+  // artık yaralı/fener durumu da temizlenir, tick() onu gizler
+  function applyDied(id){ deadIds.add(id); const r=remotes[id]; if(r){ r.dead=true; r.downed=false; r.f=0; } checkAllDead(); }
   function checkAllDead(){ if(resolved) return; const total=1+Object.keys(remotes).length;
     if(deadIds.size>=total){ resolved=true; teamLose(); } }
   function sendWon(){ if(resolved) return; resolved=true; relay({t:'won'}); }   // biri 06:00'a ulaştı
-  function firstAlive(){ for(const id in remotes){ const r=remotes[id]; if(r && !deadIds.has(id) && !r.downed) return r; } return null; }
+  /* ---- İZLENEBİLİR TAKIM ARKADAŞLARI ----
+     Eskisi firstAlive() idi: yaralı (downed) olanı ATLIYORDU → izlediğin arkadaş yaralanınca
+     kamera boşluğa kaçıyordu; oysa yaralı arkadaş izlemenin EN kritik anı (kurtarılacak mı?).
+     Artık yaralılar da listede ve aralarında elle geçiş yapılabiliyor. */
+  function aliveList(){ const out=[];
+    for(const id in remotes){ const r=remotes[id]; if(r && !deadIds.has(id)) out.push(r); }
+    return out; }
+  let specIdx=0;
+  function specTarget(){ const l=aliveList(); if(!l.length) return null;
+    if(specIdx>=l.length) specIdx=0; return l[specIdx]; }
+  function specNext(){ const l=aliveList(); if(l.length<2) return null;
+    specIdx=(specIdx+1)%l.length; return l[specIdx]; }
+  function specCount(){ return aliveList().length; }
 
   /* ---- her frame: uzakları interpolasyonla ilerlet + pozunu yayınla ---- */
   function tick(dt){
@@ -2965,8 +3175,9 @@ const Net=(()=>{
       else { r.x+=dx*k; r.z+=dz*k; }
       let dy=r.tyaw-r.yaw; while(dy>Math.PI)dy-=2*Math.PI; while(dy<-Math.PI)dy+=2*Math.PI; r.yaw+=dy*k;
       r.obj.position.set(r.x*SC, r.downed?0.15:0, r.z*SC); r.obj.rotation.y=r.yaw; r.obj.rotation.z=r.downed?1.35:0;   // yaralı → yere devrilir
-      r.obj.userData.fl.visible=!!r.f && !r.downed;
-      r.obj.visible=(state===S.PLAY||state===S.CAMS);
+      r.obj.userData.fl.visible=!!r.f && !r.downed && !r.dead;
+      // ELENEN oyuncunun avatarı gizlenir (eskiden haritada sonsuza dek dikiliyordu)
+      r.obj.visible=(state===S.PLAY||state===S.CAMS) && !r.dead;
     }
     if(started && (state===S.PLAY||state===S.CAMS)){
       poseT-=dt; if(poseT<=0){ poseT=0.05;    // 20Hz (daha akıcı senkron)
@@ -2976,7 +3187,7 @@ const Net=(()=>{
     }
   }
   function leave(){ try{ if(peer) peer.destroy(); }catch(e){} peer=null; conns=[]; active=false; started=false; host=false; myId=null;
-    hostCustom=false; resolved=false; deadIds.clear();
+    hostCustom=false; resolved=false; specIdx=0; deadIds.clear();
     for(const id in remotes) removeRemote(id);
     $('#mpRoom').classList.add('hidden'); $('#mpHome').classList.remove('hidden'); $('#mpStart').classList.add('hidden'); $('#mpWait').classList.add('hidden'); $('#mpNightSel').classList.add('hidden'); status(''); }
 
@@ -2995,7 +3206,8 @@ const Net=(()=>{
   $('#mktClose').addEventListener('click',e=>{ e.stopPropagation(); $('#mktPanel').classList.remove('show'); });
   $('#mktBtn').classList.remove('hidden');
 
-  return { tick, leave, sendDoor, sendDown, sendUp, sendRevive, nearestDowned, sendDied, sendWon, sendBas, firstAlive,
+  return { tick, leave, sendDoor, sendDown, sendUp, sendRevive, nearestDowned, sendDied, sendWon, sendBas,
+           specTarget, specNext, specCount,
            startHostCustom, isHost:()=>host, isPlaying:()=>active&&started, active:()=>active,
            resolved:()=>resolved };
 })();
@@ -3054,6 +3266,8 @@ addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
   if(state===S.VENT) return;
   if(state===S.MENU){ return; }   // menüde tuşla oto-başlama YOK — TEK/ÇOKLU butonlarından seç (oto-restart düzeltmesi)
   if(state===S.DEAD || state===S.WIN){ toMenu(); return; }
+  // İZLEYİCİ: tek kontrolün sıradaki bekçiye geçmek (boşluk/ok tuşları) — kalan tuşlar yok sayılır
+  if(spectating){ if(k===' '||k==='arrowright'||k==='arrowleft'||k==='tab'){ e.preventDefault(); specCycle(); } return; }
   if(state===S.CAMS){ if(k==='c'||k==='escape') closeCamera(); else if(k==='arrowleft')cycleCam(-1); else if(k==='arrowright')cycleCam(1); else if(k===' '){ e.preventDefault(); startWind(); } return; }
   keys[k]=true;
   if(k==='f') toggleFlash();
@@ -3173,8 +3387,8 @@ function interactDoor(){
   if(!nearDoor){ return; }
   if(!powered){ toast('⚡ GÜÇ YOK — KAPI ÇALIŞMIYOR'); Audio.tone(120,.15,'square',.2); return; }
   if(nearDoor.closed){                       // elle erken aç
-    nearDoor.closed=false; nearDoor.closeT=0; nearDoor.cool=DOOR_COOL;
-    toast(nearDoor.name+' AÇILDI — '+DOOR_COOL+'s bekleme');
+    nearDoor.closed=false; nearDoor.closeT=0; nearDoor.cool=doorCool();
+    toast(nearDoor.name+' AÇILDI — '+doorCool()+'s bekleme');
   } else {
     if(nearDoor.cool>0){                     // henüz hazır değil
       toast('⏳ KAPI ISINIYOR — '+Math.ceil(nearDoor.cool)+'s');
@@ -3260,13 +3474,14 @@ document.querySelectorAll('.cnPre').forEach(b=>b.addEventListener('click',()=>{
   custom.freddo=f; custom.bonko=bo; custom.chika=ch; custom.foxo=fo; buildCnRows(); Audio.click();
 }));
 $('#customBtn').addEventListener('click',e=>{ e.stopPropagation(); openCustom(); });
-function refreshMenu(){ $('#customBtn').classList.toggle('hidden', !save.beat6); }
+function refreshMenu(){ $('#customBtn').classList.toggle('hidden', !save.beat6);
+  $('#menuMoney').textContent='💵 $'+save.money; }
 refreshMenu();
-// 🔑 GİZLİ KOD: "MRT" → her şey açılır (tüm geceler, özel gece, başarımlar, skinler)
-function unlockAll(){ save.maxNight=6; save.beat6=true; save.cnBest=80;
+// 🔑 GİZLİ KOD: "MRT" → her şey açılır (tüm geceler, özel gece, başarımlar, skinler, para)
+function unlockAll(){ save.maxNight=6; save.beat6=true; save.cnBest=80; save.money=Math.max(save.money,9999);
   ACH.forEach(a=>{ if(!save.ach.includes(a.id)) save.ach.push(a.id); }); saveGame();
   refreshMenu(); if(typeof renderNights==='function') renderNights();
-  toast('🔑 MRT KODU — HER ŞEY AÇILDI! (tüm geceler + özel gece + skinler)'); Audio.init(); Audio.resume(); Audio.achievePop(); }
+  toast('🔑 MRT KODU — HER ŞEY AÇILDI! (tüm geceler + özel gece + skinler + $9999)'); Audio.init(); Audio.resume(); Audio.achievePop(); }
 $('#cheatIn').addEventListener('click',e=>e.stopPropagation());
 $('#cheatIn').addEventListener('input',e=>{ const v=(e.target.value||'').trim().toUpperCase();
   if(v==='MRT'){ unlockAll(); e.target.value=''; e.target.blur(); } });
@@ -3279,13 +3494,15 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null; ventCool=0;
   stamina=100; exhausted=false; breathT=0;                       // koşu barı sıfırla
   camTask=null; camTaskT=randRange(35,55); camMiss=0; camBoost=1; camBoostT=0; camDwell=0;   // kamera görevi sıfırla
-  downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show');   // yaralanma/izleyici sıfırla
+  downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');   // yaralanma/izleyici sıfırla
   basUnlocked = customMode || night>=2;                            // BODRUM: 1. gece kilitli
   resetBasement(); resetRisen(); basTransT=0; $('#basFade').style.opacity='0';   // bodrum + yükselen düşman sıfırla
   $('#camTask').classList.remove('show','urgent'); $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
   $('#ventDark').classList.remove('show'); $('#ventWarn').classList.add('hidden');
   $('#maskBtn').classList.remove('hidden'); $('#maskBox').classList.remove('hidden');
   player.x=0; player.z=19.7; player.yaw=Math.PI; player.pitch=-0.05; battery=100; flashOn=false; running=false;
+  // 🔦 MERCEK yükseltmesinin görsel karşılığı — ışık konisi de gerçekten genişler
+  flash.distance=44*(1+upgLvl('lamp')*0.15); flash.angle=Math.PI*0.25*(1+upgLvl('lamp')*0.06);
   powered=true; fuseActive=false; fuse.visible=false; resetPowerTimer();
   doors.forEach(d=>{ d.closed=false; d.closeT=0; d.cool=0; });
   musicBox=100; puppetOut=false; winding=false; puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z;
@@ -3299,6 +3516,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   $('#runBtn').classList.remove('on');
   toast(Net.isPlaying()? '👥 CO-OP GECE — birlikte hayatta kalın!' : (customMode? '🌙 12:00 — ÖZEL GECE BAŞLADI' : ('🕐 12:00 — GECE '+night+' BAŞLADI')));
   $('#menu').classList.add('hidden'); $('#dead').classList.add('hidden'); $('#win').classList.add('hidden'); $('#tablet').classList.remove('show');
+  $('#winPay').classList.remove('show'); $('#deadPay').classList.remove('show');   // önceki gecenin ödeme dökümü kalmasın
   $('#hud').classList.remove('hidden'); $('#cross').classList.remove('hidden');
   $('#flashBtn').classList.remove('hidden','on'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden'); $('#windBtn').classList.add('hidden');
@@ -3309,7 +3527,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   // olmadan, düşük riskli). Telefon Adamı brifingi artık CO-OP'ta da her oyuncuda çalar.
   startPhone();
 }
-function toMenu(){ state=S.MENU; customMode=false; masked=false; downed=false; exhausted=false; camTask=null; spectating=false; $('#specOv').classList.remove('show');
+function toMenu(){ state=S.MENU; customMode=false; masked=false; downed=false; exhausted=false; camTask=null; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');
   if(inBasement){ inBasement=false; basStatic.visible=false; } risen.active=false; risen.model.visible=false; basTransT=0; $('#basFade').style.opacity='0';
   $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
   $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
@@ -3332,18 +3550,20 @@ function winNight(){
   winding=false; running=false; flashOn=false; flash.intensity=0; masked=false;
   $('#maskOv').classList.remove('show'); hidePlayUI();
   evalAch();   // 🏆 gece atlatıldı → başarımları değerlendir
+  const pay=payout(true);   // 💵 tam yevmiye + primler (para hemen yatar; ekran dökümü aşağıda)
   if(navigator.vibrate) navigator.vibrate([80,60,80,60,180]);
 
   // ÖZEL GECE bitti
   if(customMode){
     state=S.WIN; Audio.chime6();
-    const score=custom.freddo+custom.bonko+custom.chika+custom.foxo;
+    const score=cnLevelTotal();
     if(score>save.cnBest){ save.cnBest=score; } saveGame();
     const legend = CN_CHARS.every(c=>custom[c.id]===20);
     $('#winTitle').textContent = legend? '★ EFSANE ★' : 'ÖZEL GECE BİTTİ';
     $('#winTitle').style.color = legend? '#ffd76a':'#3fae5a';
     $('#winTitle').style.textShadow = legend? '0 0 26px #ffd76a':'0 0 22px #3fae5a';
     $('#winSub').textContent = 'Zorluk puanı '+score+'/80'+(legend?' — resmen delisin.':'');
+    paintPay($('#winPay'), pay);
     $('#win').classList.remove('hidden');
     return;
   }
@@ -3361,6 +3581,7 @@ function winNight(){
   $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
   $('#winTitle').textContent = done? 'HEPSİ BİTTİ' : 'GECE ATLATILDI';
   $('#winSub').textContent  = done? 'Gece 6\'yı da bitirdin — 🌙 ÖZEL GECE açık.' : ('Gece '+night+' bitti — GECE '+(night+1)+' AÇILDI');
+  paintPay($('#winPay'), pay);
   $('#win').classList.remove('hidden');
 }
 
@@ -3437,15 +3658,27 @@ function showPlayUI(){
   $('#maskBtn').classList.remove('hidden'); $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden');
   if(isTouch){ joyZone.classList.remove('hidden'); showJoy(true); }
 }
-let jumpModel=null, jumpName='???';
+let jumpModel=null, jumpName='???', jumpKind='dark';
+// modelden hangi karakter olduğunu bul (AIS'te yoksa bodrumun bozukları → 'dark' gövdesi)
+function kindOfModel(model){ const a=AIS.find(x=>x.model===model); return a? a.kind : 'dark'; }
+/* ---- JUMPSCARE STİLİ (karaktere özel) ----
+   Dördü de aynı mesafe/sarsıntı/titreşimle geliyordu. Artık her biri kendi karakteriyle saldırır:
+   FREDDO ağır ve yakın durur, BONKO tiz ve titrek, CHİKA hızlı çene, FOXO en yakına dalar (koşarak gelir). */
+const JUMP_STYLE={
+  dark:  {dist:1.95, shake:0.21, scale:1.42, jaw:36, wob:30, flick:26, dur:1.45, vib:[500,60,300,60,500], eye:0xffe0cc},
+  light: {dist:2.05, shake:0.30, scale:1.38, jaw:44, wob:44, flick:34, dur:1.30, vib:[220,40,220,40,220,40,300], eye:0xe0ccff},
+  noise: {dist:1.90, shake:0.24, scale:1.40, jaw:52, wob:34, flick:30, dur:1.25, vib:[120,50,120,50,120,50,120,50,300], eye:0xfff0b0},
+  cove:  {dist:1.55, shake:0.27, scale:1.50, jaw:40, wob:26, flick:22, dur:1.40, vib:[650,40,180,40,180], eye:0xffc8b0},
+};
+function jumpStyle(){ return puppetJump? {dist:1.5, shake:0.24, scale:1.72, jaw:40, wob:34, flick:30, dur:1.65, eye:0xff88aa} : (JUMP_STYLE[jumpKind]||JUMP_STYLE.dark); }
 function startJump(model,name){
   if(state===S.JUMP||state===S.DEAD) return;
   jumpModel=model; jumpName=name||'???'; state=S.JUMP; winding=false; jumpT=0;
-  puppetJump=(model===puppet);
+  puppetJump=(model===puppet); jumpKind=kindOfModel(model);
   $('#puppetVig').style.opacity='0'; $('#puppetWarn').style.opacity='0';
   if(puppetJump){ Audio.puppetScream(); Audio.noise(.4,.2,2200); }
-  else { Audio.animScream(); }
-  if(navigator.vibrate) navigator.vibrate(puppetJump?[500,50,300,50,600]:[450,50,250,50,450]);
+  else { Audio.animScream(jumpKind); }   // her karakterin kendi çığlığı
+  if(navigator.vibrate) navigator.vibrate(puppetJump?[500,50,300,50,600]:jumpStyle().vib);
   hidePlayUI();
   const u=model.userData; if(u.glowL){ u.glowL.visible=u.glowR.visible=true; }
   if(u.eyeMat) u.eyeMat.emissiveIntensity=puppetJump?4.2:2.6; else if(u.eyeWhite) u.eyeWhite.emissiveIntensity=3.4;
@@ -3460,11 +3693,11 @@ function catchPlayer(model,name){
   startJump(model,name);
 }
 function enterDowned(model,name){
-  downed=true; downT=60; reviveHold=0; downAttacker=name||'???';
+  downed=true; downT=60+upgLvl('med')*20; reviveHold=0; downAttacker=name||'???';   // 🩹 İLK YARDIM: daha uzun dayanırsın
   masked=false; flashOn=false; running=false; winding=false;
   $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
   $('#hurtOv').classList.add('show');
-  Audio.animScream(); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
+  Audio.animScream(kindOfModel(model)); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
   toast('🩸 YARALANDIN! 60sn içinde takım seni sarsın, yoksa ölürsün');
   // seni yakalayan geri çekilir (sahnesine/evine döner) — helpless'ken üstünde kalmasın
   const a=AIS.find(x=>x.model===model);
@@ -3486,27 +3719,42 @@ function bleedOut(){ if(state===S.DEAD||spectating) return;
 function enterSpectator(){ if(spectating) return; spectating=true; downed=false; masked=false; flashOn=false; running=false;
   $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#maskOv').classList.remove('show');
   if(inBasement){ inBasement=false; basStatic.visible=false; }
+  // updateRisen() izleyicide çalışmaz → yükselen bozuk animatronik haritada DONMUŞ halde
+  // kalırdı. Sana gelen tehdit artık bittiği için tamamen kaldırılıyor.
+  risen.active=false; risen.model.visible=false;
   hidePlayUI(); $('#specOv').classList.add('show');
+  $('#specNext').classList.toggle('show', Net.specCount()>1);   // tek arkadaş kaldıysa geçiş butonu anlamsız
   toast('💀 ELENDİN — takımını izliyorsun'); Audio.animScream(); Audio.setAmbient(false);
   Net.sendDied(); }
+$('#specNext').addEventListener('click',e=>{ e.stopPropagation(); specCycle(); });
 function specCamera(dt){
-  const t=Net.firstAlive();
+  const t=Net.specTarget();   // firstAlive() değil: yaralı arkadaş da izlenebilir + elle geçiş yapılabilir
   // izlenen takım arkadaşı bodrumdaysa bodrum geometrisini göster (yoksa boş karanlık görünürdü)
   basStatic.visible = !!(t && t.inBas);
   if(t){ const tx=t.x*SC, tz=t.z*SC;
     camera.position.set(tx - Math.sin(t.yaw)*2.2, 2.7, tz - Math.cos(t.yaw)*2.2);
-    camera.lookAt(tx + Math.sin(t.yaw)*2, 1.4, tz + Math.cos(t.yaw)*2); }
-  else { camera.position.set(Math.sin(perf*0.0003)*3, 2.6, 6*SC); camera.lookAt(0,1.4,NZ(-7)*SC); }
+    camera.lookAt(tx + Math.sin(t.yaw)*2, 1.4, tz + Math.cos(t.yaw)*2);
+    // kimi izlediğin + durumu yazsın (eskiden hiçbir bilgi yoktu)
+    const n=Net.specCount();
+    $('#specWho').textContent='👁 '+(t.name||'?')+(t.downed?' — 🩸 YARALI':'')+(n>1?'  •  ⟳ / dokun = sıradaki ('+n+')':'');
+    $('#specNext').classList.toggle('show', n>1);   // takım eridikçe buton kendini gizler
+  }
+  else { camera.position.set(Math.sin(perf*0.0003)*3, 2.6, 6*SC); camera.lookAt(0,1.4,NZ(-7)*SC);
+    $('#specWho').textContent='👁 izlenecek kimse kalmadı...'; $('#specNext').classList.remove('show'); }
   flash.intensity=0;
 }
+// izleyici: sıradaki takım arkadaşına geç (tıklama/dokunma veya boşluk/⟳)
+function specCycle(){ if(!spectating) return; const r=Net.specNext(); if(r){ Audio.click(); toast('👁 '+(r.name||'?')+' izleniyor'); } }
 function teamWin(){ if(state===S.WIN||state===S.ENDING) return; spectating=false;
-  $('#specOv').classList.remove('show'); Audio.setAmbient(false); winding=false; running=false; flashOn=false; flash.intensity=0; masked=false;
+  $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show'); Audio.setAmbient(false); winding=false; running=false; flashOn=false; flash.intensity=0; masked=false;
   $('#maskOv').classList.remove('show'); inBasement=false; basStatic.visible=false; hidePlayUI();
   state=S.WIN; Audio.chime6();
   $('#winTitle').textContent='👥 TAKIM ATLATTI'; $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
   $('#winSub').textContent='06:00 — en az bir bekçi hayatta kaldı, hepiniz kurtuldunuz!';
+  // ortak zafer → herkes (izleyiciler dahil) yevmiyesini alır
+  paintPay($('#winPay'), payout(true));
   $('#win').classList.remove('hidden'); if(navigator.vibrate) navigator.vibrate([80,60,80,60,180]); }
-function teamLose(){ if(state===S.DEAD) return; spectating=false; $('#specOv').classList.remove('show'); inBasement=false; basStatic.visible=false;
+function teamLose(){ if(state===S.DEAD) return; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show'); inBasement=false; basStatic.visible=false;
   puppetJump=false; jumpName='TAKIM'; onDead(); $('#deadWho').textContent='TÜM TAKIM ELENDİ — birlikte başaramadınız'; }
 // hangi kamera hangi animatroniği "kontrol eder"
 function camForAnimatronic(a){ if(a.id==='foxo') return 6; if(a.id==='chika') return 5; return 1; }  // COVE / MUTFAK / SAHNE
@@ -3518,6 +3766,7 @@ function updateCamTask(dt){
     if(state===S.CAMS && camIndex===camTask.cam){          // doğru kamera → 1 sn TUT
       camDwell+=dt;
       if(camDwell>=1.0){ toast('✅ '+camTask.label+' KONTROL EDİLDİ'); Audio.click();
+        runStats.camDone++;   // 💵 eksiksiz kamera turu gece sonunda prim ödüyor
         el.classList.remove('show','urgent'); camTask=null; camDwell=0; camTaskT=randRange(40,65); return; }
       el.textContent='📹 '+camTask.label+' — TUT ('+(1.0-camDwell).toFixed(1)+'s)'; el.classList.remove('urgent'); el.classList.add('show'); return;
     } else camDwell=0;
@@ -3525,7 +3774,7 @@ function updateCamTask(dt){
       camMiss++; el.classList.remove('show','urgent');
       if(camMiss>=3){                                       // 3. kaçırma: Puppet anında kutudan çıkar
         musicBox=Math.min(musicBox,12); puppetStage=3; puppetOut=true;
-        toast('🎭 KAMERA İHMAL EDİLDİ — PUPPET KUTUDAN ÇIKTI!'); Audio.puppetRise(); if(navigator.vibrate) navigator.vibrate(300);
+        toast('🎭 KAMERA İHMAL EDİLDİ — PUPPET KUTUDAN ÇIKTI!'); Audio.puppetRise(MB); if(navigator.vibrate) navigator.vibrate(300);
       } else {                                              // 1-2. kaçırma: animatronikler hızlanır
         camBoost=1+camMiss*0.18; camBoostT=26;
         toast('⚠ KAMERA KONTROL EDİLMEDİ — ANİMATRONİKLER HIZLANDI ('+camMiss+'/2)'); Audio.sting();
@@ -3553,11 +3802,11 @@ function updateDowned(dt){
     return;
   }
   $('#hurtHud').classList.remove('show');
-  if(Net.isPlaying()){                                      // yaralı takım arkadaşını yanında bekleyerek sar (3sn)
-    const t=Net.nearestDowned(player.x,player.z), rb=$('#reviveBtn');
+  if(Net.isPlaying()){                                      // yaralı takım arkadaşını yanında bekleyerek sar
+    const t=Net.nearestDowned(player.x,player.z), rb=$('#reviveBtn'), need=3-upgLvl('med')*0.6;   // 🩹 İLK YARDIM hızlandırır
     if(t){ reviveHold+=dt;
-      if(reviveHold>=3){ Net.sendRevive(t.id); reviveHold=0; rb.classList.remove('show'); toast('🩹 '+(t.name||'Takım')+' KURTARILDI'); Audio.click(); }
-      else { rb.classList.add('show'); rb.textContent='🩹 '+(t.name||'?')+' SARILIYOR... '+Math.ceil(3-reviveHold)+'s'; }
+      if(reviveHold>=need){ Net.sendRevive(t.id); reviveHold=0; rb.classList.remove('show'); toast('🩹 '+(t.name||'Takım')+' KURTARILDI'); Audio.click(); }
+      else { rb.classList.add('show'); rb.textContent='🩹 '+(t.name||'?')+' SARILIYOR... '+Math.ceil(need-reviveHold)+'s'; }
     } else { reviveHold=0; rb.classList.remove('show'); }
   }
 }
@@ -3565,20 +3814,31 @@ function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpMode
   downed=false; $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show'); $('#camTask').classList.remove('show','urgent');
   if(inBasement){ inBasement=false; basStatic.visible=false; }
   risen.active=false; risen.model.visible=false; basTransT=0; $('#basFade').style.opacity='0';
-  spectating=false; $('#specOv').classList.remove('show');
+  spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');
   $('#basBtn').classList.add('hidden'); $('#basTask').classList.remove('show','urgent');
   nearLight.intensity=0.25; nearLight.distance=3.5; nearLight.color.setHex(0x9099aa);   // jumpscare ışığını sıfırla
   $('#puppetVig').style.opacity='0';
-  $('#deadWho').textContent = puppetJump? 'PUPPET seni müzik kutusuna soktu' : (jumpName+' seni yakaladı');
+  // Ölüm satırı karaktere özel — kimin yakaladığı, NASIL yakaladığı da anlatılsın
+  const DEATH={
+    dark: ['FREDDO karanlıkta üstüne çöktü — ışığı çok geç tuttun','FREDDO gülerek seni kostümün içine tıktı'],
+    light:['BONKO ışığını gördü ve üstüne atladı','BONKO pusudan fırladı — feneri ona tutmayacaktın'],
+    noise:['CHİKA sesini duydu ve seni buldu','CHİKA gaklayarak üstüne yürüdü — çok gürültü yaptın'],
+    cove: ['FOXO koridoru koşarak geçti — kapı çok geç kapandı','FOXO kancasıyla seni durdurdu'],
+  };
+  const dl=DEATH[jumpKind];
+  $('#deadWho').textContent = puppetJump? 'PUPPET seni müzik kutusuna soktu'
+    : (dl? dl[Math.floor(Math.random()*dl.length)] : (jumpName+' seni yakaladı'));
   puppetJump=false;
   const hoursLeft=Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC);
   const TIPS=['💡 CHİKA sesi duyar — koşmak onu üstüne çeker, yürü.','💡 FREDDO ışıkta DONAR — üstünde fener tut.',
     '💡 BONKO ışığı görürse ÇILDIRIR — ona asla fener tutma!','💡 FOXO\'yu kamerada izlemezsen koşarak gelir.',
     '💡 Müzik kutusunu %55 üstünde tut, yoksa Puppet kutudan çıkar.','💡 Vent\'te ses varsa MASKE tak — sızanı geri çeker.',
-    '💡 Kapı 7s kapalı kalır sonra açılır; zaman kazandırır, kalkan değil.','💡 Elektrik kesilirse Ödül Köşesi\'ne gidip kutuyu elle kur.'];
+    '💡 Kapı '+DOOR_TIME+'s kapalı kalır sonra açılır; zaman kazandırır, kalkan değil.','💡 Elektrik kesilirse Ödül Köşesi\'ne gidip kutuyu elle kur.'];
   $('#deadWhen').innerHTML='Gece '+(customMode?'ÖZEL':night)+' • '+clockText()+'\'da yakalandın'
     +(customMode?'':' — 06:00\'a '+hoursLeft+' saat kalmıştı')
     +'<br><span style="color:#8a7a5a;font-size:13px">'+TIPS[Math.floor(Math.random()*TIPS.length)]+'</span>';
+  // 💵 YARIM YEVMİYE — kaybettiğin gece de bir şey kazandırsın (eskiden ölünce elin bomboş kalıyordu)
+  paintPay($('#deadPay'), payout(false));
   $('#dead').classList.remove('hidden'); }
 
 /* ================= GÜNCELLEME ================= */
@@ -3616,32 +3876,32 @@ function update(dt){
   // === JUMPSCARE animasyonu ===
   if(state===S.JUMP && jumpModel){
     jumpT+=dt;
-    const u=jumpModel.userData;
-    const s=(u.baseScale||1)*(puppetJump?1.72:1.42);   // ikisi de dev
+    const u=jumpModel.userData, J=jumpStyle();     // karaktere özel mesafe/sarsıntı/çene/titreşim
+    const s=(u.baseScale||1)*J.scale;              // hepsi dev, ama farklı derecede
     const hy=(u.headY||2.0)*s;                     // modelin kafasının ölçekli yüksekliği
     // Kamera oyuncunun yerinde sabit; sert ama sönümlenen sarsıntı (pitch/yaw'a bağlı DEĞİL)
-    const shake=(puppetJump?0.24:0.21)*Math.max(0,1-jumpT*0.65)*SET.shake;
+    const shake=J.shake*Math.max(0,1-jumpT*0.65)*SET.shake;
     const cx=player.x*SC+(Math.random()-0.5)*shake, cy=EYE+(Math.random()-0.5)*shake, cz=player.z*SC+(Math.random()-0.5)*shake;
     camera.position.set(cx,cy,cz);
     // Oyuncunun YATAY bakış yönü (pitch YOK) — model tam karşıda belirir
     const fx=Math.sin(player.yaw), fz=Math.cos(player.yaw);
-    const dist=(puppetJump?1.5:1.95)-Math.min(puppetJump?0.22:0.35,jumpT*0.55);      // saldırırken üstüne gelir
+    const dist=J.dist-Math.min(puppetJump?0.22:0.35,jumpT*0.55);      // saldırırken üstüne gelir
     // jumpscare ışığı — modelin yüzünü aydınlat (yoksa koyu renkli animatronikler kara kütle olur)
-    nearLight.position.set(cx,cy,cz); nearLight.intensity=0.85; nearLight.distance=5.0; nearLight.color.setHex(puppetJump?0xff88aa:0xffe0cc);
+    nearLight.position.set(cx,cy,cz); nearLight.intensity=0.85; nearLight.distance=5.0; nearLight.color.setHex(J.eye);
     // Modeli, kafası göz hizasına oturacak biçimde yerleştir (ayaklar aşağıda kalır)
-    const my=cy-hy+0.05+Math.sin(jumpT*(puppetJump?40:36))*(puppetJump?0.05:0.05);
+    const my=cy-hy+0.05+Math.sin(jumpT*(puppetJump?40:36))*0.05;
     jumpModel.position.set(cx+fx*dist, my, cz+fz*dist);
-    jumpModel.scale.setScalar(s*(1+Math.sin(jumpT*(puppetJump?34:30))*(puppetJump?0.06:0.055)));
+    jumpModel.scale.setScalar(s*(1+Math.sin(jumpT*J.wob)*(puppetJump?0.06:0.055)));
     // Model DİK dursun, yalnız yaw ile kameraya dönsün (kendi y seviyesine bak)
     jumpModel.lookAt(cx, my, cz);
-    // Çene takırtısı (dörtlü) + kafa sarsıntısı (ikisi)
-    if(u.jaw) u.jaw.rotation.x = 0.6+Math.abs(Math.sin(jumpT*30))*0.55;
+    // Çene takırtısı (karaktere göre hızlanır: Chika en hızlı gaklar) + kafa sarsıntısı
+    if(u.jaw) u.jaw.rotation.x = 0.6+Math.abs(Math.sin(jumpT*J.jaw))*0.55;
     const hg=u.headG||u.head; if(hg){ hg.rotation.z=Math.sin(jumpT*42)*0.08; hg.rotation.x=Math.sin(jumpT*36)*0.05; }
     // Kamera modelin YÜZÜNE baksın (kafa yüksekliği) — açı artık stabil
     camera.lookAt(jumpModel.position.x, my+hy, jumpModel.position.z);
     flash.intensity=0;
-    $('#jumpFlash').style.opacity = (SET.scare*(puppetJump? ((Math.floor(jumpT*30)%2)?0.82:0.18) : ((Math.floor(jumpT*26)%2)?0.8:0.1))).toFixed(2);
-    if(jumpT>(puppetJump?1.65:1.4)){ onDead(); }
+    $('#jumpFlash').style.opacity = (SET.scare*((Math.floor(jumpT*J.flick)%2)? (puppetJump?0.82:0.8) : (puppetJump?0.18:0.1))).toFixed(2);
+    if(jumpT>J.dur){ onDead(); }
     return;
   }
 
@@ -3682,7 +3942,7 @@ function update(dt){
     for(const d of doors){
       if(d.closed){
         d.closeT-=dt;
-        if(d.closeT<=0){ d.closed=false; d.closeT=0; d.cool=DOOR_COOL;
+        if(d.closeT<=0){ d.closed=false; d.closeT=0; d.cool=doorCool();
           Audio.tone(150,.2,'square',.2); Audio.noise(.25,.14,500);
           toast('🔓 '+d.name+' OTOMATİK AÇILDI'); }
       } else if(d.cool>0){
@@ -3697,7 +3957,11 @@ function update(dt){
     clockT+=dt;
     const h=clockHour();
     if(h!==lastHour){ lastHour=h; Audio.hourBell(); if(h<NIGHT_HOURS) toast('🕐 SAAT '+clockText()); }
-    if(clockT>=NIGHT_HOURS*HOUR_SEC){ if(!spectating) winNight(); return; }   // izleyiciler yaşayan takım arkadaşının kazanmasını bekler
+    // İzleyiciler yaşayan takım arkadaşının 'won' paketini bekler. AMA eskiden burada koşulsuz
+    // `return` vardı → izleyicinin saati 06:00'ı geçince fonksiyon her karede burada kesiliyor,
+    // aşağıdaki specCamera() hiç çalışmıyordu: izleyicinin ekranı KALICI donuyordu. Artık
+    // izleyici bu bloğu atlayıp izlemeye devam eder.
+    if(clockT>=NIGHT_HOURS*HOUR_SEC && !spectating){ winNight(); return; }
   }
 
   // === MÜZİK KUTUSU + PUPPET (PLAY ve CAMS'de; bodrumdayken/izleyiciyken donar) ===
@@ -3706,7 +3970,7 @@ function update(dt){
     // Kurma: kameradan (Ödül Köşesi + elektrik) VEYA kutunun yanında (her zaman)
     const canWind = winding && ((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox));
     if(canWind) musicBox=Math.min(100, musicBox+dt*34);
-    else musicBox=Math.max(0, musicBox-dt*ncfg().box); // geceye göre hızlanır
+    else musicBox=Math.max(0, musicBox-dt*ncfg().box*(1-upgLvl('box')*0.10)); // geceye göre hızlanır (🎵 KUTU YAYI yükseltmesi yavaşlatır)
     if(musicBox<runStats.boxMin) runStats.boxMin=musicBox;   // 🏆 en düşük kutu seviyesi
     // KUR butonu görünürlüğü
     $('#windBtn').classList.toggle('hidden', !((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)));
@@ -3721,14 +3985,17 @@ function update(dt){
     puppetStage = puppetOut?3 : (musicBox>=55?0 : musicBox>=35?1 : 2);
 
     // ---- NİNNİ / FISILTI SESLERİ ----
+    // Ninni artık KUTUDAN gelir: ofisten uzaklaştıkça kısılır, Ödül Köşesi'ne yaklaşınca yükselir
+    // → kutunun ne kadar uzakta olduğunu haritaya bakmadan duyarsın.
+    // Fısıltı ise PUPPET'in kendi konumundan → kutudan çıkıp yaklaştıkça sesi üstüne gelir.
     const health=musicBox/100;
-    if(canWind && musicBox>0){ lullaT-=dt; if(lullaT<=0){ lullaT=0.34; Audio.lullaby(lullaIdx++, Math.max(.15,health)); } }
-    else if(musicBox>0 && musicBox<60){ lullaT-=dt; if(lullaT<=0){ lullaT=0.5+(1-health)*0.2; Audio.lullaby(lullaIdx++, health); } } // kendi başına detune çalar
-    if(puppetStage>=2){ whisperT-=dt; if(whisperT<=0){ whisperT=puppetOut? (0.9+Math.random()*0.9) : (2.2+Math.random()*2); Audio.whisper(); } }
+    if(canWind && musicBox>0){ lullaT-=dt; if(lullaT<=0){ lullaT=0.34; Audio.lullaby(lullaIdx++, Math.max(.15,health), MB); } }
+    else if(musicBox>0 && musicBox<60){ lullaT-=dt; if(lullaT<=0){ lullaT=0.5+(1-health)*0.2; Audio.lullaby(lullaIdx++, health, MB); } } // kendi başına detune çalar
+    if(puppetStage>=2){ whisperT-=dt; if(whisperT<=0){ whisperT=puppetOut? (0.9+Math.random()*0.9) : (2.2+Math.random()*2); Audio.whisper(puppetOut?puppetPos:MB); } }
     // kutudan yeni çıkış anı
-    if(puppetOut && !prevOut){ runStats.pptOut=true; Audio.puppetRise(); toast('🎭 PUPPET KUTUDAN ÇIKTI!'); if(navigator.vibrate) navigator.vibrate([120,60,120,60,200]);
+    if(puppetOut && !prevOut){ runStats.pptOut=true; Audio.puppetRise(MB); toast('🎭 PUPPET KUTUDAN ÇIKTI!'); if(navigator.vibrate) navigator.vibrate([120,60,120,60,200]);
       puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z; pRoseAnnounced=true; }
-    else if(puppetStage>=2 && !pRoseAnnounced){ Audio.puppetRise(); pRoseAnnounced=true; }
+    else if(puppetStage>=2 && !pRoseAnnounced){ Audio.puppetRise(MB); pRoseAnnounced=true; }
     else if(puppetStage<2) pRoseAnnounced=false;
     if(prevOut && !puppetOut){ toast('🎵 PUPPET KUTUYA DÖNDÜ'); }
 
@@ -3800,7 +4067,10 @@ function update(dt){
   }
 
   // Animatronik yapay zekası (uyanma + kovalama) + gerilim ambiyansı
-  if((state===S.PLAY || state===S.CAMS) && !inBasement && !spectating) updateAI(dt);   // bodrumdayken/izleyiciyken üst kat donar
+  // İZLEYİCİ de AI'ı çalıştırır (hedef: izlenen arkadaş) — yoksa animatronikler donmuş görünür.
+  // İzlenen arkadaş bodruma inerse üst kat AI'ı yine donar (aynı kural, koordinatlar ayrı bölgede).
+  const specBas = spectating && !!(Net.specTarget()||{}).inBas;
+  if((state===S.PLAY || state===S.CAMS) && !inBasement && !specBas) updateAI(dt);   // bodrumdayken üst kat donar
   else if(inBasement && state===S.PLAY && !spectating) updateBasement(dt);             // bodrum düşmanları + tehlike
   if((state===S.PLAY || state===S.CAMS) && !spectating) driveAmbience(dt);
 
@@ -3824,9 +4094,9 @@ function update(dt){
   if(powered && !inBasement){ powerTimer-=dt; if(powerTimer<=0) blackout(); }   // bodrumdayken üst kat elektriği donar
   else if(fuseActive){ const dx=player.x-fuseDX, dz=player.z-fuseDZ; if(Math.hypot(dx,dz)<1.1) restorePower(); }
 
-  // === MASKE sayacı ===
+  // === MASKE sayacı ===   (🎭 MASKE FİLTRESİ yükseltmesi oksijeni uzatır)
   if(masked){
-    maskCharge=Math.max(0, maskCharge-dt*13);
+    maskCharge=Math.max(0, maskCharge-dt*13*(1-upgLvl('mask')*0.15));
     if(maskCharge<=0){ setMaskOff(); toast('🎭 MASKE BİTTİ — NEFES AL'); }
     $('#maskBtn').classList.toggle('spent', maskCharge<20);
   } else {
@@ -3841,7 +4111,7 @@ function update(dt){
     $('#ventWarn').classList.remove('hidden');
     if(masked){                       // maske → geri çekilir
       ventCrawler=0; $('#ventWarn').classList.add('hidden'); ventCrawlerT=randRange(40,70);
-      toast('🎭 VENT\'TEKİ GERİ ÇEKİLDİ'); Audio.growl();
+      toast('🎭 VENT\'TEKİ GERİ ÇEKİLDİ'); Audio.growl(VENTS[0]);
     } else if(ventCrawler<=0){         // süre doldu, maske yok → saldırı
       $('#ventWarn').classList.add('hidden');
       const awakeOnes=AIS.filter(a=>a.awake); const who=awakeOnes.length? awakeOnes[Math.floor(Math.random()*awakeOnes.length)] : AIS[1];
@@ -3853,7 +4123,8 @@ function update(dt){
     // yüksek gecelerde daha sık; sadece ofiste ve en az bir animatronik uyanıkken
     if(ventCrawlerT<=0 && inOffice() && AIS.some(a=>a.awake)){
       ventCrawler = customMode? Math.max(2.2, 5.0 - cnLevelMax()*0.12) : Math.max(2.4, 5.4 - night*0.5);
-      Audio.creak(); Audio.noise(.5,.13,700); if(navigator.vibrate) navigator.vibrate([60,40,60]);
+      // ses OFİS VENT ağzından gelir → hangi duvardan geldiği duyulur (eskiden yönsüz mono idi)
+      Audio.creak(VENTS[0]); Audio.noise(.5,.13,700,VENTS[0]); if(navigator.vibrate) navigator.vibrate([60,40,60]);
       toast('🪜 VENT\'TE BİR SES...');
     }
   }
@@ -3883,9 +4154,11 @@ function update(dt){
     if(stepTimer<=0){ stepTimer=running?0.3:0.45; Audio.step();
       emitNoise(player.x,player.z, running?1.0:0.35); } }   // koşmak CHİKA'yı çağırır
   // KOŞU BARI (cömert ~10sn): koşarken tükenir, yürüyünce dolar; bitince yorgun (koşamaz + nefes nefese → Chika'yı çeker)
-  if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10);
+  // 🏃 DAYANIKLILIK yükseltmesi: daha yavaş tükenir, daha hızlı dolar
+  const stamU=upgLvl('stam');
+  if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10*(1-stamU*0.15));
     if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast('😮‍💨 NEFES NEFESE — biraz yürü'); }
-  } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)); if(exhausted && stamina>=40) exhausted=false; }
+  } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
 
   // yakın kapı algıla + eylem butonu
@@ -3932,7 +4205,8 @@ function update(dt){
   const d=dirVec(); camera.lookAt(player.x*SC+d.x, EYE+bob+d.y, player.z*SC+d.z);
 
   // fener
-  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }   // BUFF: pil daha yavaş biter
+  // 🔋 GÜÇLÜ PİL yükseltmesi tüketimi kısar (BUFF: pil zaten yavaş bitiyordu, yükseltme üstüne biner)
+  if(flashOn && battery>0){ battery=Math.max(0,battery-dt*(running?4.6:3.6)*(1-upgLvl('batt')*0.12)); if(battery<=0){ flashOn=false; runStats.battDied=true; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='BİTTİ'; } }
   else if(!flashOn && battery<100){ battery=Math.min(100,battery+dt*3.0); }   // BUFF: daha hızlı şarj
   const targetInt = (flashOn&&battery>0)? (8.0+Math.random()*0.7*(battery<15?4:0.3)) : 0;   // BUFF: daha parlak (5.5→8.0)
   flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
@@ -3975,9 +4249,14 @@ function adaptRes(dt){
   if(fps<48 && renderScale>RS_MIN){ renderScale=Math.max(RS_MIN, renderScale-0.12); renderer.setPixelRatio(renderScale); if(composer)composer.setPixelRatio(renderScale); rsCool=2.2; }
   else if(fps>57 && renderScale<RS_MAX){ renderScale=Math.min(RS_MAX, renderScale+0.08); renderer.setPixelRatio(renderScale); if(composer)composer.setPixelRatio(renderScale); rsCool=3; }
 }
+const _lFwd=new THREE.Vector3();
 function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
   update(dt); if(state===S.PLAY||state===S.CAMS) hud();
   Net.tick(dt);
+  // KONUMSAL SES dinleyicisi — kameradan beslenir, yani ofis/tablet/vent/bodrum/izleyici
+  // modlarının hepsinde "kulağın" tam olarak gördüğün yerde olur.
+  camera.getWorldDirection(_lFwd);
+  Audio.setListener(camera.position.x,camera.position.y,camera.position.z,_lFwd.x,_lFwd.y,_lFwd.z);
   adaptRes(dt);
   if(gradePass){ gradePass.material.uniforms.time.value = now*0.001;
     // tehlikede grain + aberasyon artar (panik hissi), karanlıkta vignette güçlenir
