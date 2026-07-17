@@ -137,6 +137,17 @@
   #setBtn{position:fixed;top:14px;right:16px;z-index:45;width:44px;height:44px;border-radius:11px;
     background:radial-gradient(circle at 40% 35%,#2c3238,#14181c);border:1px solid rgba(255,255,255,.18);
     color:#cfd6e0;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  /* 🎂 8-BIT ARA SAHNE */
+  #pix{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:#000;padding:12px;}
+  #pix.show{display:flex;}
+  #pixCanvas{width:min(768px,96vw);image-rendering:pixelated;image-rendering:crisp-edges;
+    border:2px solid #1a1a1a;background:#000;touch-action:none;}
+  #pixHint{margin-top:10px;color:#3a4450;font-size:11px;letter-spacing:1px;font-family:monospace;}
+  #pixMsg{margin-top:8px;color:#8a7a5a;font-size:min(15px,3.6vw);font-family:monospace;letter-spacing:1px;
+    text-align:center;min-height:1.4em;max-width:min(768px,96vw);}
+  #pixSkip{margin-top:12px;padding:8px 18px;background:#12151b;border:1px solid #2a3038;color:#5a6470;
+    border-radius:6px;font-size:12px;cursor:pointer;font-family:monospace;}
   /* 📊 VARDİYA RAPORU */
   #repPanel{position:fixed;inset:0;z-index:58;display:none;flex-direction:column;align-items:center;justify-content:center;
     background:radial-gradient(ellipse at center 40%,rgba(10,12,18,.96),#000 78%);padding:18px;overflow-y:auto;}
@@ -686,6 +697,14 @@
   <div class="payout" id="winPay"></div>
   <button class="repBtn" data-rep="1">📊 VARDİYA RAPORU</button>
   <div class="tapHint">DEVAM İÇİN DOKUN</div>
+</div>
+
+<!-- 🎂 8-BIT ARA SAHNE — ölümden sonra bazen açılan piksel mini-oyun (lore) -->
+<div id="pix">
+  <canvas id="pixCanvas" width="256" height="192"></canvas>
+  <div id="pixHint">← → ↑ ↓ / WASD — hareket et</div>
+  <div id="pixMsg"></div>
+  <button id="pixSkip">ATLA ▸</button>
 </div>
 
 <!-- 📊 VARDİYA RAPORU — gece sonunda ne olduğunun üstten haritası + sayılar -->
@@ -2672,6 +2691,15 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(28,t+.55);
     g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.0001,t+.8); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.85);
   }
+  // 🎂 8-bit ara sahne blip'i — kare dalga, ambGain'e DEĞİL doğrudan master'a (ara sahne
+  // ölümden sonra oynuyor, o sırada ambiyans fade edilmiş oluyor → ambGain'den çalarsa duyulmaz)
+  function pixTone(f,d){ if(!ac)return; const t=ac.currentTime;
+    const o=ac.createOscillator(), gn=ac.createGain();
+    o.type='square'; o.frequency.setValueAtTime(f,t);
+    gn.gain.setValueAtTime(.0001,t); gn.gain.linearRampToValueAtTime(.075,t+.012);
+    gn.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(gn); gn.connect(mas); o.start(t); o.stop(t+d+.02);
+  }
   // ---- KARAKTERE ÖZEL JUMPSCARE ÇIĞLIKLARI ----
   // Dördü de aynı sesi çıkarıyordu → kim yakaladığını duymuyordun. Artık her biri kendi gırtlağıyla:
   //  dark/FREDDO  = derin ayı kükremesi (bas ağırlıklı, ağır, gövdeli)
@@ -2760,7 +2788,7 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     o.start(t); lfo.start(t); o.stop(t+dur+.1); lfo.stop(t+dur+.1);
   }
   return {init,resume,setMaster,setAmbient,setListener,tone,noise,startHum,startAmbience,pad,heart,sting,creak,click,step,
-          phoneRing,phoneBlip,phoneVoice,robotGlitch,achievePop,
+          phoneRing,phoneBlip,phoneVoice,robotGlitch,achievePop,pixTone,
           laugh,growl,clang,screech,foxRun,bang,hourBell,chime6,
           lullaby,whisper,puppetRise,puppetScream,animScream,dreadBass,dreadStab,
           threatPulse,tensionSwell,tensionShimmer}; })();
@@ -2901,6 +2929,7 @@ const SAVE_KEY='gb3d_save_v1';
 let save={maxNight:1, best:0, beat6:false, cnBest:0, ach:[], skin:0, money:0, upg:{}};
 try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.maxNight) save={...save,...s}; }catch(e){}
 if(!Array.isArray(save.ach)) save.ach=[];
+if(!Array.isArray(save.lore)) save.lore=[];   // 🎂 görülen 8-bit ara sahneler
 if(typeof save.skin!=='number') save.skin=0;
 if(typeof save.money!=='number') save.money=0;                              // eski kayıtlar parasız açılır
 if(!save.upg || typeof save.upg!=='object' || Array.isArray(save.upg)) save.upg={};
@@ -3047,9 +3076,179 @@ const ACH=[
   {id:'legend20',  ico:'★',  n:'EFSANE',         d:'20x5 Özel Gece\'yi bitir.'},
   {id:'stare_room',ico:'🧸', n:'KOSTÜMLERİ SAYDIM',d:'Parça Servis Odası\'na gir ve sağ çık.'},
   {id:'stare_calm',ico:'👁️', n:'GÖZÜMÜ AYIRMADIM',d:'Boş Kostüm ava çıktığı bir geceyi sağ atlat.'},
+  {id:'lore_all',  ico:'🎂', n:'HİKÂYEYİ TOPLADIM',d:'Üç 8-bit ara sahnenin hepsini gör.'},
 ];
 const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false, doorCount:0, camOpens:0, dist:0, frozeStare:0};
 function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; runStats.doorCount=0; runStats.camOpens=0; runStats.dist=0; runStats.frozeStare=0; }
+
+/* ================= 🎂 8-BIT ARA SAHNE =================
+   FNAF'ın imzası: ölünce bazen garip bir piksel sahneye düşersin ve oyun sana oynanışla
+   değil, ANLATIYLA bir şey söyler. Buradaki üç senaryo bu binanın neden böyle olduğunu
+   parça parça verir — hepsini görünce 🏆 açılır (save.lore).
+
+   Ölüm ekranından ÖNCE oynar (onDead → Pix.start(cb) → bitince #dead). İlk ölümde garanti
+   açılır (tanışma), sonra %38 — her ölümde çıkarsa büyü bozulur, sürpriz olmaktan çıkar.
+   Ana 3D loop'tan bağımsız: kendi rAF'ı yok, ana loop pixActive iken Pix.update(dt) çağırır. */
+const Pix=(()=>{
+  const cv=$('#pixCanvas'), g=cv.getContext('2d'), W=256, H=192;
+  let active=false, done=null, sc=null, t=0, phase=0, msgT=0, lineIdx=0;
+  const key={}, touch={on:false,x:0,y:0};
+  const P={x:128,y:150,w:8,h:12,spd:46};
+  let items=[], collected=0;
+
+  /* Senaryolar — hepsi aynı motoru kullanır: hedefleri topla → final → lore satırı.
+     id: save.lore'a yazılan anahtar (tekrar görsen de bir kez sayılır) */
+  const SCENES=[
+    { id:'cake', name:'DOĞUM GÜNÜ', bg:'#1a0f14', floor:'#2a1a22',
+      goal:'PASTALARI DAĞIT', hero:'#c9a227',
+      spawn:()=>[[40,50],[210,55],[60,130],[200,135]],
+      itemCol:'#ff9ec4', itemLbl:'kek',
+      finale:['DÖRDÜNÜ DE MUTLU ETTİN.','SONRA BİRİ DAHA GELDİ — DAVETSİZ.','SARI KOSTÜMLÜ ADAM GÜLÜMSÜYORDU.'],
+      finaleDraw:(g,tt)=>{ // mor figür belirir
+        const a=Math.min(1,tt/1.4);
+        g.fillStyle='rgba(90,20,140,'+a+')'; g.fillRect(120,60,16,34);
+        g.fillStyle='rgba(140,40,200,'+a+')'; g.fillRect(122,52,12,10);
+        g.fillStyle='rgba(255,255,255,'+a+')'; g.fillRect(124,55,3,3); g.fillRect(129,55,3,3);
+      }},
+    { id:'follow', name:'TAKİP', bg:'#0f1418', floor:'#1a2028',
+      goal:'ONU TAKİP ET', hero:'#4aa3ff',
+      spawn:()=>[[128,40],[50,70],[200,100],[128,150],[40,150]],
+      itemCol:'#8a3ad0', itemLbl:'iz',
+      finale:['İZLER BURADA BİTİYOR.','BEŞ TANE. HEP BEŞ TANE.','KİMSE ONLARI BULAMADI. SEN BULDUN.'],
+      finaleDraw:(g,tt)=>{ // 5 mezar
+        const a=Math.min(1,tt/1.2);
+        for(let i=0;i<5;i++){ const x=40+i*44;
+          g.fillStyle='rgba(60,66,74,'+a+')'; g.fillRect(x,110,14,22);
+          g.fillStyle='rgba(90,98,108,'+a+')'; g.fillRect(x+2,106,10,6);
+        }
+      }},
+    { id:'count', name:'PARÇA SERVİS', bg:'#12141a', floor:'#1e2228',
+      goal:'KOSTÜMLERİ SAY', hero:'#7fff9f',
+      spawn:()=>[[45,60],[95,60],[145,60],[195,60]],
+      itemCol:'#8a94a4', itemLbl:'kostüm',
+      finale:['DÖRT KOSTÜM SAYDIN.','TEKRAR SAY.','BEŞ.'],
+      finaleDraw:(g,tt)=>{ // 5. kostüm belirir
+        const a=Math.min(1,tt/1.6);
+        g.fillStyle='rgba(74,64,56,'+a+')'; g.fillRect(120,58,14,26);
+        g.fillStyle='rgba(58,50,44,'+a+')'; g.fillRect(119,48,16,12);
+        g.fillStyle='rgba(0,0,0,'+a+')'; g.fillRect(122,52,4,5); g.fillRect(128,52,4,5);
+        if(tt>1.6){ const b=(Math.sin(tt*9)+1)/2;   // gözler yanıp söner → sana bakıyor
+          g.fillStyle='rgba(200,220,255,'+b*a+')'; g.fillRect(123,53,2,3); g.fillRect(129,53,2,3); }
+      }},
+  ];
+
+  function pix(x,y,w,h,c){ g.fillStyle=c; g.fillRect(x|0,y|0,w,h); }
+  function text(s,y,c,size){ g.fillStyle=c||'#8a7a5a'; g.font='bold '+(size||9)+'px monospace';
+    g.textAlign='center'; g.fillText(s,W/2,y); g.textAlign='left'; }
+
+  function roll(){
+    if(!Array.isArray(save.lore)) save.lore=[];
+    if(save.lore.length===0) return true;         // ilk ölüm: garanti (tanışma)
+    return Math.random()<0.38;                     // sonra nadir — sürpriz kalsın
+  }
+  function start(cb){
+    done=cb; active=true; t=0; phase=0; msgT=0; lineIdx=0; collected=0;
+    sc=SCENES[Math.floor(Math.random()*SCENES.length)];
+    items=sc.spawn().map(([x,y])=>({x,y,got:false}));
+    P.x=128; P.y=160;
+    for(const k in key) delete key[k];
+    touch.on=false;
+    $('#pixMsg').textContent=sc.goal;
+    $('#pixHint').style.display='';
+    $('#pix').classList.add('show');
+    Audio.pixTone(220,0.08);
+  }
+  function finish(){
+    if(!active) return;
+    active=false; $('#pix').classList.remove('show');
+    if(!Array.isArray(save.lore)) save.lore=[];
+    if(sc && !save.lore.includes(sc.id)){ save.lore.push(sc.id); saveGame();
+      if(save.lore.length>=SCENES.length) unlockAch('lore_all'); }
+    const cb=done; done=null; sc=null;
+    if(cb) cb();
+  }
+  function update(dt){
+    if(!active) return;
+    t+=dt;
+    if(phase===0){
+      // ---- OYNANIŞ: hedefleri topla ----
+      let dx=0, dy=0;
+      if(key['arrowleft']||key['a']) dx-=1;
+      if(key['arrowright']||key['d']) dx+=1;
+      if(key['arrowup']||key['w']) dy-=1;
+      if(key['arrowdown']||key['s']) dy+=1;
+      if(touch.on){ const tx=touch.x-P.x, ty=touch.y-P.y, d=Math.hypot(tx,ty);
+        if(d>3){ dx=tx/d; dy=ty/d; } }
+      const l=Math.hypot(dx,dy); if(l>1){ dx/=l; dy/=l; }
+      P.x=Math.max(4,Math.min(W-12, P.x+dx*P.spd*dt));
+      P.y=Math.max(24,Math.min(H-16, P.y+dy*P.spd*dt));
+      for(const it of items){
+        if(it.got) continue;
+        if(Math.abs(it.x-P.x)<9 && Math.abs(it.y-P.y)<11){
+          it.got=true; collected++;
+          Audio.pixTone(440+collected*90, 0.09);
+          $('#pixMsg').textContent=sc.itemLbl.toUpperCase()+' '+collected+'/'+items.length;
+        }
+      }
+      if(collected>=items.length){ phase=1; t=0; msgT=0; lineIdx=0; $('#pixHint').style.display='none'; Audio.pixTone(140,0.5); }
+    } else {
+      // ---- FİNAL: lore satırları sırayla ----
+      msgT-=dt;
+      if(msgT<=0 && lineIdx<sc.finale.length){
+        $('#pixMsg').textContent=sc.finale[lineIdx];
+        Audio.pixTone(180-lineIdx*24, 0.16);
+        lineIdx++; msgT=2.3;
+      } else if(msgT<=0 && lineIdx>=sc.finale.length && t>2.5){ finish(); return; }
+    }
+    draw();
+  }
+  function draw(){
+    // finish() sc'yi null'lar; buraya finish sonrası düşülürse sc.bg patlar ve exception ANA
+    // rAF ZİNCİRİNİ KIRAR (loop'ta try yok) → oyun tamamen donardı. İki koruma: update()
+    // finish sonrası return eder, draw da kendini savunur.
+    if(!active || !sc) return;
+    g.fillStyle=sc.bg; g.fillRect(0,0,W,H);
+    pix(0,24,W,H-24, sc.floor);
+    // zemin dokusu (piksel ızgara)
+    g.fillStyle='rgba(255,255,255,0.025)';
+    for(let y=28;y<H;y+=8) for(let x=(y/8|0)%2?0:4;x<W;x+=8) g.fillRect(x,y,4,4);
+    text(sc.name, 14, '#4a5460', 10);
+    if(phase===0){
+      for(const it of items){
+        if(it.got) continue;
+        pix(it.x-4,it.y-4,8,8, sc.itemCol);
+        pix(it.x-4,it.y-6,8,3, '#ffffff22');
+      }
+      // oyuncu (piksel bekçi: gövde + kafa + şapka)
+      pix(P.x-4,P.y-2,8,10, sc.hero);
+      pix(P.x-3,P.y-10,6,8, '#e6c0a0');
+      pix(P.x-4,P.y-12,8,3, '#2a3038');
+      pix(P.x-2,P.y-7,1,2,'#111'); pix(P.x+1,P.y-7,1,2,'#111');
+    } else {
+      sc.finaleDraw(g, t);
+      if(t>0.4){ // oyuncu donmuş halde izliyor
+        pix(P.x-4,P.y-2,8,10, sc.hero);
+        pix(P.x-3,P.y-10,6,8, '#e6c0a0');
+        pix(P.x-4,P.y-12,8,3, '#2a3038');
+      }
+      const v=Math.min(0.55, t*0.12);   // sahne karararak kapanır
+      g.fillStyle='rgba(0,0,0,'+v+')'; g.fillRect(0,0,W,H);
+    }
+    // tarama çizgileri (CRT)
+    g.fillStyle='rgba(0,0,0,0.14)';
+    for(let y=0;y<H;y+=2) g.fillRect(0,y,W,1);
+  }
+  // ---- girdi ----
+  window.addEventListener('keydown',e=>{ if(active){ key[e.key.toLowerCase()]=true; } });
+  window.addEventListener('keyup',  e=>{ if(active){ key[e.key.toLowerCase()]=false; } });
+  function tp(e){ const r=cv.getBoundingClientRect(); const p=e.touches?e.touches[0]:e;
+    touch.x=(p.clientX-r.left)/r.width*W; touch.y=(p.clientY-r.top)/r.height*H; }
+  cv.addEventListener('pointerdown',e=>{ e.preventDefault(); touch.on=true; tp(e); });
+  cv.addEventListener('pointermove',e=>{ if(touch.on){ e.preventDefault(); tp(e); } });
+  window.addEventListener('pointerup',()=>{ touch.on=false; });
+  $('#pixSkip').addEventListener('click',e=>{ e.stopPropagation(); Audio.click(); finish(); });
+  return {roll, start, update, isActive:()=>active};
+})();
 
 /* ================= 📊 VARDİYA RAPORU =================
    Gece bitince (kazan ya da öl) ne olduğunu ÜSTTEN gösterir: yürüdüğün yol, uyanan her
@@ -4348,7 +4547,9 @@ function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpMode
     +'<br><span style="color:#8a7a5a;font-size:13px">'+TIPS[Math.floor(Math.random()*TIPS.length)]+'</span>';
   // 💵 YARIM YEVMİYE — kaybettiğin gece de bir şey kazandırsın (eskiden ölünce elin bomboş kalıyordu)
   paintPay($('#deadPay'), payout(false));
-  $('#dead').classList.remove('hidden'); }
+  // 🎂 8-BIT ARA SAHNE — bazen ölüm ekranı yerine önce piksel sahne oynanır, o bitince ekran gelir
+  if(Pix.roll()) Pix.start(()=>$('#dead').classList.remove('hidden'));
+  else $('#dead').classList.remove('hidden'); }
 
 /* ================= GÜNCELLEME ================= */
 let stepTimer=0, flickT=randRange(8,20), flickActive=0, lightFlick=1;
@@ -4773,6 +4974,7 @@ function adaptRes(dt){
 }
 const _lFwd=new THREE.Vector3();
 function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
+  Pix.update(dt);   // 🎂 ara sahne kendi rAF'ını kurmaz; ölüm sonrası burada sürülür
   update(dt); if(state===S.PLAY||state===S.CAMS) hud();
   Net.tick(dt);
   // KONUMSAL SES dinleyicisi — kameradan beslenir, yani ofis/tablet/vent/bodrum/izleyici
