@@ -1445,11 +1445,11 @@ makeDoorway('DOĞU KAPI', 2,4,15);
 
 /* ---- SİGORTA DÜŞME NOKTALARI (rastgele) ---- */
 const FUSE_SPOTS=[
-  {n:'MUTFAK', p:[11,0.5,0.5]}, {n:'KULİS', p:[-11,0.5,0.8]},
-  {n:'MALZEME DOLABI', p:[-6.5,0.5,10.5]}, {n:'TUVALETLER', p:[6.5,0.5,10.6]},
-  {n:'SAHNE ÖNÜ', p:[-3,0.5,-3]}, {n:'YEMEKHANE', p:[4,0.5,3]},
-  {n:'PIRATE COVE', p:[-7,0.5,5.6]}, {n:'DOĞU KORİDOR', p:[3,0.5,12.5]},
-  {n:'BATI KORİDOR', p:[-3,0.5,7]},
+  {k:'kitchen', get n(){return t('room_'+this.k);}, p:[11,0.5,0.5]}, {k:'backstage', get n(){return t('room_'+this.k);}, p:[-11,0.5,0.8]},
+  {k:'supply', get n(){return t('room_'+this.k);}, p:[-6.5,0.5,10.5]}, {k:'toilet', get n(){return t('room_'+this.k);}, p:[6.5,0.5,10.6]},
+  {k:'stagefront', get n(){return t('room_'+this.k);}, p:[-3,0.5,-3]}, {k:'dining', get n(){return t('room_'+this.k);}, p:[4,0.5,3]},
+  {k:'cove', get n(){return t('room_'+this.k);}, p:[-7,0.5,5.6]}, {k:'ecorr', get n(){return t('room_'+this.k);}, p:[3,0.5,12.5]},
+  {k:'wcorr', get n(){return t('room_'+this.k);}, p:[-3,0.5,7]},
 ];
 // Kuzey (z<6) sigorta noktalarını büyüyen haritaya taşı
 FUSE_SPOTS.forEach(s=>{ if(s.p[2]<6){ s.p[0]=NX(s.p[0]); s.p[2]=NZ(s.p[2]); } });
@@ -1464,17 +1464,19 @@ fuse.visible=false; scene.add(fuse);
 
 /* ---- KAMERA AÇILARI (tablet) ---- */
 const CAMV=[
-  {n:'ÖDÜL KÖŞESİ',  pos:[-13.5,2.4,0], look:[-18,1.4,0.5], prize:true},
-  {n:'SAHNE',        pos:[0,2.4,-4.3],  look:[0,1.4,-8]},
-  {n:'YEMEKHANE',    pos:[0,2.5,5.5],   look:[0,1.1,-1]},
-  {n:'BATI KORİDOR', pos:[-3.2,2.3,14.5],look:[-3.2,1.1,7]},
-  {n:'DOĞU KORİDOR', pos:[3.2,2.3,14.5], look:[3.2,1.1,7]},
-  {n:'MUTFAK',       pos:[11,2.4,1.6],  look:[11,1.1,-1.5]},
-  {n:'PIRATE COVE',  pos:[-7,2.4,7.5],  look:[-7,1.3,4], cove:true},
-  {n:'PARÇA SERVİS', pos:[-11,2.4,-2.6],look:[-11,1.2,-7], parts:true},
+  {k:'prize', get n(){return t('cam_'+this.k);}, pos:[-13.5,2.4,0], look:[-18,1.4,0.5], prize:true},
+  {k:'stage', get n(){return t('cam_'+this.k);}, pos:[0,2.4,-4.3],  look:[0,1.4,-8]},
+  {k:'dining', get n(){return t('cam_'+this.k);}, pos:[0,2.5,5.5],   look:[0,1.1,-1]},
+  {k:'wcorr', get n(){return t('cam_'+this.k);}, pos:[-3.2,2.3,14.5],look:[-3.2,1.1,7]},
+  {k:'ecorr', get n(){return t('cam_'+this.k);}, pos:[3.2,2.3,14.5], look:[3.2,1.1,7]},
+  {k:'kitchen', get n(){return t('cam_'+this.k);}, pos:[11,2.4,1.6],  look:[11,1.1,-1.5]},
+  {k:'cove', get n(){return t('cam_'+this.k);}, pos:[-7,2.4,7.5],  look:[-7,1.3,4], cove:true},
+  {k:'parts', get n(){return t('cam_'+this.k);}, pos:[-11,2.4,-2.6],look:[-11,1.2,-7], parts:true},
 ];
 // Koridor kameraları hariç tüm açıları büyüyen kuzeye hizala (NZ z>=6'da kimliktir)
-CAMV.forEach(c=>{ if(c.n==='BATI KORİDOR'||c.n==='DOĞU KORİDOR') return;
+// DİKKAT: burada c.n OKUNAMAZ — artık getter ve t()'yi çağırır; I18N sözlüğü bu satırdan
+// ÇOK SONRA tanımlandığı için TDZ hatası verir ve oyun hiç açılmaz. Anahtar (c.k) ile bak.
+CAMV.forEach(c=>{ if(c.k==='wcorr'||c.k==='ecorr') return;
   c.pos=[NX(c.pos[0]),c.pos[1],NZ(c.pos[2])]; c.look=[NX(c.look[0]),c.look[1],NZ(c.look[2])]; });
 let camIndex=0;
 
@@ -2067,6 +2069,11 @@ const AIS=[
   // Boş Kostüm: hızlı ama YALNIZ bakmadığın karelerde ilerler → net hızı senin dikkatine bağlı
   {id:'spare', name:'BOŞ KOSTÜM', kind:'stare', home:{x:NX(-9.9),z:NZ(-6.4)}, homeY:0.02, speed:2.85},
 ].map(a=>({...a, model:A[a.id], pos:{x:a.home.x,z:a.home.z}}));
+/* Boş Kostüm'ün adı TEK çevrilebilir karakter adı (diğerleri özel isim). Getter'ı doğrudan
+   yukarıdaki nesne literaline yazmak İŞE YARAMAZ: `.map(a=>({...a}))` spread'i getter'ı O ANDA
+   çağırır, I18N ise çok daha aşağıda tanımlı → TDZ ve oyun hiç açılmaz. O yüzden spread
+   bittikten SONRA tanımlıyoruz; artık ilk okuma runtime'da olur. */
+Object.defineProperty(AIS.find(a=>a.id==='spare'), 'name', { get(){ return t('char_spare'); }, configurable:true });
 
 /* ================= BODRUM (opt 7) — Puppet odasından inilen ayrı kat =================
    İZOLE modül: kendi çarpışma listesi (bCol), kendi kırmızı acil ışıkları, kendi "bozuk"
@@ -2163,7 +2170,7 @@ function updateRisen(dt){
   if(!risen.active){
     if(basUnlocked){ risenT-=dt; if(risenT<=0 && AIS.some(a=>a.awake)){
       risen.active=true; risen.x=HATCH.x; risen.z=HATCH.z; risen.model.visible=true; risen.navT=0;
-      toast('🔻 BODRUMDAN BİR ŞEY ÇIKTI — yavaş ama durmuyor!'); Audio.growl(risen); Audio.noise(.6,.16,300,risen); if(navigator.vibrate) navigator.vibrate([120,60,120]); } }
+      toast(t('ts_bas_rise')); Audio.growl(risen); Audio.noise(.6,.16,300,risen); if(navigator.vibrate) navigator.vibrate([120,60,120]); } }
     return;
   }
   risen.navT-=dt;
@@ -2192,18 +2199,18 @@ function enterBasement(){ inBasement=true; masked=false; flashOn=false; running=
   player.x=BAS_ENTRY.x; player.z=BAS_ENTRY.z; player.yaw=Math.PI; player.pitch=-0.05;
   basStatic.visible=true;
   if(Net.isPlaying()) Net.sendBas(true);   // takıma "bodrumdayım" bildir (izleyici takip edebilsin)
-  toast('🔻 BODRUMA İNDİN — burada başka şeyler var...'); Audio.noise(.6,.16,360); if(navigator.vibrate) navigator.vibrate([90,50,90]); }
+  toast(t('ts_bas_down')); Audio.noise(.6,.16,360); if(navigator.vibrate) navigator.vibrate([90,50,90]); }
 function exitBasement(){ inBasement=false;
   player.x=HATCH.x; player.z=HATCH.z+0.7; player.yaw=0; player.pitch=-0.05;
   basStatic.visible=false;
   if(Net.isPlaying()) Net.sendBas(false);
-  toast('🔺 YUKARI ÇIKTIN'); Audio.noise(.4,.12,520); }
+  toast(t('ts_bas_up')); Audio.noise(.4,.12,520); }
 function startBasTrans(dir){ if(basTransT>0) return; basTransDir=dir; basTransT=1.5; basSwapDone=false;
   running=false; flashOn=false; $('#flashBtn').classList.remove('on'); hidePlayUI();
   Audio.noise(.6,.14,340); if(navigator.vibrate) navigator.vibrate([40,30,40,30,40]); }
 function toggleBasement(){ if(state!==S.PLAY||downed||basTransT>0) return;
   if(inBasement){ if(nearExitDown()) startBasTrans(-1); return; }        // merdivenle çık
-  if(nearHatchUp()){ if(!basUnlocked){ toast('🔒 BODRUM KİLİTLİ — 1. gecede kapalı'); Audio.tone(120,.15,'square',.2); return; } startBasTrans(1); } }  // merdivenle in
+  if(nearHatchUp()){ if(!basUnlocked){ toast(t('ts_bas_locked')); Audio.tone(120,.15,'square',.2); return; } startBasTrans(1); } }  // merdivenle in
 function resetBasement(){ inBasement=false; basStatic.visible=false; basTaskDone=false;
   basPts.forEach(p=>{ p.done=false; p.glow.color.setHex(0xff5020); p.glow.emissive.setHex(0xff5020); });
   BAS_AIS.forEach((a,i)=>{ a.x=a.home.x; a.z=a.home.z; a.chasing=false; a.model.scale.setScalar(a.model.userData.baseScale||1.5); a.model.rotation.set(0,0,0); if(a.eyeMat) a.eyeMat.emissiveIntensity=1.1; });
@@ -2291,7 +2298,7 @@ function updateAI(dt){
 
     // ---- UYANMA (gece tablosuna göre) ----
     if(!a.awake){
-      if(clockT>=a.wakeAt){ a.awake=true; toast('⚠ '+a.name+' UYANDI'); Audio.tone(78,.55,'sawtooth',.28,a.pos); Audio.noise(.4,.16,320,a.pos); }
+      if(clockT>=a.wakeAt){ a.awake=true; toast(tf('ts_woke',{n:a.name})); Audio.tone(78,.55,'sawtooth',.28,a.pos); Audio.noise(.4,.16,320,a.pos); }
       else {
         a.phase+=dt*1.2;
         u.glowL.visible=u.glowR.visible=false; u.eyeWhite.emissiveIntensity=0.25;
@@ -2361,7 +2368,7 @@ function updateAI(dt){
       a.doorT+=dt;
       if(a.doorT>DOOR_FORGET){
         a.doorT=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0; a.stuck=0; a.raid=0; a.raidNext=raidInterval();
-        toast('😮‍💨 '+a.name+' VAZGEÇTİ — KAPIDAN GİTTİ'); Audio.growl(a.pos);
+        toast(tf('ts_giveup_door',{n:a.name})); Audio.growl(a.pos);
       }
     } else a.doorT=0;
 
@@ -2397,7 +2404,7 @@ function updateAI(dt){
         a.rage=Math.max(0,a.rage-dt*3); a.chasing=false;
         tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>1.2; sp*=0.7;
       } else {
-        if(lit){ if(a.rage<=0){ Audio.screech(a.pos); toast('💜 BONKO IŞIĞI GÖRDÜ!'); } a.rage=6.5; }
+        if(lit){ if(a.rage<=0){ Audio.screech(a.pos); toast(t('ts_bonko_light')); } a.rage=6.5; }
         else a.rage=Math.max(0,a.rage-dt);
         if(a.rage<=0 && dist0<2.2){ a.rage=4; Audio.sting(); }   // üstüne basarsan yine atlar
         a.chasing=a.rage>0;
@@ -2438,7 +2445,7 @@ function updateAI(dt){
         // Daha uzağa taşırsak Foxo duvarın arkasındaki kapalı boşluğa sıkışıp asla ulaşamaz.
         a.pos.x=a.home.x+a.stage*0.10; a.pos.z=a.home.z+a.stage*0.55;
         if(a.stage>=3){ a.mode='run'; a.run=13; a.blocked=0;
-          Audio.foxRun(a.pos); toast('🦊 FOXO KOŞUYOR — KAPIYI KAPAT!'); if(navigator.vibrate) navigator.vibrate(200); }
+          Audio.foxRun(a.pos); toast(t('ts_foxo_run')); if(navigator.vibrate) navigator.vibrate(200); }
         a.phase+=dt*1.5;
         m.position.set(a.pos.x*SC, a.homeY*(1-a.stage/3*0.95), a.pos.z*SC);   // çıktıkça platformdan iner
         m.lookAt(tgt.x*SC,1.4,tgt.z*SC);
@@ -2472,7 +2479,7 @@ function updateAI(dt){
         tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>0.6; sp*=0.55; a.chasing=false;
         if(a.raidNext<=0){
           a.mode='hunt'; a.run=STARE_HUNT; runStats.stareHunt=true;   // 🏆 ava çıktığı geceyi atlatmak başarım
-          toast('🧸 PARÇA SERVİS\'TE BİR KOSTÜM EKSİLDİ'); Audio.creak(a.pos); Audio.robotGlitch(a.pos);
+          toast(t('ts_spare_hunt')); Audio.creak(a.pos); Audio.robotGlitch(a.pos);
           if(navigator.vibrate) navigator.vibrate([50,30,50,30,50]);
         }
       }
@@ -2494,7 +2501,7 @@ function updateAI(dt){
       } else {
         a.raidNext-=dt;
         if(a.raidNext<=0 && !a.chasing){ a.raid=RAID_DUR;
-          toast('🚨 '+a.name+' OFİSE GELİYOR — KAPILARI KONTROL ET!'); Audio.growl(a.pos); Audio.noise(.4,.14,300,a.pos); if(navigator.vibrate) navigator.vibrate([80,40,80]); }
+          toast(tf('ts_raid',{n:a.name})); Audio.growl(a.pos); Audio.noise(.4,.14,300,a.pos); if(navigator.vibrate) navigator.vibrate([80,40,80]); }
       }
     }
 
@@ -2518,7 +2525,7 @@ function updateAI(dt){
         a.bang-=dt; if(a.bang<=0){ a.bang=0.5; Audio.bang(a.pos); if(navigator.vibrate) navigator.vibrate(45); }
         if(a.stuck>DOOR_FORGET){
           a.stuck=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0; a.raid=0; a.raidNext=raidInterval();
-          toast('😮‍💨 '+a.name+' VAZGEÇTİ'); Audio.growl(a.pos);
+          toast(tf('ts_giveup',{n:a.name})); Audio.growl(a.pos);
         }
       } else a.stuck=Math.max(0, a.stuck-dt*2);
     }
@@ -2530,7 +2537,7 @@ function updateAI(dt){
       if(doorShut || moved < sp*dt*0.3){
         a.blocked+=dt; a.bang-=dt;
         if(a.bang<=0){ a.bang=0.45; Audio.bang(a.pos); if(navigator.vibrate) navigator.vibrate(60); }
-        if(a.blocked > (doorShut?0.8:1.6)){ a.mode='back'; a.blocked=0; toast('🦊 KAPI FOXO\'YU DURDURDU'); Audio.growl(a.pos); }
+        if(a.blocked > (doorShut?0.8:1.6)){ a.mode='back'; a.blocked=0; toast(t('ts_foxo_door')); Audio.growl(a.pos); }
       } else a.blocked=Math.max(0,a.blocked-dt*2);
     }
 
@@ -2938,6 +2945,66 @@ const LANGS=[
 ];
 const I18N={};
 I18N.tr={
+  // --- oda adları (HUD) ---
+  room_office:'OFİS', room_wcorr:'BATI KORİDOR', room_ecorr:'DOĞU KORİDOR', room_supply:'MALZEME DOLABI',
+  room_toilet:'TUVALETLER', room_cove:'PIRATE COVE', room_backstage:'KULİS', room_parts:'🧸 PARÇA SERVİS',
+  room_kitchen:'MUTFAK', room_stagefront:'SAHNE ÖNÜ', room_dining:'YEMEKHANE',
+  room_basement:'🔻 BODRUM', room_pizzeria:'PİZZACI',
+  // --- kamera adları ---
+  cam_prize:'ÖDÜL KÖŞESİ', cam_stage:'SAHNE', cam_dining:'YEMEKHANE', cam_wcorr:'BATI KORİDOR',
+  cam_ecorr:'DOĞU KORİDOR', cam_kitchen:'MUTFAK', cam_cove:'PIRATE COVE', cam_parts:'PARÇA SERVİS',
+  // --- karakter ---
+  char_spare:'BOŞ KOSTÜM',
+  // --- toast: animatronik ---
+  ts_woke:'⚠ {n} UYANDI', ts_giveup:'😮‍💨 {n} VAZGEÇTİ', ts_giveup_door:'😮‍💨 {n} VAZGEÇTİ — KAPIDAN GİTTİ',
+  ts_raid:'🚨 {n} OFİSE GELİYOR — KAPILARI KONTROL ET!',
+  ts_bonko_light:'💜 BONKO IŞIĞI GÖRDÜ!', ts_foxo_run:'🦊 FOXO KOŞUYOR — KAPIYI KAPAT!',
+  ts_foxo_door:'🦊 KAPI FOXO\'YU DURDURDU',
+  ts_puppet_out:'🎭 PUPPET KUTUDAN ÇIKTI!', ts_puppet_back:'🎵 PUPPET KUTUYA DÖNDÜ',
+  ts_spare_hunt:'🧸 PARÇA SERVİS\'TE BİR KOSTÜM EKSİLDİ',
+  // --- toast: kapı / elektrik ---
+  ts_door_open:'{n} AÇILDI — {s}s bekleme', ts_door_cool:'⏳ KAPI ISINIYOR — {s}s',
+  ts_nopower_door:'⚡ GÜÇ YOK — KAPI ÇALIŞMIYOR', ts_mask_door:'🎭 MASKE TAKILIYKEN KAPI KULLANILMAZ',
+  ts_blackout:'⚡ ELEKTRİK KESİLDİ! SİGORTA: {room}', ts_power_back:'⚡ ELEKTRİK GERİ GELDİ',
+  // --- toast: kamera ---
+  ts_nopower_cam:'⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR', ts_mask_cam:'🎭 MASKE TAKILIYKEN KAMERA AÇILMAZ',
+  ts_down_cam:'🩸 YARALIYKEN KAMERA KULLANILMAZ', ts_bas_cam:'🔻 BODRUMDA KAMERA YOK',
+  ts_signal_lost:'⚡ SİNYAL KESİLDİ',
+  ts_camtask:'📹 GÖREV: {n} kamerasını kontrol et!', ts_camtask_ok:'✅ {n} KONTROL EDİLDİ',
+  ts_camtask_miss:'⚠ KAMERA KONTROL EDİLMEDİ — ANİMATRONİKLER HIZLANDI ({n}/2)',
+  ts_cam_puppet:'🎭 KAMERA İHMAL EDİLDİ — PUPPET KUTUDAN ÇIKTI!',
+  // --- toast: maske / vent / koşu ---
+  ts_mask_none:'🎭 MASKE YOK — nefes al', ts_mask_out:'🎭 MASKE BİTTİ — NEFES AL',
+  ts_vent_crawl:'🪜 VENT KANALI — SÜRÜNÜYORSUN', ts_vent_cool:'🪜 VENT HAZIR DEĞİL — {s}s',
+  ts_vent_back:'🎭 VENT\'TEKİ GERİ ÇEKİLDİ', ts_vent_noise:'🪜 VENT\'TE BİR SES...',
+  ts_winded:'😮‍💨 NEFES NEFESE — biraz yürü',
+  // --- toast: bodrum ---
+  ts_bas_down:'🔻 BODRUMA İNDİN — burada başka şeyler var...', ts_bas_up:'🔺 YUKARI ÇIKTIN',
+  ts_bas_locked:'🔒 BODRUM KİLİTLİ — 1. gecede kapalı',
+  ts_bas_rise:'🔻 BODRUMDAN BİR ŞEY ÇIKTI — yavaş ama durmuyor!',
+  // --- toast: multiplayer ---
+  ts_downed:'🩸 YARALANDIN! 60sn içinde takım seni sarsın, yoksa ölürsün',
+  ts_revived:'🩹 KURTARILDIN! Dikkatli ol.', ts_revive_done:'🩹 {n} KURTARILDI',
+  ts_spectate:'💀 ELENDİN — takımını izliyorsun',
+  // --- toast: diğer ---
+  ts_hour:'🕐 SAAT {t}', ts_pick_one:'En az bir karakter seç',
+  ts_cheat:'🔑 MRT KODU — HER ŞEY AÇILDI! (tüm geceler + özel gece + skinler + $9999)',
+  // --- ölüm satırları (karaktere özel) ---
+  death_dark:['FREDDO karanlıkta üstüne çöktü — ışığı çok geç tuttun','FREDDO gülerek seni kostümün içine tıktı'],
+  death_light:['BONKO ışığını gördü ve üstüne atladı','BONKO pusudan fırladı — feneri ona tutmayacaktın'],
+  death_noise:['CHİKA sesini duydu ve seni buldu','CHİKA gaklayarak üstüne yürüdü — çok gürültü yaptın'],
+  death_cove:['FOXO koridoru koşarak geçti — kapı çok geç kapandı','FOXO kancasıyla seni durdurdu'],
+  death_stare:['BOŞ KOSTÜM bir an gözünü ayırdığında oradaydı','BOŞ KOSTÜM hiç ses çıkarmadı — sadece bakmayı bıraktın','BOŞ KOSTÜM artık boş değil. Sen içindesin.'],
+  death_puppet:'PUPPET seni müzik kutusuna soktu', death_generic:'{n} seni yakaladı',
+  death_bleed:'kan kaybından öldün — kimse yetişemedi', death_team:'TÜM TAKIM ELENDİ — birlikte başaramadınız',
+  // --- ölüm ekranı ipuçları ---
+  tips:['💡 CHİKA sesi duyar — koşmak onu üstüne çeker, yürü.','💡 FREDDO ışıkta DONAR — üstünde fener tut.',
+    '💡 BONKO ışığı görürse çıldırır — ona fener tutma.','💡 FOXO\'yu kamerada izle, yoksa koridoru koşarak geçer.',
+    '💡 Müzik kutusunu %55 üstünde tut, yoksa Puppet kutudan çıkar.','💡 Vent\'te ses varsa MASKE tak — sızanı geri çeker.',
+    '💡 Kapı zaman kazandırır, kalkan değil.','💡 Elektrik kesilirse Ödül Köşesi\'ne gidip kutuyu elle kur.',
+    '💡 🧸 BOŞ KOSTÜM\'e BAK — baktığın sürece donar. Ama karanlıkta bakmak işe yaramaz.',
+    '💡 🫀 Panikleyince elin titrer ve nefesin Chika\'yı çeker — dur ve sakinleş.'],
+
   abil_lock_off_btn:'MÜHRÜ KALDIR',
   abil_lock_off:'🚪 MÜHÜR KALDIRILDI — kapılar normale döndü',
   role_fear:'KORKUSUZ',
@@ -3057,6 +3124,81 @@ I18N.tr={
   pix_hint:'← → ↑ ↓ / WASD — hareket et', pix_skip:'ATLA ▸',
 };
 I18N.en={
+  room_office:'OFFICE',
+  room_wcorr:'WEST HALL',
+  room_ecorr:'EAST HALL',
+  room_supply:'SUPPLY CLOSET',
+  room_toilet:'RESTROOMS',
+  room_cove:'PIRATE COVE',
+  room_backstage:'BACKSTAGE',
+  room_parts:'🧸 PARTS & SERVICE',
+  room_kitchen:'KITCHEN',
+  room_stagefront:'SHOW STAGE FRONT',
+  room_dining:'DINING AREA',
+  room_basement:'🔻 BASEMENT',
+  room_pizzeria:'PIZZERIA',
+  cam_prize:'PRIZE CORNER',
+  cam_stage:'STAGE',
+  cam_dining:'DINING AREA',
+  cam_wcorr:'WEST HALL',
+  cam_ecorr:'EAST HALL',
+  cam_kitchen:'KITCHEN',
+  cam_cove:'PIRATE COVE',
+  cam_parts:'PARTS & SERVICE',
+  char_spare:'EMPTY SUIT',
+  ts_woke:'⚠ {n} IS AWAKE',
+  ts_giveup:'😮‍💨 {n} GAVE UP',
+  ts_giveup_door:'😮‍💨 {n} GAVE UP — LEFT THE DOOR',
+  ts_raid:'🚨 {n} IS COMING TO THE OFFICE — CHECK THE DOORS!',
+  ts_bonko_light:'💜 BONKO SAW YOUR LIGHT!',
+  ts_foxo_run:'🦊 FOXO IS RUNNING — SHUT THE DOOR!',
+  ts_foxo_door:'🦊 THE DOOR STOPPED FOXO',
+  ts_puppet_out:'🎭 PUPPET IS OUT OF THE BOX!',
+  ts_puppet_back:'🎵 PUPPET WENT BACK IN THE BOX',
+  ts_spare_hunt:'🧸 A SUIT IS MISSING FROM PARTS & SERVICE',
+  ts_door_open:'{n} OPENED — {s}s cooldown',
+  ts_door_cool:'⏳ DOOR OVERHEATING — {s}s',
+  ts_nopower_door:'⚡ NO POWER — DOOR IS DEAD',
+  ts_mask_door:'🎭 CAN\'T USE THE DOOR WITH THE MASK ON',
+  ts_blackout:'⚡ POWER IS OUT! FUSE: {room}',
+  ts_power_back:'⚡ POWER IS BACK',
+  ts_nopower_cam:'⚡ NO POWER — CAMERA IS DEAD',
+  ts_mask_cam:'🎭 CAN\'T OPEN THE CAMERA WITH THE MASK ON',
+  ts_down_cam:'🩸 CAN\'T USE THE CAMERA WHILE WOUNDED',
+  ts_bas_cam:'🔻 NO CAMERAS IN THE BASEMENT',
+  ts_signal_lost:'⚡ SIGNAL LOST',
+  ts_camtask:'📹 TASK: check the {n} camera!',
+  ts_camtask_ok:'✅ {n} CHECKED',
+  ts_camtask_miss:'⚠ CAMERA NOT CHECKED — ANIMATRONICS SPED UP ({n}/2)',
+  ts_cam_puppet:'🎭 CAMERAS NEGLECTED — PUPPET IS OUT OF THE BOX!',
+  ts_mask_none:'🎭 NO MASK — breathe',
+  ts_mask_out:'🎭 MASK IS DONE — BREATHE',
+  ts_vent_crawl:'🪜 VENT SHAFT — YOU\'RE CRAWLING',
+  ts_vent_cool:'🪜 VENT NOT READY — {s}s',
+  ts_vent_back:'🎭 THE ONE IN THE VENT PULLED BACK',
+  ts_vent_noise:'🪜 A SOUND IN THE VENT...',
+  ts_winded:'😮‍💨 OUT OF BREATH — walk it off',
+  ts_bas_down:'🔻 YOU WENT DOWN TO THE BASEMENT — there are other things here...',
+  ts_bas_up:'🔺 YOU CAME BACK UP',
+  ts_bas_locked:'🔒 BASEMENT LOCKED — closed on night 1',
+  ts_bas_rise:'🔻 SOMETHING CAME UP FROM THE BASEMENT — slow but it won\'t stop!',
+  ts_downed:'🩸 YOU\'RE DOWN! Your team has 60s to patch you up or you die',
+  ts_revived:'🩹 YOU\'RE BACK UP! Be careful.',
+  ts_revive_done:'🩹 {n} WAS REVIVED',
+  ts_spectate:'💀 YOU\'RE OUT — spectating your team',
+  ts_hour:'🕐 {t}',
+  ts_pick_one:'Pick at least one character',
+  ts_cheat:'🔑 MRT CODE — EVERYTHING UNLOCKED! (all nights + custom night + skins + $9999)',
+  death_dark:['FREDDO came down on you in the dark — you raised the light too late','FREDDO laughed as he stuffed you into the suit'],
+  death_light:['BONKO saw your light and jumped you','BONKO burst out of the dark — you should never have shined it on him'],
+  death_noise:['CHİKA heard you and found you','CHİKA came at you screeching — you made too much noise'],
+  death_cove:['FOXO tore down the hall — the door shut too late','FOXO stopped you with his hook'],
+  death_stare:['EMPTY SUIT was there the moment you looked away','EMPTY SUIT never made a sound — you just stopped looking','EMPTY SUIT isn\'t empty anymore. You\'re inside it.'],
+  death_puppet:'PUPPET put you in the music box',
+  death_generic:'{n} got you',
+  death_bleed:'you bled out — nobody made it in time',
+  death_team:'WHOLE TEAM IS OUT — you didn\'t make it together',
+  tips:['💡 CHİKA hears sound — running pulls her right to you, walk.','💡 FREDDO FREEZES in the light — keep the flashlight on him.','💡 BONKO goes berserk if he sees your light — never shine it on him.','💡 Watch FOXO on the camera, or he\'ll come sprinting down the hall.','💡 Keep the music box above 55%, or Puppet gets out.','💡 If you hear something in the vent, PUT THE MASK ON — it pulls the crawler back.','💡 A door buys you time, not safety.','💡 If the power cuts, go to the Prize Corner and wind the box by hand.','💡 🧸 LOOK AT THE EMPTY SUIT — it freezes while you look. But looking does nothing in the dark.','💡 🫀 Panic makes your hands shake and your breathing draws Chika — stop and calm down.'],
   abil_lock_off_btn:'BREAK SEAL',
   abil_lock_off:'🚪 SEAL LIFTED — doors back to normal',
   role_fear:'FEARLESS',
@@ -3176,6 +3318,81 @@ I18N.en={
   pix_hint:'← → ↑ ↓ / WASD — move', pix_skip:'SKIP ▸',
 };
 I18N.es={
+  room_office:'OFICINA',
+  room_wcorr:'PASILLO OESTE',
+  room_ecorr:'PASILLO ESTE',
+  room_supply:'ALMACÉN',
+  room_toilet:'BAÑOS',
+  room_cove:'PIRATE COVE',
+  room_backstage:'BASTIDORES',
+  room_parts:'🧸 PIEZAS Y SERVICIO',
+  room_kitchen:'COCINA',
+  room_stagefront:'FRENTE DEL ESCENARIO',
+  room_dining:'COMEDOR',
+  room_basement:'🔻 SÓTANO',
+  room_pizzeria:'PIZZERÍA',
+  cam_prize:'RINCÓN DE PREMIOS',
+  cam_stage:'ESCENARIO',
+  cam_dining:'COMEDOR',
+  cam_wcorr:'PASILLO OESTE',
+  cam_ecorr:'PASILLO ESTE',
+  cam_kitchen:'COCINA',
+  cam_cove:'PIRATE COVE',
+  cam_parts:'PIEZAS Y SERVICIO',
+  char_spare:'TRAJE VACÍO',
+  ts_woke:'⚠ {n} DESPERTÓ',
+  ts_giveup:'😮‍💨 {n} SE RINDIÓ',
+  ts_giveup_door:'😮‍💨 {n} SE RINDIÓ — SE FUE POR LA PUERTA',
+  ts_raid:'🚨 {n} VA A LA OFICINA — ¡VIGILA LAS PUERTAS!',
+  ts_bonko_light:'💜 ¡BONKO VIO LA LUZ!',
+  ts_foxo_run:'🦊 FOXO CORRE — ¡CIERRA LA PUERTA!',
+  ts_foxo_door:'🦊 LA PUERTA DETUVO A FOXO',
+  ts_puppet_out:'🎭 ¡PUPPET SALIÓ DE LA CAJA!',
+  ts_puppet_back:'🎵 PUPPET VOLVIÓ A LA CAJA',
+  ts_spare_hunt:'🧸 FALTA UN TRAJE EN PIEZAS Y SERVICIO',
+  ts_door_open:'{n} ABIERTA — espera {s}s',
+  ts_door_cool:'⏳ PUERTA SOBRECALENTADA — {s}s',
+  ts_nopower_door:'⚡ SIN ENERGÍA — PUERTA MUERTA',
+  ts_mask_door:'🎭 NO HAY PUERTAS CON LA MÁSCARA',
+  ts_blackout:'⚡ ¡APAGÓN! FUSIBLE: {room}',
+  ts_power_back:'⚡ VOLVIÓ LA ENERGÍA',
+  ts_nopower_cam:'⚡ SIN ENERGÍA — CÁMARA MUERTA',
+  ts_mask_cam:'🎭 NO HAY CÁMARA CON LA MÁSCARA',
+  ts_down_cam:'🩸 NO HAY CÁMARA SI ESTÁS HERIDO',
+  ts_bas_cam:'🔻 SIN CÁMARAS EN EL SÓTANO',
+  ts_signal_lost:'⚡ SEÑAL PERDIDA',
+  ts_camtask:'📹 MISIÓN: ¡revisa la cámara {n}!',
+  ts_camtask_ok:'✅ {n} REVISADA',
+  ts_camtask_miss:'⚠ CÁMARA SIN REVISAR — LOS ANIMATRÓNICOS ACELERAN ({n}/2)',
+  ts_cam_puppet:'🎭 CÁMARA DESCUIDADA — ¡PUPPET SALIÓ DE LA CAJA!',
+  ts_mask_none:'🎭 SIN MÁSCARA — respira',
+  ts_mask_out:'🎭 MÁSCARA AGOTADA — ¡RESPIRA!',
+  ts_vent_crawl:'🪜 CONDUCTO — ESTÁS REPTANDO',
+  ts_vent_cool:'🪜 CONDUCTO NO LISTO — {s}s',
+  ts_vent_back:'🎭 EL DEL CONDUCTO SE RETIRÓ',
+  ts_vent_noise:'🪜 ALGO SUENA EN EL CONDUCTO...',
+  ts_winded:'😮‍💨 SIN ALIENTO — camina un poco',
+  ts_bas_down:'🔻 BAJASTE AL SÓTANO — aquí hay otras cosas...',
+  ts_bas_up:'🔺 SUBISTE',
+  ts_bas_locked:'🔒 SÓTANO CERRADO — bloqueado la noche 1',
+  ts_bas_rise:'🔻 ALGO SUBIÓ DEL SÓTANO — ¡lento pero no para!',
+  ts_downed:'🩸 ¡ESTÁS HERIDO! Que te venden en 60s o mueres',
+  ts_revived:'🩹 ¡TE SALVARON! Ten cuidado.',
+  ts_revive_done:'🩹 {n} FUE SALVADO',
+  ts_spectate:'💀 ELIMINADO — observas a tu equipo',
+  ts_hour:'🕐 HORA {t}',
+  ts_pick_one:'Elige al menos un personaje',
+  ts_cheat:'🔑 CÓDIGO MRT — ¡TODO DESBLOQUEADO! (todas las noches + noche especial + skins + $9999)',
+  death_dark:['FREDDO cayó sobre ti en la oscuridad — tardaste con la luz','FREDDO te metió en el traje entre risas'],
+  death_light:['BONKO vio tu luz y saltó sobre ti','BONKO salió de la emboscada — no debías alumbrarlo'],
+  death_noise:['CHİKA oyó tu ruido y te encontró','CHİKA vino graznando hacia ti — hiciste demasiado ruido'],
+  death_cove:['FOXO cruzó el pasillo corriendo — la puerta cerró tarde','FOXO te detuvo con su garfio'],
+  death_stare:['El TRAJE VACÍO estaba ahí al apartar la vista un instante','El TRAJE VACÍO no hizo ruido — solo dejaste de mirar','El TRAJE VACÍO ya no está vacío. Tú estás dentro.'],
+  death_puppet:'PUPPET te metió en la caja de música',
+  death_generic:'{n} te atrapó',
+  death_bleed:'moriste desangrado — nadie llegó a tiempo',
+  death_team:'TODO EL EQUIPO ELIMINADO — no lo lograron juntos',
+  tips:['💡 CHİKA oye el ruido — correr la atrae hacia ti, camina.','💡 FREDDO SE CONGELA con la luz — mantén la linterna sobre él.','💡 BONKO enloquece si ve la luz — no lo alumbres.','💡 Vigila a FOXO en la cámara o cruzará el pasillo corriendo.','💡 Mantén la caja de música por encima del 55% o Puppet saldrá.','💡 Si suena el conducto, ponte la MÁSCARA — hace retroceder al intruso.','💡 La puerta te da tiempo, no es un escudo.','💡 Si se corta la luz, ve al Rincón de Premios y dale cuerda a la caja a mano.','💡 🧸 MIRA al TRAJE VACÍO — se congela mientras lo mires. Pero mirar no sirve en la oscuridad.','💡 🫀 Al entrar en pánico te tiembla la mano y tu respiración atrae a Chika — para y cálmate.'],
   abil_lock_off_btn:'QUITAR SELLO',
   abil_lock_off:'🚪 SELLO QUITADO — puertas normales',
   role_fear:'SIN MIEDO',
@@ -3295,6 +3512,81 @@ I18N.es={
   pix_hint:'← → ↑ ↓ / WASD — muévete', pix_skip:'SALTAR ▸',
 };
 I18N.ru={
+  room_office:'ОФИС',
+  room_wcorr:'ЗАПАДНЫЙ КОРИДОР',
+  room_ecorr:'ВОСТОЧНЫЙ КОРИДОР',
+  room_supply:'КЛАДОВАЯ',
+  room_toilet:'ТУАЛЕТЫ',
+  room_cove:'ПИРАТСКАЯ БУХТА',
+  room_backstage:'ЗА КУЛИСАМИ',
+  room_parts:'🧸 ЗАПЧАСТИ',
+  room_kitchen:'КУХНЯ',
+  room_stagefront:'ПЕРЕД СЦЕНОЙ',
+  room_dining:'ЗАЛ',
+  room_basement:'🔻 ПОДВАЛ',
+  room_pizzeria:'ПИЦЦЕРИЯ',
+  cam_prize:'УГОЛ ПРИЗОВ',
+  cam_stage:'СЦЕНА',
+  cam_dining:'ЗАЛ',
+  cam_wcorr:'ЗАПАДНЫЙ КОРИДОР',
+  cam_ecorr:'ВОСТОЧНЫЙ КОРИДОР',
+  cam_kitchen:'КУХНЯ',
+  cam_cove:'ПИРАТСКАЯ БУХТА',
+  cam_parts:'ЗАПЧАСТИ',
+  char_spare:'ПУСТОЙ КОСТЮМ',
+  ts_woke:'⚠ {n} ПРОСНУЛСЯ',
+  ts_giveup:'😮‍💨 {n} ОТСТУПИЛ',
+  ts_giveup_door:'😮‍💨 {n} ОТСТУПИЛ — УШЁЛ ОТ ДВЕРИ',
+  ts_raid:'🚨 {n} ИДЁТ В ОФИС — ПРОВЕРЬ ДВЕРИ!',
+  ts_bonko_light:'💜 BONKO УВИДЕЛ СВЕТ!',
+  ts_foxo_run:'🦊 FOXO БЕЖИТ — ЗАКРОЙ ДВЕРЬ!',
+  ts_foxo_door:'🦊 ДВЕРЬ ОСТАНОВИЛА FOXO',
+  ts_puppet_out:'🎭 PUPPET ВЫШЕЛ ИЗ ШКАТУЛКИ!',
+  ts_puppet_back:'🎵 PUPPET ВЕРНУЛСЯ В ШКАТУЛКУ',
+  ts_spare_hunt:'🧸 В ЗАПЧАСТЯХ ПРОПАЛ КОСТЮМ',
+  ts_door_open:'{n} ОТКРЫТА — ожидание {s}с',
+  ts_door_cool:'⏳ ДВЕРЬ ГРЕЕТСЯ — {s}с',
+  ts_nopower_door:'⚡ НЕТ ПИТАНИЯ — ДВЕРЬ НЕ РАБОТАЕТ',
+  ts_mask_door:'🎭 В МАСКЕ ДВЕРЬ НЕДОСТУПНА',
+  ts_blackout:'⚡ СВЕТ ВЫРУБИЛО! ПРОБКА: {room}',
+  ts_power_back:'⚡ ПИТАНИЕ ВЕРНУЛОСЬ',
+  ts_nopower_cam:'⚡ НЕТ ПИТАНИЯ — КАМЕРА НЕ РАБОТАЕТ',
+  ts_mask_cam:'🎭 В МАСКЕ КАМЕРА НЕ ОТКРОЕТСЯ',
+  ts_down_cam:'🩸 РАНЕНЫМ КАМЕРА НЕДОСТУПНА',
+  ts_bas_cam:'🔻 В ПОДВАЛЕ НЕТ КАМЕР',
+  ts_signal_lost:'⚡ СИГНАЛ ПРОПАЛ',
+  ts_camtask:'📹 ЗАДАНИЕ: проверь камеру {n}!',
+  ts_camtask_ok:'✅ {n} ПРОВЕРЕНА',
+  ts_camtask_miss:'⚠ КАМЕРА НЕ ПРОВЕРЕНА — АНИМАТРОНИКИ УСКОРИЛИСЬ ({n}/2)',
+  ts_cam_puppet:'🎭 КАМЕРУ ЗАБЫЛИ — PUPPET ВЫШЕЛ ИЗ ШКАТУЛКИ!',
+  ts_mask_none:'🎭 НЕТ МАСКИ — дыши',
+  ts_mask_out:'🎭 МАСКА КОНЧИЛАСЬ — ДЫШИ',
+  ts_vent_crawl:'🪜 ВЕНТИЛЯЦИЯ — ТЫ ПОЛЗЁШЬ',
+  ts_vent_cool:'🪜 ВЕНТ НЕ ГОТОВ — {s}с',
+  ts_vent_back:'🎭 ТОТ, ЧТО В ВЕНТЕ, ОТСТУПИЛ',
+  ts_vent_noise:'🪜 В ВЕНТЕ ЗВУК...',
+  ts_winded:'😮‍💨 ОДЫШКА — перейди на шаг',
+  ts_bas_down:'🔻 ТЫ В ПОДВАЛЕ — здесь другое...',
+  ts_bas_up:'🔺 ТЫ ПОДНЯЛСЯ НАВЕРХ',
+  ts_bas_locked:'🔒 ПОДВАЛ ЗАПЕРТ — в 1-ю ночь закрыт',
+  ts_bas_rise:'🔻 ЧТО-ТО ВЫШЛО ИЗ ПОДВАЛА — медленно, но не остановится!',
+  ts_downed:'🩸 ТЫ РАНЕН! Команда должна перевязать за 60с, иначе смерть',
+  ts_revived:'🩹 ТЕБЯ СПАСЛИ! Будь осторожен.',
+  ts_revive_done:'🩹 {n} СПАСЁН',
+  ts_spectate:'💀 ТЫ ВЫБЫЛ — наблюдаешь за командой',
+  ts_hour:'🕐 ВРЕМЯ {t}',
+  ts_pick_one:'Выбери хотя бы одного персонажа',
+  ts_cheat:'🔑 КОД MRT — ВСЁ ОТКРЫТО! (все ночи + особая ночь + скины + $9999)',
+  death_dark:['FREDDO навалился на тебя в темноте — ты поздно поднял свет','FREDDO со смехом запихнул тебя в костюм'],
+  death_light:['BONKO увидел твой свет и прыгнул на тебя','BONKO выскочил из засады — не надо было светить на него'],
+  death_noise:['CHİKA услышала тебя и нашла','CHİKA с криком пошла на тебя — ты слишком шумел'],
+  death_cove:['FOXO промчался по коридору — дверь закрылась поздно','FOXO остановил тебя крюком'],
+  death_stare:['ПУСТОЙ КОСТЮМ был там, стоило отвести взгляд','ПУСТОЙ КОСТЮМ не издал ни звука — ты просто перестал смотреть','ПУСТОЙ КОСТЮМ больше не пустой. Внутри ты.'],
+  death_puppet:'PUPPET засунул тебя в шкатулку',
+  death_generic:'{n} поймал тебя',
+  death_bleed:'ты умер от потери крови — никто не успел',
+  death_team:'ВСЯ КОМАНДА ВЫБЫЛА — вместе не справились',
+  tips:['💡 CHİKA слышит звук — бег притягивает её, иди шагом.','💡 FREDDO ЗАМИРАЕТ на свету — держи на нём фонарь.','💡 BONKO звереет от света — не свети на него.','💡 Следи за FOXO по камере, иначе он промчится по коридору.','💡 Держи шкатулку выше 55%, иначе Puppet выйдет.','💡 Если в венте звук — надень МАСКУ, она отгонит гостя.','💡 Дверь даёт время, а не защиту.','💡 Если вырубит свет, иди в Угол Призов и заведи шкатулку вручную.','💡 🧸 СМОТРИ на ПУСТОЙ КОСТЮМ — пока смотришь, он замирает. Но в темноте это не работает.','💡 🫀 В панике рука дрожит, а дыхание манит Chika — остановись и успокойся.'],
   abil_lock_off_btn:'СНЯТЬ ПЕЧАТЬ',
   abil_lock_off:'🚪 ПЕЧАТЬ СНЯТА — двери в норме',
   role_fear:'БЕССТРАШНЫЙ',
@@ -3414,6 +3706,81 @@ I18N.ru={
   pix_hint:'← → ↑ ↓ / WASD — двигайся', pix_skip:'ПРОПУСТИТЬ ▸',
 };
 I18N.de={
+  room_office:'BÜRO',
+  room_wcorr:'WESTFLUR',
+  room_ecorr:'OSTFLUR',
+  room_supply:'ABSTELLRAUM',
+  room_toilet:'TOILETTEN',
+  room_cove:'PIRATE COVE',
+  room_backstage:'BACKSTAGE',
+  room_parts:'🧸 ERSATZTEILLAGER',
+  room_kitchen:'KÜCHE',
+  room_stagefront:'VOR DER BÜHNE',
+  room_dining:'ESSBEREICH',
+  room_basement:'🔻 KELLER',
+  room_pizzeria:'PIZZERIA',
+  cam_prize:'PREISECKE',
+  cam_stage:'BÜHNE',
+  cam_dining:'ESSBEREICH',
+  cam_wcorr:'WESTFLUR',
+  cam_ecorr:'OSTFLUR',
+  cam_kitchen:'KÜCHE',
+  cam_cove:'PIRATE COVE',
+  cam_parts:'ERSATZTEILLAGER',
+  char_spare:'LEERES KOSTÜM',
+  ts_woke:'⚠ {n} IST WACH',
+  ts_giveup:'😮‍💨 {n} GIBT AUF',
+  ts_giveup_door:'😮‍💨 {n} GIBT AUF — WEG VON DER TÜR',
+  ts_raid:'🚨 {n} KOMMT INS BÜRO — TÜREN PRÜFEN!',
+  ts_bonko_light:'💜 BONKO HAT DAS LICHT GESEHEN!',
+  ts_foxo_run:'🦊 FOXO RENNT — TÜR ZU!',
+  ts_foxo_door:'🦊 DIE TÜR HAT FOXO GESTOPPT',
+  ts_puppet_out:'🎭 PUPPET IST AUS DER BOX!',
+  ts_puppet_back:'🎵 PUPPET IST ZURÜCK IN DER BOX',
+  ts_spare_hunt:'🧸 IM ERSATZTEILLAGER FEHLT EIN KOSTÜM',
+  ts_door_open:'{n} OFFEN — {s}s Sperre',
+  ts_door_cool:'⏳ TÜR ÜBERHITZT — {s}s',
+  ts_nopower_door:'⚡ KEIN STROM — TÜR TOT',
+  ts_mask_door:'🎭 MIT MASKE KEINE TÜR',
+  ts_blackout:'⚡ STROMAUSFALL! SICHERUNG: {room}',
+  ts_power_back:'⚡ STROM IST ZURÜCK',
+  ts_nopower_cam:'⚡ KEIN STROM — KAMERA TOT',
+  ts_mask_cam:'🎭 MIT MASKE KEINE KAMERA',
+  ts_down_cam:'🩸 VERLETZT — KEINE KAMERA',
+  ts_bas_cam:'🔻 KEINE KAMERA IM KELLER',
+  ts_signal_lost:'⚡ SIGNAL WEG',
+  ts_camtask:'📹 AUFGABE: Kamera {n} prüfen!',
+  ts_camtask_ok:'✅ {n} GEPRÜFT',
+  ts_camtask_miss:'⚠ KAMERA NICHT GEPRÜFT — SIE WERDEN SCHNELLER ({n}/2)',
+  ts_cam_puppet:'🎭 KAMERA VERNACHLÄSSIGT — PUPPET IST DRAUSSEN!',
+  ts_mask_none:'🎭 KEINE MASKE — atme',
+  ts_mask_out:'🎭 MASKE AB — ATMEN!',
+  ts_vent_crawl:'🪜 LÜFTUNG — DU KRIECHST',
+  ts_vent_cool:'🪜 VENT NICHT BEREIT — {s}s',
+  ts_vent_back:'🎭 DER IN DER LÜFTUNG ZOG SICH ZURÜCK',
+  ts_vent_noise:'🪜 ETWAS IN DER LÜFTUNG...',
+  ts_winded:'😮‍💨 AUSSER ATEM — geh langsam',
+  ts_bas_down:'🔻 IM KELLER — hier unten ist anderes...',
+  ts_bas_up:'🔺 WIEDER OBEN',
+  ts_bas_locked:'🔒 KELLER GESPERRT — in Nacht 1 zu',
+  ts_bas_rise:'🔻 ETWAS KAM AUS DEM KELLER — langsam, aber es stoppt nicht!',
+  ts_downed:'🩸 VERLETZT! Das Team muss dich in 60s verbinden, sonst stirbst du',
+  ts_revived:'🩹 GERETTET! Pass auf.',
+  ts_revive_done:'🩹 {n} GERETTET',
+  ts_spectate:'💀 AUSGESCHIEDEN — du siehst dem Team zu',
+  ts_hour:'🕐 {t} UHR',
+  ts_pick_one:'Wähle mindestens einen Charakter',
+  ts_cheat:'🔑 MRT-CODE — ALLES FREI! (alle Nächte + Sondernacht + Skins + $9999)',
+  death_dark:['FREDDO fiel im Dunkeln über dich her — zu spät geleuchtet','FREDDO stopfte dich lachend in ein Kostüm'],
+  death_light:['BONKO sah dein Licht und sprang dich an','BONKO schoss aus dem Hinterhalt — leuchte ihn nie an'],
+  death_noise:['CHİKA hörte dich und fand dich','CHİKA kam kreischend auf dich zu — du warst zu laut'],
+  death_cove:['FOXO raste durch den Flur — die Tür kam zu spät','FOXO hielt dich mit seinem Haken auf'],
+  death_stare:['LEERES KOSTÜM war da, als du kurz wegsahst','LEERES KOSTÜM machte keinen Laut — du hast nur aufgehört hinzusehen','LEERES KOSTÜM ist nicht mehr leer. Du bist darin.'],
+  death_puppet:'PUPPET steckte dich in die Spieluhr',
+  death_generic:'{n} hat dich erwischt',
+  death_bleed:'du bist verblutet — niemand kam rechtzeitig',
+  death_team:'GANZES TEAM AUSGESCHIEDEN — gemeinsam gescheitert',
+  tips:['💡 CHİKA hört dich — Rennen zieht sie an, geh langsam.','💡 FREDDO ERSTARRT im Licht — halt die Lampe auf ihn.','💡 BONKO dreht durch, wenn er Licht sieht — leuchte ihn nicht an.','💡 Beobachte FOXO auf der Kamera, sonst rast er durch den Flur.','💡 Halt die Spieluhr über 55%, sonst kommt Puppet raus.','💡 Geräusch in der Lüftung? MASKE auf — das zieht ihn zurück.','💡 Die Tür schenkt dir Zeit, kein Schutz.','💡 Bei Stromausfall zur Preisecke und die Box von Hand aufziehen.','💡 🧸 SIEH das LEERE KOSTÜM AN — solange du hinsiehst, erstarrt es. Im Dunkeln hilft Hinsehen nicht.','💡 🫀 In Panik zittert die Hand und dein Atem zieht Chika an — halt an und beruhige dich.'],
   abil_lock_off_btn:'SIEGEL LÖSEN',
   abil_lock_off:'🚪 SIEGEL GELÖST — Türen wieder normal',
   role_fear:'FURCHTLOS',
@@ -3533,6 +3900,81 @@ I18N.de={
   pix_hint:'← → ↑ ↓ / WASD — bewegen', pix_skip:'ÜBERSPRINGEN ▸',
 };
 I18N.fr={
+  room_office:'BUREAU',
+  room_wcorr:'COULOIR OUEST',
+  room_ecorr:'COULOIR EST',
+  room_supply:'DÉBARRAS',
+  room_toilet:'TOILETTES',
+  room_cove:'PIRATE COVE',
+  room_backstage:'COULISSES',
+  room_parts:'🧸 PIÈCES & SERVICE',
+  room_kitchen:'CUISINE',
+  room_stagefront:'DEVANT LA SCÈNE',
+  room_dining:'SALLE À MANGER',
+  room_basement:'🔻 SOUS-SOL',
+  room_pizzeria:'PIZZERIA',
+  cam_prize:'COIN DES PRIX',
+  cam_stage:'SCÈNE',
+  cam_dining:'SALLE À MANGER',
+  cam_wcorr:'COULOIR OUEST',
+  cam_ecorr:'COULOIR EST',
+  cam_kitchen:'CUISINE',
+  cam_cove:'PIRATE COVE',
+  cam_parts:'PIÈCES & SERVICE',
+  char_spare:'COSTUME VIDE',
+  ts_woke:'⚠ {n} S\'EST RÉVEILLÉ',
+  ts_giveup:'😮‍💨 {n} A ABANDONNÉ',
+  ts_giveup_door:'😮‍💨 {n} A ABANDONNÉ — PARTI PAR LA PORTE',
+  ts_raid:'🚨 {n} ARRIVE AU BUREAU — VÉRIFIE LES PORTES !',
+  ts_bonko_light:'💜 BONKO A VU LA LUMIÈRE !',
+  ts_foxo_run:'🦊 FOXO COURT — FERME LA PORTE !',
+  ts_foxo_door:'🦊 LA PORTE A STOPPÉ FOXO',
+  ts_puppet_out:'🎭 PUPPET EST SORTI DE LA BOÎTE !',
+  ts_puppet_back:'🎵 PUPPET EST RENTRÉ DANS LA BOÎTE',
+  ts_spare_hunt:'🧸 UN COSTUME A DISPARU DE PIÈCES & SERVICE',
+  ts_door_open:'{n} OUVERTE — attente {s}s',
+  ts_door_cool:'⏳ PORTE EN SURCHAUFFE — {s}s',
+  ts_nopower_door:'⚡ PAS DE COURANT — PORTE HORS SERVICE',
+  ts_mask_door:'🎭 PORTE IMPOSSIBLE AVEC LE MASQUE',
+  ts_blackout:'⚡ PANNE DE COURANT ! FUSIBLE : {room}',
+  ts_power_back:'⚡ LE COURANT EST REVENU',
+  ts_nopower_cam:'⚡ PAS DE COURANT — CAMÉRA HORS SERVICE',
+  ts_mask_cam:'🎭 CAMÉRA IMPOSSIBLE AVEC LE MASQUE',
+  ts_down_cam:'🩸 PAS DE CAMÉRA QUAND TU ES BLESSÉ',
+  ts_bas_cam:'🔻 AUCUNE CAMÉRA AU SOUS-SOL',
+  ts_signal_lost:'⚡ SIGNAL PERDU',
+  ts_camtask:'📹 MISSION : vérifie la caméra {n} !',
+  ts_camtask_ok:'✅ {n} VÉRIFIÉE',
+  ts_camtask_miss:'⚠ CAMÉRA NON VÉRIFIÉE — LES ANIMATRONIQUES ACCÉLÈRENT ({n}/2)',
+  ts_cam_puppet:'🎭 CAMÉRA NÉGLIGÉE — PUPPET EST SORTI DE LA BOÎTE !',
+  ts_mask_none:'🎭 PAS DE MASQUE — respire',
+  ts_mask_out:'🎭 MASQUE ÉPUISÉ — RESPIRE',
+  ts_vent_crawl:'🪜 CONDUIT — TU RAMPES',
+  ts_vent_cool:'🪜 CONDUIT PAS PRÊT — {s}s',
+  ts_vent_back:'🎭 CELUI DU CONDUIT A RECULÉ',
+  ts_vent_noise:'🪜 UN BRUIT DANS LE CONDUIT...',
+  ts_winded:'😮‍💨 À BOUT DE SOUFFLE — marche un peu',
+  ts_bas_down:'🔻 TU ES DESCENDU AU SOUS-SOL — il y a autre chose ici...',
+  ts_bas_up:'🔺 TU ES REMONTÉ',
+  ts_bas_locked:'🔒 SOUS-SOL VERROUILLÉ — fermé la 1re nuit',
+  ts_bas_rise:'🔻 QUELQUE CHOSE EST SORTI DU SOUS-SOL — lent mais il ne s\'arrête pas !',
+  ts_downed:'🩸 TU ES BLESSÉ ! L\'équipe doit te soigner en 60s, sinon tu meurs',
+  ts_revived:'🩹 TU ES SAUVÉ ! Fais attention.',
+  ts_revive_done:'🩹 {n} A ÉTÉ SAUVÉ',
+  ts_spectate:'💀 TU ES ÉLIMINÉ — tu observes ton équipe',
+  ts_hour:'🕐 IL EST {t}',
+  ts_pick_one:'Choisis au moins un personnage',
+  ts_cheat:'🔑 CODE MRT — TOUT EST DÉBLOQUÉ ! (toutes les nuits + nuit spéciale + skins + $9999)',
+  death_dark:['FREDDO s\'est abattu sur toi dans le noir — lumière trop tard','FREDDO t\'a fourré dans un costume en riant'],
+  death_light:['BONKO a vu ta lumière et t\'a sauté dessus','BONKO a jailli de l\'ombre — il ne fallait pas l\'éclairer'],
+  death_noise:['CHİKA a entendu ta voix et t\'a trouvé','CHİKA a marché sur toi en criant — tu as fait trop de bruit'],
+  death_cove:['FOXO a traversé le couloir en courant — porte fermée trop tard','FOXO t\'a stoppé avec son crochet'],
+  death_stare:['LE COSTUME VIDE était là dès que tu as détourné les yeux','LE COSTUME VIDE n\'a fait aucun bruit — tu as juste cessé de le regarder','LE COSTUME VIDE n\'est plus vide. Tu es dedans.'],
+  death_puppet:'PUPPET t\'a enfermé dans la boîte à musique',
+  death_generic:'{n} t\'a attrapé',
+  death_bleed:'tu t\'es vidé de ton sang — personne n\'est arrivé',
+  death_team:'TOUTE L\'ÉQUIPE EST ÉLIMINÉE — vous avez échoué ensemble',
+  tips:['💡 CHİKA entend le son — courir l\'attire vers toi, marche.','💡 FREDDO se FIGE dans la lumière — garde la lampe sur lui.','💡 BONKO devient fou s\'il voit la lumière — ne l\'éclaire pas.','💡 Surveille FOXO à la caméra, sinon il traverse le couloir en courant.','💡 Garde la boîte à musique au-dessus de 55%, sinon Puppet en sort.','💡 Un bruit dans le conduit ? Mets le MASQUE — ça le fait reculer.','💡 La porte fait gagner du temps, ce n\'est pas un bouclier.','💡 Si le courant saute, va au Coin des Prix remonter la boîte à la main.','💡 🧸 REGARDE le COSTUME VIDE — il se fige tant que tu le fixes. Mais regarder dans le noir ne sert à rien.','💡 🫀 La panique fait trembler ta main et ton souffle attire Chika — arrête-toi et calme-toi.'],
   abil_lock_off_btn:'BRISER SCEAU',
   abil_lock_off:'🚪 SCEAU LEVÉ — portes normales',
   role_fear:'INTRÉPIDE',
@@ -5003,21 +5445,21 @@ function dirVec(){ return new THREE.Vector3(Math.sin(player.yaw)*Math.cos(player
 
 /* ================= ODA İSMİ ================= */
 const REGIONS=[
-  {n:'OFİS',            x:[-5,5],    z:[15,21]},
+  {k:'office', get n(){return t('room_'+this.k);},            x:[-5,5],    z:[15,21]},
   {n:'BATI KORİDOR',    x:[-4,-2],   z:[6,15]},
   {n:'DOĞU KORİDOR',    x:[2,4],     z:[6,15]},
   {n:'MALZEME DOLABI',  x:[-8,-4],   z:[9,12]},
   {n:'TUVALETLER',      x:[4,8],     z:[9,12]},
   {n:'PIRATE COVE',     x:[-8.9,-5.1],z:[2.5,5.4]},
   {n:'KULİS',           x:[-13,-9],  z:[-2,2]},
-  {n:'🧸 PARÇA SERVİS',  x:[-13,-9],  z:[-9,-2]},
+  {k:'parts', get n(){return t('room_'+this.k);},  x:[-13,-9],  z:[-9,-2]},
   {n:'MUTFAK',          x:[9,13],    z:[-4,5]},
   {n:'SAHNE ÖNÜ',       x:[-5,5],    z:[-4,-1]},
   {n:'YEMEKHANE',       x:[-9,9],    z:[-4,6]},
 ];
 // Kuzey (güney sınırı z<6 olan) oda kutularını büyüyen haritaya hizala
 REGIONS.forEach(r=>{ if(r.z[0]<6){ r.x=[NX(r.x[0]),NX(r.x[1])]; r.z=[NZ(r.z[0]),NZ(r.z[1])]; } });
-function roomName(){ if(inBasement) return '🔻 BODRUM'; for(const r of REGIONS){ if(player.x>=r.x[0]&&player.x<=r.x[1]&&player.z>=r.z[0]&&player.z<=r.z[1]) return r.n; } return 'PİZZACI'; }
+function roomName(){ if(inBasement) return t('room_basement'); for(const r of REGIONS){ if(player.x>=r.x[0]&&player.x<=r.x[1]&&player.z>=r.z[0]&&player.z<=r.z[1]) return r.n; } return t('room_pizzeria'); }
 
 /* ================= ÇARPIŞMA ================= */
 const PR=0.34;
@@ -5148,7 +5590,7 @@ function toggleFlash(){ if(masked||downed) return; if(battery<=0){ flashOn=false
 function toggleMask(){
   if(state!==S.PLAY || downed || inBasement) return;
   if(!masked){
-    if(maskCharge<8){ toast('🎭 MASKE YOK — nefes al'); Audio.tone(160,.12,'square',.15); return; }
+    if(maskCharge<8){ toast(t('ts_mask_none')); Audio.tone(160,.12,'square',.15); return; }
     masked=true; flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
     $('#maskOv').classList.add('show'); $('#maskBtn').classList.add('on');
     Audio.noise(.25,.14,500); Audio.tone(120,.2,'sawtooth',.12);
@@ -5159,14 +5601,14 @@ function setMaskOff(){ masked=false; $('#maskOv').classList.remove('show'); $('#
 // --- VENT (kestirme sürünme) ---
 function enterVent(){
   if(state!==S.PLAY || downed) return;
-  if(ventCool>0){ toast('🪜 VENT HAZIR DEĞİL — '+Math.ceil(ventCool)+'s'); Audio.tone(140,.12,'square',.14); return; }
+  if(ventCool>0){ toast(tf('ts_vent_cool',{s:Math.ceil(ventCool)})); Audio.tone(140,.12,'square',.14); return; }
   const v=nearVent(); if(!v) return;
   const other=VENTS.find(o=>o!==v);
   ventFrom={x:player.x,z:player.z}; ventTo={x:other.x,z:other.z}; ventT=0; runStats.ventUsed++;   // 🏆 vent kullanımı
   Dir.bump('vent', 0.22);   // 🧠 kestirmeyi spam'lersen vent tehdidi sıklaşır
   state=S.VENT; masked=false; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on'); flashOn=false;
   hidePlayUI(); $('#ventDark').classList.add('show');
-  Audio.noise(.6,.12,700); toast('🪜 VENT KANALI — SÜRÜNÜYORSUN');
+  Audio.noise(.6,.12,700); toast(t('ts_vent_crawl'));
 }
 function finishVent(){
   player.x=ventTo.x; player.z=ventTo.z;
@@ -5183,9 +5625,9 @@ function toast(msg){ const el=$('#toast'); el.textContent=msg; el.style.opacity=
 // --- KAPI ---
 function interactDoor(){
   if(state!==S.PLAY) return;
-  if(masked){ toast('🎭 MASKE TAKILIYKEN KAPI KULLANILMAZ'); Audio.tone(160,.1,'square',.12); return; }
+  if(masked){ toast(t('ts_mask_door')); Audio.tone(160,.1,'square',.12); return; }
   if(!nearDoor){ return; }
-  if(!powered){ toast('⚡ GÜÇ YOK — KAPI ÇALIŞMIYOR'); Audio.tone(120,.15,'square',.2); return; }
+  if(!powered){ toast(t('ts_nopower_door')); Audio.tone(120,.15,'square',.2); return; }
   /* 🚪 ÇİLİNGİR mührü: mühürlü kapı süresi dolana kadar AÇILAMAZ, öteki kapı ise KAPANAMAZ.
      Yeteneğin bedeli bu — 25sn tek taraf tamamen güvenli, öbür taraf tamamen açık. */
   if(lockT>0){
@@ -5195,10 +5637,10 @@ function interactDoor(){
   }
   if(nearDoor.closed){                       // elle erken aç
     nearDoor.closed=false; nearDoor.closeT=0; nearDoor.cool=doorCool();
-    toast(nearDoor.name+' AÇILDI — '+doorCool()+'s bekleme');
+    toast(tf('ts_door_open',{n:nearDoor.name,s:doorCool()}));
   } else {
     if(nearDoor.cool>0){                     // henüz hazır değil
-      toast('⏳ KAPI ISINIYOR — '+Math.ceil(nearDoor.cool)+'s');
+      toast(tf('ts_door_cool',{s:Math.ceil(nearDoor.cool)}));
       Audio.tone(140,.12,'square',.18); return;
     }
     nearDoor.closed=true; nearDoor.closeT=DOOR_TIME; runStats.doorUsed=true; runStats.doorCount++;   // 🏆 kapı kapatıldı
@@ -5214,12 +5656,12 @@ function interactDoor(){
 function openCamera(){
   if(state===S.CAMS){ closeCamera(); return; }
   if(state!==S.PLAY) return;
-  if(downed){ toast('🩸 YARALIYKEN KAMERA KULLANILMAZ'); return; }
-  if(inBasement){ toast('🔻 BODRUMDA KAMERA YOK'); return; }
-  if(masked){ toast('🎭 MASKE TAKILIYKEN KAMERA AÇILMAZ'); Audio.tone(200,.1,'square',.15); return; }
+  if(downed){ toast(t('ts_down_cam')); return; }
+  if(inBasement){ toast(t('ts_bas_cam')); return; }
+  if(masked){ toast(t('ts_mask_cam')); Audio.tone(200,.1,'square',.15); return; }
   // 🎥 KAMERAMAN tablete HER YERDEN bakabilir (elektrik şartı aşağıda — o herkes için geçerli)
   if(!inOffice() && !roleIs('camman')){ toast(t('cam_office_only')); Audio.tone(200,.1,'square',.15); return; }
-  if(!powered){ toast('⚡ GÜÇ YOK — KAMERA ÇALIŞMIYOR'); Audio.tone(160,.12,'square',.18); return; }
+  if(!powered){ toast(t('ts_nopower_cam')); Audio.tone(160,.12,'square',.18); return; }
   state=S.CAMS; runStats.camOpens++; $('#tablet').classList.add('show'); $('#tabStatic').style.opacity='.5'; Audio.click(); refreshCam();
 }
 function closeCamera(){ if(state!==S.CAMS) return; state=S.PLAY; winding=false; $('#tablet').classList.remove('show'); $('#windBtn').classList.add('hidden'); Audio.tone(300,.06,'square',.1); }
@@ -5366,7 +5808,7 @@ function closeCustom(){ $('#cnPanel').classList.remove('show');
   if(mpConfiguringCustom){ mpConfiguringCustom=false; $('#mpPanel').classList.add('show'); Audio.click(); return; }   // MP özel geceden vazgeç → lobiye dön
   refreshMenu(); $('#menu').classList.remove('hidden'); Audio.click(); }
 $('#cnBack').addEventListener('click',closeCustom);
-$('#cnGo').addEventListener('click',()=>{ if(CN_CHARS.every(c=>custom[c.id]===0)){ toast('En az bir karakter seç'); return; }
+$('#cnGo').addEventListener('click',()=>{ if(CN_CHARS.every(c=>custom[c.id]===0)){ toast(t('ts_pick_one')); return; }
   $('#cnPanel').classList.remove('show');
   if(mpConfiguringCustom){ mpConfiguringCustom=false; Net.startHostCustom(); return; }   // MP: host özel geceyi başlat (herkese yayınlanır)
   customMode=true; startGame(); });
@@ -5387,7 +5829,7 @@ applyLang();
 function unlockAll(){ save.maxNight=6; save.beat6=true; save.cnBest=CN_MAX; save.money=Math.max(save.money,9999);
   ACH.forEach(a=>{ if(!save.ach.includes(a.id)) save.ach.push(a.id); }); saveGame();
   refreshMenu(); if(typeof renderNights==='function') renderNights();
-  toast('🔑 MRT KODU — HER ŞEY AÇILDI! (tüm geceler + özel gece + skinler + $9999)'); Audio.init(); Audio.resume(); Audio.achievePop(); }
+  toast(t('ts_cheat')); Audio.init(); Audio.resume(); Audio.achievePop(); }
 $('#cheatIn').addEventListener('click',e=>e.stopPropagation());
 $('#cheatIn').addEventListener('input',e=>{ const v=(e.target.value||'').trim().toUpperCase();
   if(v==='MRT'){ unlockAll(); e.target.value=''; e.target.blur(); } });
@@ -5547,13 +5989,13 @@ function blackout(){
   const spot=FUSE_SPOTS[Math.floor(randRange(0,FUSE_SPOTS.length))];
   fuseDX=spot.p[0]; fuseDZ=spot.p[2];
   fuse.position.set(spot.p[0]*SC,spot.p[1],spot.p[2]*SC); fuse.visible=true; fuseActive=true; fuse._spot=spot.n;
-  toast('⚡ ELEKTRİK KESİLDİ! SİGORTA: '+spot.n);
+  toast(tf('ts_blackout',{room:spot.n}));
   if(navigator.vibrate) navigator.vibrate(120);
 }
 function restorePower(){
   powered=true; fuseActive=false; fuse.visible=false; resetPowerTimer();
   [440,660,880].forEach(f=>Audio.tone(f,.28,'sine',.2)); Audio.click();
-  toast('⚡ ELEKTRİK GERİ GELDİ');
+  toast(t('ts_power_back'));
 }
 function hidePlayUI(){
   $('#hud').classList.add('hidden'); $('#cross').classList.add('hidden'); $('#tablet').classList.remove('show');
@@ -5652,7 +6094,7 @@ function enterDowned(model,name){
   $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
   $('#hurtOv').classList.add('show');
   Audio.animScream(kindOfModel(model)); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
-  toast('🩸 YARALANDIN! 60sn içinde takım seni sarsın, yoksa ölürsün');
+  toast(t('ts_downed'));
   // seni yakalayan geri çekilir (sahnesine/evine döner) — helpless'ken üstünde kalmasın
   const a=AIS.find(x=>x.model===model);
   if(a){ a.chasing=false; a.rage=0; a.hear=0; a.stuck=0; a.doorT=0; a.giveUp=GIVEUP_TIME*1.6; if(a.kind==='cove') a.mode='back'; }
@@ -5661,14 +6103,14 @@ function enterDowned(model,name){
 }
 function getUp(){ if(!downed) return; downed=false; downT=0; reviveHold=0;
   $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
-  toast('🩹 KURTARILDIN! Dikkatli ol.'); Audio.click(); if(navigator.vibrate) navigator.vibrate([60,40,120]);
+  toast(t('ts_revived')); Audio.click(); if(navigator.vibrate) navigator.vibrate([60,40,120]);
   stamina=Math.max(stamina,40); Net.sendUp(); }
 function bleedOut(){ if(state===S.DEAD||spectating) return;
   downed=false; $('#hurtOv').classList.remove('show'); $('#hurtHud').classList.remove('show'); $('#reviveBtn').classList.remove('show');
   Net.sendUp();
   if(Net.isPlaying()){ enterSpectator(); return; }   // MP: ölmezsin, İZLEYİCİ olursun (takım devam eder)
   puppetJump=false; jumpName=downAttacker||'YARALAR';
-  onDead(); $('#deadWho').textContent='kan kaybından öldün — kimse yetişemedi'; }
+  onDead(); $('#deadWho').textContent=t('death_bleed'); }
 /* ---- İZLEYİCİ MODU (MP: öldükten sonra takımı izle) ---- */
 function enterSpectator(){ if(spectating) return;
   // 📊 MP ölümü startJump'tan geçmez → deathAt hiç yazılmıyordu: vardiya raporunda kırmızı X
@@ -5682,7 +6124,7 @@ function enterSpectator(){ if(spectating) return;
   risen.active=false; risen.model.visible=false;
   hidePlayUI(); $('#specOv').classList.add('show');
   $('#specNext').classList.toggle('show', Net.specCount()>1);   // tek arkadaş kaldıysa geçiş butonu anlamsız
-  toast('💀 ELENDİN — takımını izliyorsun'); Audio.animScream(); Audio.setAmbient(false);
+  toast(t('ts_spectate')); Audio.animScream(); Audio.setAmbient(false);
   Net.sendDied(); }
 $('#specNext').addEventListener('click',e=>{ e.stopPropagation(); specCycle(); });
 function specCamera(dt){
@@ -5713,7 +6155,7 @@ function teamWin(){ if(state===S.WIN||state===S.ENDING) return; spectating=false
   paintPay($('#winPay'), payout(true));
   $('#win').classList.remove('hidden'); if(navigator.vibrate) navigator.vibrate([80,60,80,60,180]); }
 function teamLose(){ if(state===S.DEAD) return; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show'); inBasement=false; basStatic.visible=false;
-  puppetJump=false; jumpName='TAKIM'; onDead(); $('#deadWho').textContent='TÜM TAKIM ELENDİ — birlikte başaramadınız'; }
+  puppetJump=false; jumpName='TAKIM'; onDead(); $('#deadWho').textContent=t('death_team'); }
 // hangi kamera hangi animatroniği "kontrol eder"
 function camForAnimatronic(a){ if(a.id==='foxo') return 6; if(a.id==='chika') return 5; return 1; }  // COVE / MUTFAK / SAHNE
 function updateCamTask(dt){
@@ -5723,7 +6165,7 @@ function updateCamTask(dt){
     camTaskWin-=dt;
     if(state===S.CAMS && camIndex===camTask.cam){          // doğru kamera → 1 sn TUT
       camDwell+=dt;
-      if(camDwell>=1.0){ toast('✅ '+camTask.label+' KONTROL EDİLDİ'); Audio.click();
+      if(camDwell>=1.0){ toast(tf('ts_camtask_ok',{n:camTask.label})); Audio.click();
         runStats.camDone++;   // 💵 eksiksiz kamera turu gece sonunda prim ödüyor
         el.classList.remove('show','urgent'); camTask=null; camDwell=0; camTaskT=randRange(40,65); return; }
       el.textContent='📹 '+camTask.label+' — TUT ('+(1.0-camDwell).toFixed(1)+'s)'; el.classList.remove('urgent'); el.classList.add('show'); return;
@@ -5732,10 +6174,10 @@ function updateCamTask(dt){
       camMiss++; el.classList.remove('show','urgent');
       if(camMiss>=3){                                       // 3. kaçırma: Puppet anında kutudan çıkar
         musicBox=Math.min(musicBox,12); puppetStage=3; puppetOut=true;
-        toast('🎭 KAMERA İHMAL EDİLDİ — PUPPET KUTUDAN ÇIKTI!'); Audio.puppetRise(MB); if(navigator.vibrate) navigator.vibrate(300);
+        toast(t('ts_cam_puppet')); Audio.puppetRise(MB); if(navigator.vibrate) navigator.vibrate(300);
       } else {                                              // 1-2. kaçırma: animatronikler hızlanır
         camBoost=1+camMiss*0.18; camBoostT=26;
-        toast('⚠ KAMERA KONTROL EDİLMEDİ — ANİMATRONİKLER HIZLANDI ('+camMiss+'/2)'); Audio.sting();
+        toast(tf('ts_camtask_miss',{n:camMiss})); Audio.sting();
       }
       camTask=null; camTaskT=randRange(35,55); return;
     }
@@ -5751,7 +6193,7 @@ function updateCamTask(dt){
   if(camTaskT<=0 && awake.length && camMiss<3){
     const a=awake[Math.floor(Math.random()*awake.length)], cam=camForAnimatronic(a);
     camTask={cam, label:CAMV[cam].n, who:a.name}; camTaskWin=12;
-    Audio.tone(880,.12,'sine',.12); toast('📹 GÖREV: '+CAMV[cam].n+' kamerasını kontrol et!');
+    Audio.tone(880,.12,'sine',.12); toast(tf('ts_camtask',{n:CAMV[cam].n}));
   }
 }
 function updateDowned(dt){
@@ -5768,7 +6210,7 @@ function updateDowned(dt){
     const t=Net.nearestDowned(player.x,player.z), rb=$('#reviveBtn');
     const need=(3-upgLvl('med')*0.6)/(roleIs('medic')?3:1);   // 🩹 İLK YARDIM hızlandırır
     if(t){ reviveHold+=dt;
-      if(reviveHold>=need){ Net.sendRevive(t.id); reviveHold=0; rb.classList.remove('show'); toast('🩹 '+(t.name||'Takım')+' KURTARILDI'); Audio.click(); }
+      if(reviveHold>=need){ Net.sendRevive(t.id); reviveHold=0; rb.classList.remove('show'); toast(tf('ts_revive_done',{n:(t.name||'?')})); Audio.click(); }
       else { rb.classList.add('show'); rb.textContent='🩹 '+(t.name||'?')+' SARILIYOR... '+Math.ceil(need-reviveHold)+'s'; }
     } else { reviveHold=0; rb.classList.remove('show'); }
   }
@@ -5782,22 +6224,13 @@ function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpMode
   nearLight.intensity=0.25; nearLight.distance=3.5; nearLight.color.setHex(0x9099aa);   // jumpscare ışığını sıfırla
   $('#puppetVig').style.opacity='0';
   // Ölüm satırı karaktere özel — kimin yakaladığı, NASIL yakaladığı da anlatılsın
-  const DEATH={
-    dark: ['FREDDO karanlıkta üstüne çöktü — ışığı çok geç tuttun','FREDDO gülerek seni kostümün içine tıktı'],
-    light:['BONKO ışığını gördü ve üstüne atladı','BONKO pusudan fırladı — feneri ona tutmayacaktın'],
-    noise:['CHİKA sesini duydu ve seni buldu','CHİKA gaklayarak üstüne yürüdü — çok gürültü yaptın'],
-    cove: ['FOXO koridoru koşarak geçti — kapı çok geç kapandı','FOXO kancasıyla seni durdurdu'],
-    stare:['BOŞ KOSTÜM bir an gözünü ayırdığında oradaydı','BOŞ KOSTÜM hiç ses çıkarmadı — sadece bakmayı bıraktın','BOŞ KOSTÜM artık boş değil. Sen içindesin.'],
-  };
+  const DEATH={ dark:ta('death_dark'), light:ta('death_light'), noise:ta('death_noise'), cove:ta('death_cove'), stare:ta('death_stare') };
   const dl=DEATH[jumpKind];
-  $('#deadWho').textContent = puppetJump? 'PUPPET seni müzik kutusuna soktu'
-    : (dl? dl[Math.floor(Math.random()*dl.length)] : (jumpName+' seni yakaladı'));
+  $('#deadWho').textContent = puppetJump? t('death_puppet')
+    : (dl&&dl.length? dl[Math.floor(Math.random()*dl.length)] : tf('death_generic',{n:jumpName}));
   puppetJump=false;
   const hoursLeft=Math.ceil((NIGHT_HOURS*HOUR_SEC-clockT)/HOUR_SEC);
-  const TIPS=['💡 CHİKA sesi duyar — koşmak onu üstüne çeker, yürü.','💡 FREDDO ışıkta DONAR — üstünde fener tut.',
-    '💡 BONKO ışığı görürse ÇILDIRIR — ona asla fener tutma!','💡 FOXO\'yu kamerada izlemezsen koşarak gelir.',
-    '💡 Müzik kutusunu %55 üstünde tut, yoksa Puppet kutudan çıkar.','💡 Vent\'te ses varsa MASKE tak — sızanı geri çeker.',
-    '💡 Kapı '+DOOR_TIME+'s kapalı kalır sonra açılır; zaman kazandırır, kalkan değil.','💡 Elektrik kesilirse Ödül Köşesi\'ne gidip kutuyu elle kur.'];
+  const TIPS=ta('tips');
   $('#deadWhen').innerHTML='Gece '+(customMode?'ÖZEL':night)+' • '+clockText()+'\'da yakalandın'
     +(customMode?'':' — 06:00\'a '+hoursLeft+' saat kalmıştı')
     +'<br><span style="color:#8a7a5a;font-size:13px">'+TIPS[Math.floor(Math.random()*TIPS.length)]+'</span>';
@@ -5940,7 +6373,7 @@ function update(dt){
   if(state===S.PLAY || state===S.CAMS){
     clockT+=dt;
     const h=clockHour();
-    if(h!==lastHour){ lastHour=h; Audio.hourBell(); if(h<NIGHT_HOURS) toast('🕐 SAAT '+clockText()); }
+    if(h!==lastHour){ lastHour=h; Audio.hourBell(); if(h<NIGHT_HOURS) toast(tf('ts_hour',{t:clockText()})); }
     // İzleyiciler yaşayan takım arkadaşının 'won' paketini bekler. AMA eskiden burada koşulsuz
     // `return` vardı → izleyicinin saati 06:00'ı geçince fonksiyon her karede burada kesiliyor,
     // aşağıdaki specCamera() hiç çalışmıyordu: izleyicinin ekranı KALICI donuyordu. Artık
@@ -5977,11 +6410,11 @@ function update(dt){
     else if(musicBox>0 && musicBox<60){ lullaT-=dt; if(lullaT<=0){ lullaT=0.5+(1-health)*0.2; Audio.lullaby(lullaIdx++, health, MB); } } // kendi başına detune çalar
     if(puppetStage>=2){ whisperT-=dt; if(whisperT<=0){ whisperT=puppetOut? (0.9+Math.random()*0.9) : (2.2+Math.random()*2); Audio.whisper(puppetOut?puppetPos:MB); } }
     // kutudan yeni çıkış anı
-    if(puppetOut && !prevOut){ runStats.pptOut=true; Audio.puppetRise(MB); toast('🎭 PUPPET KUTUDAN ÇIKTI!'); if(navigator.vibrate) navigator.vibrate([120,60,120,60,200]);
+    if(puppetOut && !prevOut){ runStats.pptOut=true; Audio.puppetRise(MB); toast(t('ts_puppet_out')); if(navigator.vibrate) navigator.vibrate([120,60,120,60,200]);
       puppetPos.x=PUP_HOME.x; puppetPos.z=PUP_HOME.z; pRoseAnnounced=true; }
     else if(puppetStage>=2 && !pRoseAnnounced){ Audio.puppetRise(MB); pRoseAnnounced=true; }
     else if(puppetStage<2) pRoseAnnounced=false;
-    if(prevOut && !puppetOut){ toast('🎵 PUPPET KUTUYA DÖNDÜ'); }
+    if(prevOut && !puppetOut){ toast(t('ts_puppet_back')); }
 
     // ---- GÖZLER / DEHŞET ATMOSFERİ ----
     const dread = puppetOut? 1 : Math.max(0, (55-musicBox)/40);   // 0..1
@@ -6065,7 +6498,7 @@ function update(dt){
   }
   // KAMERA (tablet) modu
   if(state===S.CAMS){
-    if(!powered){ closeCamera(); toast('⚡ SİNYAL KESİLDİ'); }
+    if(!powered){ closeCamera(); toast(t('ts_signal_lost')); }
     else { const c=CAMV[camIndex]; camera.position.set(c.pos[0]*SC,c.pos[1],c.pos[2]*SC); camera.lookAt(c.look[0]*SC,c.look[1],c.look[2]*SC); }
     let st=parseFloat($('#tabStatic').style.opacity||'0'); if(st>0.14) $('#tabStatic').style.opacity=(st-dt*1.4);
     flash.intensity += (0-flash.intensity)*Math.min(1,dt*14);
@@ -6087,7 +6520,7 @@ function update(dt){
   // === MASKE sayacı ===   (🎭 MASKE FİLTRESİ yükseltmesi oksijeni uzatır)
   if(masked){
     maskCharge=Math.max(0, maskCharge-dt*13*(1-upgLvl('mask')*0.15));
-    if(maskCharge<=0){ setMaskOff(); toast('🎭 MASKE BİTTİ — NEFES AL'); }
+    if(maskCharge<=0){ setMaskOff(); toast(t('ts_mask_out')); }
     $('#maskBtn').classList.toggle('spent', maskCharge<20);
   } else {
     maskCharge=Math.min(100, maskCharge+dt*9);
@@ -6103,7 +6536,7 @@ function update(dt){
     // zaten oranın sakini. (Maske herkes için çalışmaya devam ediyor.)
     if(masked || roleIs('rat')){
       ventCrawler=0; $('#ventWarn').classList.add('hidden'); ventCrawlerT=ventGap();
-      toast(roleIs('rat')? t('rat_vent') : '🎭 VENT\'TEKİ GERİ ÇEKİLDİ'); Audio.growl(VENTS[0]);
+      toast(roleIs('rat')? t('rat_vent') : t('ts_vent_back')); Audio.growl(VENTS[0]);
     } else if(ventCrawler<=0){         // süre doldu, maske yok → saldırı
       $('#ventWarn').classList.add('hidden');
       const awakeOnes=AIS.filter(a=>a.awake); const who=awakeOnes.length? awakeOnes[Math.floor(Math.random()*awakeOnes.length)] : AIS[1];
@@ -6117,7 +6550,7 @@ function update(dt){
       ventCrawler = customMode? Math.max(2.2, 5.0 - cnLevelMax()*0.12) : Math.max(2.4, 5.4 - night*0.5);
       // ses OFİS VENT ağzından gelir → hangi duvardan geldiği duyulur (eskiden yönsüz mono idi)
       Audio.creak(VENTS[0]); Audio.noise(.5,.13,700,VENTS[0]); if(navigator.vibrate) navigator.vibrate([60,40,60]);
-      toast('🪜 VENT\'TE BİR SES...');
+      toast(t('ts_vent_noise'));
     }
   }
 
@@ -6149,7 +6582,7 @@ function update(dt){
   // 🏃 DAYANIKLILIK yükseltmesi: daha yavaş tükenir, daha hızlı dolar
   const stamU=upgLvl('stam');
   if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10*(1-stamU*0.15)*(roleIs('runner')?0.78:1));   // 🏃 KOŞUCU'nun nefesi biraz daha dayanır
-    if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast('😮‍💨 NEFES NEFESE — biraz yürü'); }
+    if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast(t('ts_winded')); }
   } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
 
@@ -6191,7 +6624,7 @@ function update(dt){
     else if(hatchArmed){
       if(inBasement){ hatchArmed=false; startBasTrans(-1); }               // merdivenle çık
       else if(basUnlocked){ hatchArmed=false; startBasTrans(1); }          // merdivenle in
-      else if(!basLockNoted){ basLockNoted=true; toast('🔒 BODRUM KİLİTLİ — 1. gecede kapalı'); Audio.tone(120,.15,'square',.2); }
+      else if(!basLockNoted){ basLockNoted=true; toast(t('ts_bas_locked')); Audio.tone(120,.15,'square',.2); }
     }
   }
   // kilit uyarısı bir kez gösterilsin (zonu terk edince sıfırlanır)
