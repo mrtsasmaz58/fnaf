@@ -622,7 +622,7 @@
   <div><div id="roomName">OFİS</div><div id="roomSub" data-i18n="hud_sub">Freddy Fazbear's Pizza</div>
     <div id="clockBox"><span id="clockTime">12:00</span><span id="nightLbl">GECE 1</span>
       <div id="clockBar"><div id="clockFill"></div></div></div></div>
-  <div id="battBox"><div id="battLabel" data-i18n="hud_batt">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState">KAPALI</div>
+  <div id="battBox"><div id="battLabel" data-i18n="hud_batt">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState" data-i18n="flash_off">KAPALI</div>
     <div id="stamBox"><div id="stamLabel" data-i18n="hud_run">🏃 KOŞU</div><div id="stamBar"><div id="stamFill"></div></div></div>
     <div id="maskBox" class="hidden"><div id="maskLabel" data-i18n="hud_mask">🎭 MASKE</div><div id="maskBar"><div id="maskFill"></div></div></div>
     <div id="panicBox"><div id="panicLabel" data-i18n="hud_panic">🫀 SOĞUKKANLILIK</div><div id="panicBar"><div id="panicFill"></div></div></div></div>
@@ -2229,9 +2229,9 @@ function updateRisen(dt){
   risen.model.position.set(risen.x*SC, bob, risen.z*SC); risen.model.lookAt(player.x*SC,1.4,player.z*SC);
   if(risen.eyeMat) risen.eyeMat.emissiveIntensity=2.4;
   const dp=Math.hypot(player.x-risen.x,player.z-risen.z);
-  dangerLevel=Math.max(dangerLevel, 1-Math.min(dp,14)/14);
+  dangerLevel=Math.max(dangerLevel, 0.3, 1-Math.min(dp,14)/14);   // uyanıkken en az 0.3 taban → uzaktayken bile "sessiz katil" değil, gerilim müziği çalar
   if(Math.random()<dt*0.4) Audio.robotGlitch(risen);   // arızası kendi konumundan → arkandan mı geliyor duyarsın
-  if(dp<1.2) catchPlayer(risen.model, risen.name);
+  if(dp<1.2 && losClear(player.x,player.z,risen.x,risen.z)) catchPlayer(risen.model, risen.name);   // duvar/kapı arkasından yakalayamaz (ana AI'da da losClear var)
 }
 risen.eyeMat=risen.model.userData.eyeMat;
 // bodrum çarpışması (oyuncu + düşman)
@@ -2240,10 +2240,12 @@ function collideBasement(px,pz,rad){ const R=rad||PR;
     const pL=px-(c.minX-R),pR=(c.maxX+R)-px,pT=pz-(c.minZ-R),pB=(c.maxZ+R)-pz, m=Math.min(pL,pR,pT,pB);
     if(m===pL)px=c.minX-R;else if(m===pR)px=c.maxX+R;else if(m===pT)pz=c.minZ-R;else pz=c.maxZ+R; } } }
   px=Math.max(BAS.minX+R,Math.min(BAS.maxX-R,px)); pz=Math.max(BAS.minZ+R,Math.min(BAS.maxZ-R,pz)); return [px,pz]; }
+// bodrumun kendi görüş hattı (kolonları bCol'da) — kolon arkasından yakalamayı engeller
+function basLosClear(ax,az,bx,bz){ for(const c of bCol){ if(ptIn(ax,az,c)||ptIn(bx,bz,c)) continue; if(segAABB(ax,az,bx,bz,c)) return false; } return true; }
 function nearHatchUp(){ return !inBasement && Math.hypot(player.x-HATCH.x,player.z-HATCH.z)<1.9; }
 function nearExitDown(){ return inBasement && Math.hypot(player.x-BAS_EXIT.x,player.z-BAS_EXIT.z)<2.2; }
 function enterBasement(){ inBasement=true; masked=false; flashOn=false; running=false;
-  $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
+  $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent=t('flash_off');
   player.x=BAS_ENTRY.x; player.z=BAS_ENTRY.z; player.yaw=Math.PI; player.pitch=-0.05;
   basStatic.visible=true;
   if(Net.isPlaying()) Net.sendBas(true);   // takıma "bodrumdayım" bildir (izleyici takip edebilsin)
@@ -2294,7 +2296,7 @@ function updateBasement(dt){
     a.model.position.set(a.x*SC, bob, a.z*SC); a.model.lookAt(player.x*SC,1.4,player.z*SC);
     if(a.eyeMat) a.eyeMat.emissiveIntensity=a.chasing?2.8:1.1;
     dmax=Math.max(dmax, 1-Math.min(d,10)/10);
-    if(d<1.2) catchPlayer(a.model, a.name);
+    if(d<1.2 && basLosClear(player.x,player.z,a.x,a.z)) catchPlayer(a.model, a.name);   // kolon arkasından yakalamaz
   }
   dangerLevel=dmax;
 }
@@ -2451,7 +2453,7 @@ function updateAI(dt){
         a.rage=Math.max(0,a.rage-dt*3); a.chasing=false;
         tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>1.2; sp*=0.7;
       } else {
-        if(lit){ if(a.rage<=0){ Audio.screech(a.pos); toast(t('ts_bonko_light')); } a.rage=6.5; }
+        if(lit && !roleIs('lamp')){ if(a.rage<=0){ Audio.screech(a.pos); toast(t('ts_bonko_light')); } a.rage=6.5; }   // 🔦 IŞIKÇI'nın feneri Bonko'yu öfkelendirmez (yalnız MP rolü)
         else a.rage=Math.max(0,a.rage-dt);
         if(a.rage<=0 && dist0<2.2){ a.rage=4; Audio.sting(); }   // üstüne basarsan yine atlar
         a.chasing=a.rage>0;
@@ -2670,17 +2672,24 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
      arkandan, müzik kutusunun ninnisi Ödül Köşesi'nden. Kulaklıkla yön bulunabilir.
      spat(gx,gz) OYUN birimi alır (a.pos/player ile aynı), içeride SC ile dünya birimine çevirir —
      dinleyici de camera.position'dan (zaten SC'li) beslendiği için iki uzay birebir örtüşür. */
+  // PANNER HAVUZU: eskiden her ses YENİ bir PannerNode yaratıyordu (robotGlitch spam'inde masaüstünde
+  // GC churn). Artık sabit sayıda panner döngüsel yeniden kullanılır — yalnız konumları güncellenir.
+  const PAN_N = isMobile? 6 : 10;
+  let pannerPool=[], panIdx=0;
   function spat(gx,gz,y){ if(!ac) return mas;
-    const p=ac.createPanner();
-    // HRTF masaüstünde çok daha iyi yön verir ama her ses için konvolüsyon demek → mobilde
-    // equalpower (basit L/R + mesafe). Yön hissi korunur, CPU maliyeti neredeyse sıfır.
-    p.panningModel = isMobile? 'equalpower' : 'HRTF';
-    p.distanceModel='inverse';
-    p.refDistance=6; p.rolloffFactor=1.0; p.maxDistance=140;
+    let p=pannerPool[panIdx];
+    if(!p){ p=ac.createPanner();
+      // HRTF masaüstünde çok daha iyi yön verir ama her ses için konvolüsyon demek → mobilde
+      // equalpower (basit L/R + mesafe). Yön hissi korunur, CPU maliyeti neredeyse sıfır.
+      p.panningModel = isMobile? 'equalpower' : 'HRTF';
+      p.distanceModel='inverse';
+      p.refDistance=6; p.rolloffFactor=1.0; p.maxDistance=140;
+      p.connect(mas); pannerPool[panIdx]=p; }
+    panIdx=(panIdx+1)%PAN_N;
     const wx=gx*SC, wy=(y==null?1.4:y), wz=gz*SC;
     if(p.positionX){ p.positionX.value=wx; p.positionY.value=wy; p.positionZ.value=wz; }
     else p.setPosition(wx,wy,wz);
-    p.connect(mas); return p; }
+    return p; }
   // pos verilmezse eski davranış (mono master) — çağıranların hepsini değiştirmek gerekmesin
   function dest(pos){ return pos? spat(pos.x,pos.z,pos.y) : mas; }
   let lupSet=false;
@@ -2836,14 +2845,14 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     noise(2.2,.05,500,pos);
   }
   // Puppet jumpscare çığlığı — katmanlı, sert (ama limiter sayesinde artık klipslemez)
-  function puppetScream(){ if(!ac)return; const t=ac.currentTime;
+  function puppetScream(vm){ if(!ac)return; vm=(vm==null?1:vm); const t=ac.currentTime;
     [1150,1550,2050,780].forEach((fr,i)=>{ const o=ac.createOscillator(),g=ac.createGain();
       o.type=i<3?'sawtooth':'square'; o.frequency.setValueAtTime(fr*0.65,t); o.frequency.linearRampToValueAtTime(fr*1.18,t+.22); o.frequency.linearRampToValueAtTime(fr*0.45,t+1.15);
-      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.12,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.35);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.12*vm,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.35);
       o.connect(g); g.connect(mas); o.start(t); o.stop(t+1.4); });
-    noise(1.0,.28,3600); noise(1.0,.18,700);   // static yumuşatıldı (cızırtı azaldı)
+    noise(1.0*vm,.28,3600); noise(1.0*vm,.18,700);   // static yumuşatıldı (cızırtı azaldı)
     const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(28,t+.55);
-    g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.0001,t+.8); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.85);
+    g.gain.setValueAtTime(.35*vm,t); g.gain.exponentialRampToValueAtTime(.0001,t+.8); o.connect(g); g.connect(mas); o.start(t); o.stop(t+.85);
   }
   // 🎂 8-bit ara sahne blip'i — kare dalga, ambGain'e DEĞİL doğrudan master'a (ara sahne
   // ölümden sonra oynuyor, o sırada ambiyans fade edilmiş oluyor → ambGain'den çalarsa duyulmaz)
@@ -2869,27 +2878,27 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     // boş kostümün içindeki metal takırtısı. Diğer dördünün tersine sessizliğiyle korkutur.
     stare: {low:[58,73,88],    lowV:.19, lowLp:400, hi:[380,520,700],   hiV:.03,  hiType:'square',   rise:.92, fall:.7,  nHi:[.5,.1,900],   nLo:[1.0,.26,220], sub:[90,18,.5,1.0], dur:1.45},
   };
-  function animScream(kind){ if(!ac)return; const t=ac.currentTime, S=SCREAM[kind]||SCREAM.dark;
+  function animScream(kind,vm){ if(!ac)return; vm=(vm==null?1:vm); const t=ac.currentTime, S=SCREAM[kind]||SCREAM.dark;
     // gövde: bozuk kükreme/çığlık (karakterin ana perdesi)
     S.low.forEach(fr=>{ const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
       o.type='sawtooth'; o.frequency.setValueAtTime(fr*1.3,t); o.frequency.linearRampToValueAtTime(fr*S.fall,t+.5); o.frequency.linearRampToValueAtTime(fr*0.9,t+1.1);
       f.type='lowpass'; f.frequency.value=S.lowLp; f.Q.value=6;
-      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(S.lowV,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+S.dur);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(S.lowV*vm,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+S.dur);
       o.connect(f); f.connect(g); g.connect(mas); o.start(t); o.stop(t+S.dur+.05); });
     // üst katman: metalik/tiz kısım — karakteri asıl ayıran şey bu
     S.hi.forEach(fr=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type=S.hiType;
       o.frequency.setValueAtTime(fr*0.8,t); o.frequency.linearRampToValueAtTime(fr*S.rise,t+.18); o.frequency.linearRampToValueAtTime(fr*0.5,t+.9);
-      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(S.hiV,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
+      g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(S.hiV*vm,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+1.0);
       o.connect(g); g.connect(mas); o.start(t); o.stop(t+1.05); });
-    noise(S.nHi[0],S.nHi[1],S.nHi[2]); noise(S.nLo[0],S.nLo[1],S.nLo[2]);
+    noise(S.nHi[0]*vm,S.nHi[1],S.nHi[2]); noise(S.nLo[0]*vm,S.nLo[1],S.nLo[2]);
     // FOXO: kanca/metal takırtısı — koşarak gelen korsanın imzası
     if(kind==='cove'){ for(let i=0;i<3;i++){ const off=i*.09, o=ac.createOscillator(),g=ac.createGain();
       o.type='square'; o.frequency.value=2600+Math.random()*900;
-      g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.05,t+off+.004); g.gain.exponentialRampToValueAtTime(.0001,t+off+.14);
+      g.gain.setValueAtTime(.0001,t+off); g.gain.linearRampToValueAtTime(.05*vm,t+off+.004); g.gain.exponentialRampToValueAtTime(.0001,t+off+.14);
       o.connect(g); g.connect(mas); o.start(t+off); o.stop(t+off+.16); } }
     // sub darbe (göğse vuran alt uç)
     const o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(S.sub[0],t); o.frequency.exponentialRampToValueAtTime(S.sub[1],t+S.sub[3]*0.65);
-    g.gain.setValueAtTime(S.sub[2],t); g.gain.exponentialRampToValueAtTime(.0001,t+S.sub[3]); o.connect(g); g.connect(mas); o.start(t); o.stop(t+S.sub[3]+.05);
+    g.gain.setValueAtTime(S.sub[2]*vm,t); g.gain.exponentialRampToValueAtTime(.0001,t+S.sub[3]); o.connect(g); g.connect(mas); o.start(t); o.stop(t+S.sub[3]+.05);
   }
   // ---- KORKU / GERİLİM MÜZİĞİ ---- (puppet tehdidiyle tırmanır)
   // Düşük ürkütücü bas nabız — minör hareket
@@ -3057,7 +3066,7 @@ I18N.tr={
   role_fear:'KORKUSUZ',
   role_fear_d:'🗿 Korku sana işlemez: panik hiç dolmaz, elin titremez, nefesin hızlanmaz.',
   role_seer:'KÂHİN',
-  role_seer_d:'👁 Her 25sn’de bir, en yakın animatroniğin NEREYE GİTTİĞİNİ 5 saniye görürsün.',
+  role_seer_d:'👁 Her 25sn’de bir 5 saniye: en yakın uyanık animatroniğin KONUMU ve GİDECEĞİ NOKTA (iki işaret) belirir.',
   role_lock:'ÇİLİNGİR',
   role_lock_d:'🚪 Bir kapıyı 25sn mühürlersin — o süre ÖTEKİ kapı kapanmaz. İstersen mührü kaldırıp normal kapı düzenine dönersin.',
   role_hero:'KAHRAMAN',
@@ -3086,7 +3095,7 @@ I18N.tr={
   role_tech_d:'⚡ Elektrik gitse bile bir kez İKİ KAPIYI birden kapatabilirsin. Kapı beklemen 5sn (diğerleri 7sn).',
   role_watch_d:'🌙 Gece görüşü kamerası: her 25sn’de bir 5 saniyeliğine takarsın, karanlık kalkar ve her yeri görürsün.',
   role_runner:'KOŞUCU',
-  role_runner_d:'Biraz daha hızlısın ve nefesin biraz daha uzun dayanır.',
+  role_runner_d:'🏃 Nefesin HİÇ tükenmez — sınırsız koşarsın (ekstra hız yok).',
   role_cop:'POLİS',
   role_cop_d:'🔫 Tabanca: 4 mermi. Vurduğun animatronik 10sn donar. Ses Chika’yı çeker.',
   role_camman:'KAMERAMAN',
@@ -3094,7 +3103,7 @@ I18N.tr={
   role_tough:'DAYANIKLI',
   role_tough_d:'💪 İlk yakalanmada yere serilmezsin — iki kez yaralanabilen tek sınıf.',
   role_lamp:'IŞIKÇI',
-  role_lamp_d:'🔦 Fenerini 2 kat daha uzun kullanırsın.',
+  role_lamp_d:'🔦 Fenerin 2 kat uzun gider ve fener açıkken Bonko sana saldırmaz.',
   role_shadow:'GÖLGE',
   role_shadow_d:'👤 Her 30sn’de bir TÜM TAKIMI 5 saniye animatroniklere görünmez yapar.',
   abil_tech_btn:'ACİL KAPI',
@@ -3123,12 +3132,16 @@ I18N.tr={
   flash_off:'KAPALI', flash_on:'AÇIK', flash_dead:'BİTTİ',
   power_on:'⚡ ELEKTRİK: AÇIK', power_off:'⚡ ELEKTRİK YOK — SİGORTAYI BUL',
   night_lbl:'GECE {n}', night_custom:'ÖZEL',
+  hud_door_wait:'▲ {name} — {s}s SONRA AÇILIR', hud_door_cool:'⏳ {name} HAZIR DEĞİL — {s}s', hud_door_close:'▼ {name} KAPAT ({s}s)',
+  hud_vent_cool:'🪜 VENT {s}s', hud_vent_enter:'🪜 {name}\'E GİR',
+  hud_stair_up:'🔺 MERDİVENDE — YUKARI', hud_stair_down:'🔻 MERDİVENDE — AŞAĞI', hud_bas_locked_btn:'🔒 BODRUM KİLİTLİ',
   // --- kamera ---
   cam_signal:'⚠ SİNYAL YOK', cam_listen:'🔊 DİNLE', cam_listening:'🔊 DİNLENİYOR', cam_down:'▼ İNDİR',
   cam_prefix:'CAM • ', wind_btn:'🎵 KUR (BASILI TUT)', vent_warn:'🪜 VENT\'TE BİRİ VAR — MASKE TAK!',
   // --- ölüm / kazanma ---
   dead_title:'YAKALANDIN', dead_tap:'TEKRAR İÇİN DOKUN',
   win_title:'GECE ATLATILDI', win_tap:'DEVAM İÇİN DOKUN',
+  win_legend:'★ EFSANE ★', win_custom:'ÖZEL GECE BİTTİ', win_all:'HEPSİ BİTTİ', win_team:'👥 TAKIM ATLATTI',
   dead_when:'Gece {n} • {t}\'da yakalandın', dead_left:' — 06:00\'a {h} saat kalmıştı',
   win_sub:'Gece {n} bitti — GECE {m} AÇILDI', win_done:'Gece 6\'yı da bitirdin — 🌙 ÖZEL GECE açık.',
   cn_score:'Zorluk puanı {s}/{max}', cn_legend:' — resmen delisin.',
@@ -3252,7 +3265,7 @@ I18N.en={
   role_fear:'FEARLESS',
   role_fear_d:'🗿 Fear doesn’t touch you: panic never builds, your hand never shakes, your breath never races.',
   role_seer:'SEER',
-  role_seer_d:'👁 Every 25s, see WHERE the nearest animatronic is heading for 5 seconds.',
+  role_seer_d:'👁 Every 25s for 5s: see the nearest awake animatronic\'s POSITION and its DESTINATION (two markers).',
   role_lock:'LOCKSMITH',
   role_lock_d:'🚪 Seal a door for 25s — the OTHER door won’t close during it. You can lift the seal any time and use the doors normally.',
   role_hero:'HERO',
@@ -3281,7 +3294,7 @@ I18N.en={
   role_tech_d:'⚡ Once per night you can slam BOTH DOORS shut — even with the power out. Your door cooldown is 5s (everyone else 7s).',
   role_watch_d:'🌙 Night-vision camera: strap it on every 25s for 5 seconds — the dark lifts and you see everything.',
   role_runner:'RUNNER',
-  role_runner_d:'A bit faster, and your breath lasts a bit longer.',
+  role_runner_d:'🏃 Your breath NEVER runs out — unlimited sprinting (no extra speed).',
   role_cop:'COP',
   role_cop_d:'🔫 Pistol: 4 rounds. A hit freezes an animatronic for 10s. The shot draws Chika.',
   role_camman:'CAMERAMAN',
@@ -3289,7 +3302,7 @@ I18N.en={
   role_tough:'TOUGH',
   role_tough_d:'💪 The first grab doesn’t drop you — the only class that can be hurt twice.',
   role_lamp:'LAMPLIGHTER',
-  role_lamp_d:'🔦 Your flashlight lasts twice as long.',
+  role_lamp_d:'🔦 Flashlight lasts twice as long, and Bonko won\'t attack while it\'s on.',
   role_shadow:'SHADOW',
   role_shadow_d:'👤 Every 30s, hide the WHOLE TEAM from the animatronics for 5 seconds.',
   abil_tech_btn:'EMERGENCY DOORS',
@@ -3318,12 +3331,16 @@ I18N.en={
   flash_off:'OFF', flash_on:'ON', flash_dead:'DEAD',
   power_on:'⚡ POWER: ON', power_off:'⚡ NO POWER — FIND THE FUSE',
   night_lbl:'NIGHT {n}', night_custom:'CUSTOM',
+  hud_door_wait:'▲ {name} — OPENS IN {s}s', hud_door_cool:'⏳ {name} NOT READY — {s}s', hud_door_close:'▼ CLOSE {name} ({s}s)',
+  hud_vent_cool:'🪜 VENT {s}s', hud_vent_enter:'🪜 ENTER {name}',
+  hud_stair_up:'🔺 ON STAIRS — UP', hud_stair_down:'🔻 ON STAIRS — DOWN', hud_bas_locked_btn:'🔒 BASEMENT LOCKED',
   // --- cameras ---
   cam_signal:'⚠ NO SIGNAL', cam_listen:'🔊 LISTEN', cam_listening:'🔊 LISTENING', cam_down:'▼ LOWER',
   cam_prefix:'CAM • ', wind_btn:'🎵 WIND (HOLD)', vent_warn:'🪜 SOMETHING\'S IN THE VENT — MASK ON!',
   // --- death / win ---
   dead_title:'YOU WERE CAUGHT', dead_tap:'TAP TO RETRY',
   win_title:'NIGHT SURVIVED', win_tap:'TAP TO CONTINUE',
+  win_legend:'★ LEGEND ★', win_custom:'CUSTOM NIGHT DONE', win_all:'ALL DONE', win_team:'👥 TEAM SURVIVED',
   dead_when:'Night {n} • caught at {t}', dead_left:' — {h} hours short of 06:00',
   win_sub:'Night {n} done — NIGHT {m} UNLOCKED', win_done:'You beat Night 6 too — 🌙 CUSTOM NIGHT unlocked.',
   cn_score:'Difficulty score {s}/{max}', cn_legend:' — you\'re certifiably insane.',
@@ -3444,7 +3461,7 @@ I18N.es={
   role_fear:'SIN MIEDO',
   role_fear_d:'🗿 El miedo no te toca: el pánico nunca sube, no te tiembla la mano, no se te acelera la respiración.',
   role_seer:'VIDENTE',
-  role_seer_d:'👁 Cada 25s ves ADÓNDE VA el animatrónico más cercano durante 5 segundos.',
+  role_seer_d:'👁 Cada 25s durante 5s: ves la POSICIÓN del animatrónico despierto más cercano y su DESTINO (dos marcas).',
   role_lock:'CERRAJERO',
   role_lock_d:'🚪 Sellas una puerta 25s — la OTRA no se cierra mientras tanto. Puedes quitar el sello cuando quieras y usar las puertas normalmente.',
   role_hero:'HÉROE',
@@ -3473,7 +3490,7 @@ I18N.es={
   role_tech_d:'⚡ Una vez por noche cierras LAS DOS PUERTAS — aunque no haya luz. Tu espera de puerta es 5s (los demás 7s).',
   role_watch_d:'🌙 Cámara de visión nocturna: cada 25s te la pones 5 segundos — la oscuridad desaparece y lo ves todo.',
   role_runner:'CORREDOR',
-  role_runner_d:'Algo más rápido y tu aliento dura un poco más.',
+  role_runner_d:'🏃 Tu aliento NUNCA se agota — corres sin límite (sin velocidad extra).',
   role_cop:'POLICÍA',
   role_cop_d:'🔫 Pistola: 4 balas. El impacto congela 10s. El disparo atrae a Chika.',
   role_camman:'CÁMARA',
@@ -3481,7 +3498,7 @@ I18N.es={
   role_tough:'RESISTENTE',
   role_tough_d:'💪 El primer agarre no te tumba — la única clase que aguanta dos.',
   role_lamp:'FAROLERO',
-  role_lamp_d:'🔦 Tu linterna dura el doble.',
+  role_lamp_d:'🔦 Tu linterna dura el doble y Bonko no ataca mientras está encendida.',
   role_shadow:'SOMBRA',
   role_shadow_d:'👤 Cada 30s, oculta a TODO EL EQUIPO 5 segundos.',
   abil_tech_btn:'PUERTAS',
@@ -3510,12 +3527,16 @@ I18N.es={
   flash_off:'APAGADA', flash_on:'ENCENDIDA', flash_dead:'AGOTADA',
   power_on:'⚡ LUZ: ACTIVA', power_off:'⚡ SIN LUZ — BUSCA EL FUSIBLE',
   night_lbl:'NOCHE {n}', night_custom:'PERSON.',
+  hud_door_wait:'▲ {name} — ABRE EN {s}s', hud_door_cool:'⏳ {name} NO LISTA — {s}s', hud_door_close:'▼ CERRAR {name} ({s}s)',
+  hud_vent_cool:'🪜 VENT {s}s', hud_vent_enter:'🪜 ENTRAR {name}',
+  hud_stair_up:'🔺 EN ESCALERA — ARRIBA', hud_stair_down:'🔻 EN ESCALERA — ABAJO', hud_bas_locked_btn:'🔒 SÓTANO BLOQUEADO',
   // --- cámara ---
   cam_signal:'⚠ SIN SEÑAL', cam_listen:'🔊 ESCUCHAR', cam_listening:'🔊 ESCUCHANDO', cam_down:'▼ BAJAR',
   cam_prefix:'CAM • ', wind_btn:'🎵 DAR CUERDA (MANTÉN)', vent_warn:'🪜 ALGO EN EL DUCTO — ¡PONTE LA MÁSCARA!',
   // --- muerte / victoria ---
   dead_title:'TE ATRAPARON', dead_tap:'TOCA PARA REINTENTAR',
   win_title:'NOCHE SUPERADA', win_tap:'TOCA PARA SEGUIR',
+  win_legend:'★ LEYENDA ★', win_custom:'NOCHE ESPECIAL LISTA', win_all:'TODO LISTO', win_team:'👥 EQUIPO SUPERÓ',
   dead_when:'Noche {n} • te atraparon a las {t}', dead_left:' — faltaban {h} h para las 06:00',
   win_sub:'Noche {n} superada — NOCHE {m} DESBLOQUEADA', win_done:'También superaste la Noche 6 — 🌙 NOCHE PERSONALIZADA abierta.',
   cn_score:'Dificultad {s}/{max}', cn_legend:' — estás loco de verdad.',
@@ -3636,7 +3657,7 @@ I18N.ru={
   role_fear:'БЕССТРАШНЫЙ',
   role_fear_d:'🗿 Страх тебя не берёт: паника не растёт, рука не дрожит, дыхание не сбивается.',
   role_seer:'ПРОВИДЕЦ',
-  role_seer_d:'👁 Каждые 25с на 5 секунд видишь, КУДА идёт ближайший аниматроник.',
+  role_seer_d:'👁 Каждые 25с на 5с: видно ПОЛОЖЕНИЕ ближайшего активного аниматроника и его ЦЕЛЬ (две метки).',
   role_lock:'СЛЕСАРЬ',
   role_lock_d:'🚪 Запечатываешь дверь на 25с — ДРУГАЯ в это время не закроется. Печать можно снять в любой момент и пользоваться дверями как обычно.',
   role_hero:'ГЕРОЙ',
@@ -3665,7 +3686,7 @@ I18N.ru={
   role_tech_d:'⚡ Раз за ночь закрываешь ОБЕ ДВЕРИ — даже без света. Твоя перезарядка двери 5с (у остальных 7с).',
   role_watch_d:'🌙 Камера ночного видения: каждые 25с надеваешь на 5 секунд — темнота уходит, видно всё.',
   role_runner:'БЕГУН',
-  role_runner_d:'Чуть быстрее, и дыхания хватает чуть дольше.',
+  role_runner_d:'🏃 Дыхание НИКОГДА не кончается — бесконечный бег (без прибавки скорости).',
   role_cop:'ПОЛИЦЕЙСКИЙ',
   role_cop_d:'🔫 Пистолет: 4 патрона. Попадание — заморозка на 10с. Выстрел зовёт Чику.',
   role_camman:'ОПЕРАТОР',
@@ -3673,7 +3694,7 @@ I18N.ru={
   role_tough:'КРЕПЫШ',
   role_tough_d:'💪 Первый захват не валит — единственный, кого можно ранить дважды.',
   role_lamp:'ФОНАРЩИК',
-  role_lamp_d:'🔦 Фонарь служит вдвое дольше.',
+  role_lamp_d:'🔦 Фонарь служит вдвое дольше, и Бонко не нападает, пока он включён.',
   role_shadow:'ТЕНЬ',
   role_shadow_d:'👤 Каждые 30с прячет ВСЮ КОМАНДУ на 5 секунд.',
   abil_tech_btn:'ДВЕРИ',
@@ -3702,12 +3723,16 @@ I18N.ru={
   flash_off:'ВЫКЛ', flash_on:'ВКЛ', flash_dead:'СЕЛА',
   power_on:'⚡ ПИТАНИЕ: ЕСТЬ', power_off:'⚡ НЕТ ПИТАНИЯ — НАЙДИ ПРОБКУ',
   night_lbl:'НОЧЬ {n}', night_custom:'СВОЯ',
+  hud_door_wait:'▲ {name} — ОТКР. ЧЕРЕЗ {s}s', hud_door_cool:'⏳ {name} НЕ ГОТОВА — {s}s', hud_door_close:'▼ ЗАКРЫТЬ {name} ({s}s)',
+  hud_vent_cool:'🪜 ВЕНТ {s}s', hud_vent_enter:'🪜 В {name}',
+  hud_stair_up:'🔺 НА ЛЕСТНИЦЕ — ВВЕРХ', hud_stair_down:'🔻 НА ЛЕСТНИЦЕ — ВНИЗ', hud_bas_locked_btn:'🔒 ПОДВАЛ ЗАКРЫТ',
   // --- камера ---
   cam_signal:'⚠ НЕТ СИГНАЛА', cam_listen:'🔊 СЛУШАТЬ', cam_listening:'🔊 СЛУШАЮ', cam_down:'▼ УБРАТЬ',
   cam_prefix:'КАМ • ', wind_btn:'🎵 ЗАВЕСТИ (ДЕРЖИ)', vent_warn:'🪜 КТО-ТО В ВЕНТИЛЯЦИИ — НАДЕНЬ МАСКУ!',
   // --- смерть / победа ---
   dead_title:'ТЕБЯ ПОЙМАЛИ', dead_tap:'НАЖМИ, ЧТОБЫ ЗАНОВО',
   win_title:'НОЧЬ ПРОЙДЕНА', win_tap:'НАЖМИ, ЧТОБЫ ПРОДОЛЖИТЬ',
+  win_legend:'★ ЛЕГЕНДА ★', win_custom:'ОСОБАЯ НОЧЬ ПРОЙДЕНА', win_all:'ВСЁ ПРОЙДЕНО', win_team:'👥 КОМАНДА ВЫЖИЛА',
   dead_when:'Ночь {n} • пойман в {t}', dead_left:' — до 06:00 оставалось {h} ч.',
   win_sub:'Ночь {n} позади — ОТКРЫТА НОЧЬ {m}', win_done:'Ты прошёл и Ночь 6 — 🌙 СВОЯ НОЧЬ открыта.',
   cn_score:'Сложность {s}/{max}', cn_legend:' — ты явно псих.',
@@ -3828,7 +3853,7 @@ I18N.de={
   role_fear:'FURCHTLOS',
   role_fear_d:'🗿 Angst erreicht dich nicht: keine Panik, keine zitternde Hand, kein hektischer Atem.',
   role_seer:'SEHER',
-  role_seer_d:'👁 Alle 25s siehst du 5 Sekunden lang, WOHIN der nächste Animatronic geht.',
+  role_seer_d:'👁 Alle 25s für 5s: POSITION des nächsten aktiven Animatronics und sein ZIEL (zwei Marken).',
   role_lock:'SCHLOSSER',
   role_lock_d:'🚪 Du versiegelst eine Tür 25s — die ANDERE schließt solange nicht. Das Siegel kannst du jederzeit lösen und die Türen normal nutzen.',
   role_hero:'HELD',
@@ -3857,7 +3882,7 @@ I18N.de={
   role_tech_d:'⚡ Einmal pro Nacht schließt du BEIDE TÜREN — auch ohne Strom. Deine Tür-Wartezeit ist 5s (alle anderen 7s).',
   role_watch_d:'🌙 Nachtsichtkamera: alle 25s setzt du sie 5 Sekunden auf — die Dunkelheit weicht, du siehst alles.',
   role_runner:'LÄUFER',
-  role_runner_d:'Etwas schneller, und dein Atem hält etwas länger.',
+  role_runner_d:'🏃 Dein Atem geht NIE aus — grenzenloses Sprinten (kein Extra-Tempo).',
   role_cop:'POLIZIST',
   role_cop_d:'🔫 Pistole: 4 Schuss. Ein Treffer friert 10s ein. Der Schuss lockt Chika.',
   role_camman:'KAMERAMANN',
@@ -3865,7 +3890,7 @@ I18N.de={
   role_tough:'ZÄH',
   role_tough_d:'💪 Der erste Griff wirft dich nicht um — die einzige Klasse, die zweimal einsteckt.',
   role_lamp:'LATERNE',
-  role_lamp_d:'🔦 Deine Lampe hält doppelt so lange.',
+  role_lamp_d:'🔦 Deine Lampe hält doppelt so lange, und Bonko greift bei Licht nicht an.',
   role_shadow:'SCHATTEN',
   role_shadow_d:'👤 Alle 30s versteckt er das GANZE TEAM für 5 Sekunden.',
   abil_tech_btn:'NOTTÜREN',
@@ -3894,12 +3919,16 @@ I18N.de={
   flash_off:'AUS', flash_on:'AN', flash_dead:'LEER',
   power_on:'⚡ STROM: AN', power_off:'⚡ KEIN STROM — SICHERUNG SUCHEN',
   night_lbl:'NACHT {n}', night_custom:'EIGEN',
+  hud_door_wait:'▲ {name} — ÖFFNET IN {s}s', hud_door_cool:'⏳ {name} NICHT BEREIT — {s}s', hud_door_close:'▼ {name} SCHLIESSEN ({s}s)',
+  hud_vent_cool:'🪜 SCHACHT {s}s', hud_vent_enter:'🪜 {name} BETRETEN',
+  hud_stair_up:'🔺 AUF TREPPE — HOCH', hud_stair_down:'🔻 AUF TREPPE — RUNTER', hud_bas_locked_btn:'🔒 KELLER GESPERRT',
   // --- Kamera ---
   cam_signal:'⚠ KEIN SIGNAL', cam_listen:'🔊 HÖREN', cam_listening:'🔊 HÖRT MIT', cam_down:'▼ WEG',
   cam_prefix:'CAM • ', wind_btn:'🎵 AUFZIEHEN (HALTEN)', vent_warn:'🪜 JEMAND IM SCHACHT — MASKE AUF!',
   // --- Tod / Sieg ---
   dead_title:'ERWISCHT', dead_tap:'TIPPEN FÜR NEUSTART',
   win_title:'NACHT ÜBERSTANDEN', win_tap:'TIPPEN FÜR WEITER',
+  win_legend:'★ LEGENDE ★', win_custom:'SONDERNACHT GESCHAFFT', win_all:'ALLES GESCHAFFT', win_team:'👥 TEAM ÜBERLEBTE',
   dead_when:'Nacht {n} • erwischt um {t}', dead_left:' — noch {h} Std. bis 06:00',
   win_sub:'Nacht {n} vorbei — NACHT {m} FREI', win_done:'Auch Nacht 6 geschafft — 🌙 EIGENE NACHT ist frei.',
   cn_score:'Schwierigkeit {s}/{max}', cn_legend:' — du bist wahnsinnig.',
@@ -4020,7 +4049,7 @@ I18N.fr={
   role_fear:'INTRÉPIDE',
   role_fear_d:'🗿 La peur ne t’atteint pas : la panique ne monte jamais, ta main ne tremble pas, ton souffle reste calme.',
   role_seer:'VOYANT',
-  role_seer_d:'👁 Toutes les 25s, vois OÙ VA l’animatronique le plus proche pendant 5 secondes.',
+  role_seer_d:'👁 Toutes les 25s pendant 5s : la POSITION de l’animatronique éveillé le plus proche et sa DESTINATION (deux marques).',
   role_lock:'SERRURIER',
   role_lock_d:'🚪 Tu scelles une porte 25s — l’AUTRE ne se ferme plus pendant ce temps. Tu peux lever le sceau quand tu veux et utiliser les portes normalement.',
   role_hero:'HÉROS',
@@ -4049,7 +4078,7 @@ I18N.fr={
   role_tech_d:'⚡ Une fois par nuit, tu fermes LES DEUX PORTES — même sans courant. Ton attente de porte est de 5s (les autres 7s).',
   role_watch_d:'🌙 Caméra à vision nocturne : toutes les 25s, tu la mets 5 secondes — l’obscurité se lève, tu vois tout.',
   role_runner:'COUREUR',
-  role_runner_d:'Un peu plus rapide, et ton souffle tient un peu plus.',
+  role_runner_d:'🏃 Ton souffle ne s\'épuise JAMAIS — sprint illimité (pas de vitesse en plus).',
   role_cop:'POLICIER',
   role_cop_d:'🔫 Pistolet : 4 balles. Un tir fige 10s. Le coup attire Chika.',
   role_camman:'CAMÉRAMAN',
@@ -4057,7 +4086,7 @@ I18N.fr={
   role_tough:'ROBUSTE',
   role_tough_d:'💪 La première prise ne t’abat pas — la seule classe blessée deux fois.',
   role_lamp:'LAMPISTE',
-  role_lamp_d:'🔦 Ta lampe dure deux fois plus longtemps.',
+  role_lamp_d:'🔦 Ta lampe dure deux fois plus et Bonko n\'attaque pas quand elle est allumée.',
   role_shadow:'OMBRE',
   role_shadow_d:'👤 Toutes les 30s, cache TOUTE L’ÉQUIPE pendant 5 secondes.',
   abil_tech_btn:'PORTES',
@@ -4086,12 +4115,16 @@ I18N.fr={
   flash_off:'ÉTEINTE', flash_on:'ALLUMÉE', flash_dead:'VIDE',
   power_on:'⚡ COURANT : OK', power_off:'⚡ PLUS DE COURANT — TROUVE LE FUSIBLE',
   night_lbl:'NUIT {n}', night_custom:'SPÉCIALE',
+  hud_door_wait:'▲ {name} — OUVRE DANS {s}s', hud_door_cool:'⏳ {name} PAS PRÊTE — {s}s', hud_door_close:'▼ FERMER {name} ({s}s)',
+  hud_vent_cool:'🪜 VENT {s}s', hud_vent_enter:'🪜 ENTRER {name}',
+  hud_stair_up:'🔺 SUR L\'ESCALIER — HAUT', hud_stair_down:'🔻 SUR L\'ESCALIER — BAS', hud_bas_locked_btn:'🔒 SOUS-SOL VERROUILLÉ',
   // --- caméra ---
   cam_signal:'⚠ PAS DE SIGNAL', cam_listen:'🔊 ÉCOUTER', cam_listening:'🔊 ÉCOUTE…', cam_down:'▼ BAISSER',
   cam_prefix:'CAM • ', wind_btn:'🎵 REMONTER (MAINTENIR)', vent_warn:'🪜 QUELQU\'UN DANS LE CONDUIT — LE MASQUE !',
   // --- mort / victoire ---
   dead_title:'ATTRAPÉ', dead_tap:'TOUCHE POUR REJOUER',
   win_title:'NUIT SURVÉCUE', win_tap:'TOUCHE POUR CONTINUER',
+  win_legend:'★ LÉGENDE ★', win_custom:'NUIT SPÉCIALE FINIE', win_all:'TOUT EST FINI', win_team:'👥 ÉQUIPE SURVÉCU',
   dead_when:'Nuit {n} • attrapé à {t}', dead_left:' — il restait {h} h avant 06:00',
   win_sub:'Nuit {n} finie — NUIT {m} DÉBLOQUÉE', win_done:'Nuit 6 finie — 🌙 NUIT SPÉCIALE ouverte.',
   cn_score:'Difficulté {s}/{max}', cn_legend:' — tu es fou, c\'est officiel.',
@@ -4290,7 +4323,7 @@ function useAbility(){
   if(myRole==='tech'){
     // Acil batarya: elektrik olmasa BİLE iki kapı da kapanır (normalde elektriksiz kapı çalışmaz)
     doors.forEach(d=>{ d.closed=true; d.closeT=DOOR_TIME; d.cool=0; Net.sendDoor(doors.indexOf(d)); });
-    abilLeft--; abilCd=2; toast(t('abil_tech')); Audio.tone(520,.14,'square',.16); Audio.bang();
+    abilLeft--; toast(t('abil_tech')); Audio.tone(520,.14,'square',.16); Audio.bang();   // uses:1 → tek kullanımlık, abilCd ölü koddu (kaldırıldı)
   } else if(myRole==='watch'){
     abilT=ab.dur; abilCd=ab.cd; setNV(true);
     // takma sesi: röle klik + tüpün ısınma cıyaklaması (animasyonla aynı süre)
@@ -5567,8 +5600,7 @@ addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
   if(k==='c') openCamera();
   if(k==='q'||k==='m') toggleMask();
   if(k==='r') enterVent();
-  if(k==='g') useAbility();   // 🎇 rol yeteneği
-  if(k==='g') toggleBasement();
+  if(k==='g'){ if(nearHatchUp()||nearExitDown()) toggleBasement(); else useAbility(); }   // 🎇 merdivendeysen bodrum, değilsen rol yeteneği (tek G artık ikisini çakıştırmıyor)
   if(k===' '){ e.preventDefault(); startWind(); }
   if(k==='shift') running=true;
 });
@@ -5641,14 +5673,14 @@ addEventListener('mouseup',stopWind);
 windBtn.addEventListener('touchstart',e=>{e.preventDefault(); startWind();},{passive:false});
 windBtn.addEventListener('touchend',e=>{e.preventDefault(); stopWind();},{passive:false});
 
-function toggleFlash(){ if(masked||downed) return; if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?'AÇIK':'KAPALI'; Audio.click(); }
+function toggleFlash(){ if(masked||downed) return; if(battery<=0){ flashOn=false; return; } flashOn=!flashOn; $('#flashBtn').classList.toggle('on',flashOn); $('#flashState').textContent=flashOn?t('flash_on'):t('flash_off'); Audio.click(); }
 
 // --- MASKE ---
 function toggleMask(){
   if(state!==S.PLAY || downed || inBasement) return;
   if(!masked){
     if(maskCharge<8){ toast(t('ts_mask_none')); Audio.tone(160,.12,'square',.15); return; }
-    masked=true; flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
+    masked=true; flashOn=false; $('#flashBtn').classList.remove('on'); $('#flashState').textContent=t('flash_off');
     $('#maskOv').classList.add('show'); $('#maskBtn').classList.add('on');
     Audio.noise(.25,.14,500); Audio.tone(120,.2,'sawtooth',.12);
   } else setMaskOff();
@@ -5931,7 +5963,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   $('#flashBtn').classList.remove('hidden','on'); $('#runBtn').classList.remove('hidden'); $('#camBtn').classList.remove('hidden');
   $('#powerStat').classList.remove('hidden'); $('#boxWrap').classList.remove('hidden'); $('#windBtn').classList.add('hidden');
   if(isTouch){ joyZone.classList.remove('hidden'); showJoy(true); }   // sol analog joystick (dokunmatik)
-  $('#flashState').textContent='KAPALI';
+  $('#flashState').textContent=t('flash_off');
   // ÇOK OYUNCU = CO-OP GECE: tam tehdit mekanikleri AÇIK (animatronik/puppet/maske/elektrik/kutu),
   // aynı haritada birbirinizi görürsünüz, kapılar senkron. Her oyuncu kendi tehdidini yaşar (host-relay
   // olmadan, düşük riskli). Telefon Adamı brifingi artık CO-OP'ta da her oyuncuda çalar.
@@ -5970,7 +6002,7 @@ function winNight(){
     const score=cnLevelTotal();
     if(score>save.cnBest){ save.cnBest=score; } saveGame();
     const legend = CN_CHARS.every(c=>custom[c.id]===20);
-    $('#winTitle').textContent = legend? '★ EFSANE ★' : 'ÖZEL GECE BİTTİ';
+    $('#winTitle').textContent = legend? t('win_legend') : t('win_custom');
     $('#winTitle').style.color = legend? '#ffd76a':'#3fae5a';
     $('#winTitle').style.textShadow = legend? '0 0 26px #ffd76a':'0 0 22px #3fae5a';
     $('#winSub').textContent = tf('cn_score',{s:score,max:CN_MAX})+(legend?t('cn_legend'):'');
@@ -5990,7 +6022,7 @@ function winNight(){
   state=S.WIN; Audio.chime6();
   const done = night>=6;
   $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
-  $('#winTitle').textContent = done? 'HEPSİ BİTTİ' : 'GECE ATLATILDI';
+  $('#winTitle').textContent = done? t('win_all') : t('win_title');
   $('#winSub').textContent  = done? t('win_done') : tf('win_sub',{n:night,m:night+1});
   paintPay($('#winPay'), pay);
   $('#win').classList.remove('hidden');
@@ -6098,9 +6130,11 @@ function startJump(model,name){
   jumpModel=model; jumpName=name||'???'; state=S.JUMP; winding=false; jumpT=0;
   puppetJump=(model===puppet); jumpKind=kindOfModel(model);
   $('#puppetVig').style.opacity='0'; $('#puppetWarn').style.opacity='0';
-  if(puppetJump){ Audio.puppetScream(); Audio.noise(.4,.2,2200); }
-  else { Audio.animScream(jumpKind); }   // her karakterin kendi çığlığı
-  if(navigator.vibrate) navigator.vibrate(puppetJump?[500,50,300,50,600]:jumpStyle().vib);
+  // 💥 JUMPSCARE ŞİDDETİ (SET.scare) artık yalnız flaşı değil, çığlık sesini + titreşimi de ölçekler
+  const sc=SET.scare;
+  if(puppetJump){ Audio.puppetScream(sc); Audio.noise(.4*sc,.2,2200); }
+  else { Audio.animScream(jumpKind, sc); }   // her karakterin kendi çığlığı
+  if(sc>0.45 && navigator.vibrate) navigator.vibrate((puppetJump?[500,50,300,50,600]:jumpStyle().vib).map(v=>Math.round(v*sc)));
   hidePlayUI();
   const u=model.userData; if(u.glowL){ u.glowL.visible=u.glowR.visible=true; }
   if(u.eyeMat) u.eyeMat.emissiveIntensity=puppetJump?4.2:2.6; else if(u.eyeWhite) u.eyeWhite.emissiveIntensity=3.4;
@@ -6119,7 +6153,7 @@ function catchPlayer(model,name){
       toughUsed=true; panic=Math.min(1,panic+0.5); stamina=Math.min(stamina,25);
       toast(t('abil_tough')); Audio.animScream(kindOfModel(model)); if(navigator.vibrate) navigator.vibrate([200,80,200]);
       // saldıran geri çekilsin, yoksa aynı karede tekrar yakalar
-      const a=AIS.find(x=>x.model===model); if(a){ a.giveUp=GIVEUP_TIME; a.chasing=false; a.raid=0; }
+      const a=AIS.find(x=>x.model===model); if(a){ a.giveUp=GIVEUP_TIME; a.chasing=false; a.raid=0; if(a.kind==='cove') a.mode='back'; }   // Foxo perdeye geri çekilsin, yoksa sıyrılma penceresi 0 kare
       return;
     }
     if(!downed){ enterDowned(model,name); return; }
@@ -6149,7 +6183,7 @@ function enterDowned(model,name){
   downed=true; downT=(60+upgLvl('med')*20)*(roleIs('medic')?2:1); reviveHold=0; downAttacker=name||'???';   // 🩹 İLK YARDIM: daha uzun dayanırsın
   downCalm=DOWN_CALM;   // 2sn nefes payı — sonra AI normale döner (updateAI'daki downed bloğu)
   masked=false; flashOn=false; running=false; winding=false;
-  $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent='KAPALI';
+  $('#maskOv').classList.remove('show'); $('#flashBtn').classList.remove('on'); $('#flashState').textContent=t('flash_off');
   $('#hurtOv').classList.add('show');
   Audio.animScream(kindOfModel(model)); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
   toast(t('ts_downed'));
@@ -6208,7 +6242,7 @@ function teamWin(){ if(state===S.WIN||state===S.ENDING) return; spectating=false
   $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show'); Audio.setAmbient(false); winding=false; running=false; flashOn=false; flash.intensity=0; masked=false;
   $('#maskOv').classList.remove('show'); inBasement=false; basStatic.visible=false; hidePlayUI();
   state=S.WIN; Audio.chime6();
-  $('#winTitle').textContent='👥 TAKIM ATLATTI'; $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
+  $('#winTitle').textContent=t('win_team'); $('#winTitle').style.color='#3fae5a'; $('#winTitle').style.textShadow='0 0 22px #3fae5a';
   $('#winSub').textContent='06:00 — en az bir bekçi hayatta kaldı, hepiniz kurtuldunuz!';
   // ortak zafer → herkes (izleyiciler dahil) yevmiyesini alır
   paintPay($('#winPay'), payout(true));
@@ -6357,7 +6391,7 @@ function update(dt){
     const s=(u.baseScale||1)*J.scale;              // hepsi dev, ama farklı derecede
     const hy=(u.headY||2.0)*s;                     // modelin kafasının ölçekli yüksekliği
     // Kamera oyuncunun yerinde sabit; sert ama sönümlenen sarsıntı (pitch/yaw'a bağlı DEĞİL)
-    const shake=J.shake*Math.max(0,1-jumpT*0.65)*SET.shake;
+    const shake=J.shake*Math.max(0,1-jumpT*0.65)*SET.shake*SET.scare;   // jumpscare şiddeti sarsıntıyı da kısar
     const cx=player.x*SC+(Math.random()-0.5)*shake, cy=EYE+(Math.random()-0.5)*shake, cz=player.z*SC+(Math.random()-0.5)*shake;
     camera.position.set(cx,cy,cz);
     // Oyuncunun YATAY bakış yönü (pitch YOK) — model tam karşıda belirir
@@ -6626,7 +6660,7 @@ function update(dt){
   if(moveVec.x||moveVec.y){ ix+=moveVec.x; iz+=moveVec.y; }
   const len=Math.hypot(ix,iz); if(len>1){ ix/=len; iz/=len; }
   if(masked||exhausted||downed) running=false;   // maske/yorgun/yaralı → koşamaz
-  let speed=masked? 1.5 : (running?3.6*(roleIs('runner')?1.12:1):2.2*(roleIs('runner')?1.06:1));   // 🏃 KOŞUCU hafif daha hızlı
+  let speed=masked? 1.5 : (running?3.6:2.2);   // 🏃 KOŞUCU'nun hız bonusu YOK (kullanıcı kararı) — avantajı sonsuz nefeste
   if(downed) speed=1.05;                        // yaralı: yavaş sürünme
   const fwd=new THREE.Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw));
   const right=new THREE.Vector3(-Math.cos(player.yaw),0,Math.sin(player.yaw));
@@ -6641,7 +6675,7 @@ function update(dt){
   // KOŞU BARI (cömert ~10sn): koşarken tükenir, yürüyünce dolar; bitince yorgun (koşamaz + nefes nefese → Chika'yı çeker)
   // 🏃 DAYANIKLILIK yükseltmesi: daha yavaş tükenir, daha hızlı dolar
   const stamU=upgLvl('stam');
-  if(running && moved>0.001 && !downed){ stamina=Math.max(0, stamina-dt*10*(1-stamU*0.15)*(roleIs('runner')?0.78:1));   // 🏃 KOŞUCU'nun nefesi biraz daha dayanır
+  if(running && moved>0.001 && !downed && !roleIs('runner')){ stamina=Math.max(0, stamina-dt*10*(1-stamU*0.15));   // 🏃 KOŞUCU: nefes HİÇ tükenmez (sonsuz koşu) → drenaj tamamen atlanır
     if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast(t('ts_winded')); }
   } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
@@ -6664,17 +6698,17 @@ function update(dt){
   const ab=$('#actBtn');
   if(nearDoor){
     ab.classList.remove('hidden');
-    if(nearDoor.closed)        ab.textContent='▲ '+nearDoor.name+' — '+Math.ceil(nearDoor.closeT)+'s SONRA AÇILIR';
-    else if(nearDoor.cool>0)   ab.textContent='⏳ '+nearDoor.name+' HAZIR DEĞİL — '+Math.ceil(nearDoor.cool)+'s';
-    else                       ab.textContent='▼ '+nearDoor.name+' KAPAT ('+DOOR_TIME+'s)';
+    if(nearDoor.closed)        ab.textContent=tf('hud_door_wait',{name:nearDoor.name, s:Math.ceil(nearDoor.closeT)});
+    else if(nearDoor.cool>0)   ab.textContent=tf('hud_door_cool',{name:nearDoor.name, s:Math.ceil(nearDoor.cool)});
+    else                       ab.textContent=tf('hud_door_close',{name:nearDoor.name, s:DOOR_TIME});
     ab.style.opacity = (!nearDoor.closed && nearDoor.cool>0)? '0.5' : '1';
   } else ab.classList.add('hidden');
 
   // yakın vent ağzı → "VENT'E GİR" butonu
   const vb=$('#ventBtn'); const nv=nearVent();
   if(nv && !masked && !inBasement){ vb.classList.remove('hidden');
-    if(ventCool>0){ vb.textContent='🪜 VENT '+Math.ceil(ventCool)+'s'; vb.style.opacity='0.5'; }
-    else { vb.textContent='🪜 '+nv.n+'\'E GİR'; vb.style.opacity='1'; } }
+    if(ventCool>0){ vb.textContent=tf('hud_vent_cool',{s:Math.ceil(ventCool)}); vb.style.opacity='0.5'; }
+    else { vb.textContent=tf('hud_vent_enter',{name:nv.n}); vb.style.opacity='1'; } }
   else vb.classList.add('hidden');
 
   // bodrum merdiveni — MERDİVENE BAS = otomatik geç (buton/tuş gerekmez; zonu terk edince yeniden kurulur)
@@ -6691,9 +6725,9 @@ function update(dt){
   if(!onStair) basLockNoted=false;
   // ipucu balonu (opsiyonel — tıklanabilir kalır ama artık gerekmez)
   const bb=$('#basBtn');
-  if(inBasement && nearExitDown()){ bb.classList.remove('hidden'); bb.textContent='🔺 MERDİVENDE — YUKARI'; bb.style.opacity='1'; }
+  if(inBasement && nearExitDown()){ bb.classList.remove('hidden'); bb.textContent=t('hud_stair_up'); bb.style.opacity='1'; }
   else if(!inBasement && !masked && nearHatchUp()){ bb.classList.remove('hidden');
-    if(basUnlocked){ bb.textContent='🔻 MERDİVENDE — AŞAĞI'; bb.style.opacity='1'; } else { bb.textContent='🔒 BODRUM KİLİTLİ'; bb.style.opacity='0.5'; } }
+    if(basUnlocked){ bb.textContent=t('hud_stair_down'); bb.style.opacity='1'; } else { bb.textContent=t('hud_bas_locked_btn'); bb.style.opacity='0.5'; } }
   else bb.classList.add('hidden');
 
   // kamera (birinci şahıs) — konum SC ölçekli, bakış yönü (d) ölçeksiz
@@ -6778,7 +6812,9 @@ function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
      kadar çok kullanırsan o kadar yaklaşır. (Jumpscare'de görünür kalmalı → yalnız S.CAMS.) */
   A.spare.visible = (state!==S.CAMS);
   updatePings(dt);   // 📻 santralcı işaretleri (duvar arkası) — render'dan hemen önce
-  if(composer && gfxBloom) composer.render(); else renderer.render(scene,camera);
+  // Bloom kapalıyken bile composer'dan render et → vignette/gren/renk/aberasyon (grade) korunur;
+  // yalnız UnrealBloom pass'i devre dışı bırakılır (eskiden bloom kapalı = TÜM grade kayboluyordu, mobil hiç görmüyordu).
+  if(composer){ if(bloomPass) bloomPass.enabled=gfxBloom; composer.render(); } else renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
