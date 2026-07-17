@@ -466,6 +466,8 @@
     <div class="segBtns" id="setHallu"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
   <div class="setRow"><div class="setLbl">✨ BLOOM (parlama) <span style="color:#6a7480;font-size:11px">daha iyi grafik</span></div>
     <div class="segBtns" id="setBloom"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
+  <div class="setRow"><div class="setLbl">🧠 DIRECTOR <span style="color:#6a7480;font-size:11px">oynayışına göre zorluk</span></div>
+    <div class="segBtns" id="setDir"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
   <button id="setClose">‹ KAPAT</button>
 </div>
 
@@ -2047,7 +2049,7 @@ function stepToward(a,tx,tz,sp,dt){
 }
 let aiStep=0;
 function updateAI(dt){
-  const cfg=ncfg(), sm=cfg.sm;
+  const cfg=ncfg(), smBase=cfg.sm;   // smBase: geceden gelen taban hız; Director per-animatronik ezer
   // İZLEYİCİ: AI eskiden hiç çalışmıyordu (update'te `!spectating` şartı vardı) → öldükten sonra
   // arkadaşını izlerken bütün animatronikler heykel gibi donuyordu, arkadaşın hiçbir şeyden
   // kaçmıyor gibi görünüyordu. Artık AI işler ve hedefi İZLENEN arkadaş olur (senin cesedin değil).
@@ -2058,6 +2060,7 @@ function updateAI(dt){
   let dmax=0;
   for(const a of AIS){
     const m=a.model, u=m.userData;
+    const sm=smBase*Dir.mult(a.id);   // 🧠 fener/gürültü/kapı/kamp spam'i o mekaniğin karşı-karakterini hızlandırır
 
     // ---- UYANMA (gece tablosuna göre) ----
     if(!a.awake){
@@ -2608,8 +2611,84 @@ const custom={freddo:10, bonko:10, chika:10, foxo:10};
 function cnWake(ai){ const lv=custom[ai]; if(lv<=0) return 9e9; return Math.max(3, 150 - lv*7.2); } // lv20≈6s, lv1≈143s
 function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,custom.foxo); }
 function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.foxo; }   // 0-80 → özel gece yevmiyesi
+/* ================= 🧠 DIRECTOR AI =================
+   Zorluk eskiden geceye SABİTTİ: NIGHT_CFG'den okunan tek tablo, oyuncu ne yaparsa yapsın aynı.
+   Bu, işleyen tek bir taktiği bulan oyuncunun (kapı spam'i / fener hep açık / vent kestirmesi)
+   altı geceyi de aynı şekilde geçmesine izin veriyordu. Director oyuncuyu iki eksende okur:
+
+     • HEAT (-0.6..+1) — oyuncu ne kadar rahat? Uzun süre hiçbir tehdit yaklaşmadıysa ısınır
+       (baskı artar: hız/algı/baskın sıklığı ↑, uyumayanlar erken uyanır). Tehdit altındayken,
+       pil biterken, Puppet çıkmışken soğur → kötü giden oyuncuya nefes payı verir.
+
+     • PROFİL (0..1 × 5 eksen) — hangi mekaniği spam'liyor? Her mekaniğin bir KARŞI-animatroniği
+       var ve o karakter güçlenir. Fener hep açıksa Bonko çıldırır (Freddo zaten ışıkta donduğu
+       için fener spam'i onu cezalandırmaz — bu yüzden karşılık Bonko'dan gelir), koşup gürültü
+       yapıyorsan Chika izler, kapıya güveniyorsan Foxo ısrarcılaşır, ofiste kamp kuruyorsan
+       Freddo üstüne gelir + baskınlar sıklaşır. Profil kullanılmayınca sönümlenir, yani taktik
+       değiştiren oyuncu baskıdan kurtulur — ceza kalıcı değil, uyum sağlıyor.
+
+   Eşik aşılınca oyuncuya BİR KEZ ipucu verilir: amaç gizemli bir el değil, öğrenilebilir baskı.
+   Yalnız normal gecelerde çalışır — Özel Gece oyuncunun kendi kurduğu zorluktur, ona dokunmaz;
+   ⚙ Ayarlar'dan kapatılabilir. MP: her istemcide LOKAL çalışır (v23 ayrı-tehdit modeliyle aynı
+   mantık) — herkes kendi oynayışının baskısını görür, kamp kuran arkadaşının değil. */
+const Dir={
+  heat:0, calm:0,
+  prof:{flash:0, door:0, vent:0, noise:0, camp:0},
+  noted:{},
+  active(){ return SET.director!==0 && !customMode; },
+  reset(){ this.heat=0; this.calm=0; this.noted={}; for(const k in this.prof) this.prof[k]=0; },
+  // sürekli ölçüm: ~33sn kesintisiz kullanım profili doldurur, bırakınca benzer hızda sönümlenir
+  // (gece 312sn — daha hızlı dolarsa tek bir uzun fener anı "spam" sayılırdı)
+  feed(k,on,dt){ const p=this.prof; p[k]=Math.max(0, Math.min(1, p[k] + (on? dt*0.030 : -dt*0.028))); },
+  // olay bazlı ölçüm (kapı kapatma / vent'e girme gibi anlık eylemler)
+  bump(k,v){ const p=this.prof; if(p[k]!==undefined) p[k]=Math.min(1, p[k]+v); },
+  hint(k,msg){ if(this.prof[k]>0.74 && !this.noted[k]){ this.noted[k]=1; toast(msg); } },
+  update(dt){
+    if(!this.active() || state!==S.PLAY || downed) return;
+    const d=Math.min(1, dangerLevel);
+    // rahatlık ısıtır, tehdit soğutur — 8sn'lik sakinlik payı (her küçük boşlukta ısınmasın)
+    // 10sn'lik sakinlik payından sonra ısınır (~110sn'de tam = gecenin üçte biri); tehdit 3-4× hızlı soğutur
+    if(d<0.25){ this.calm+=dt; if(this.calm>10) this.heat=Math.min(1, this.heat+dt*0.009); }
+    else { this.calm=0; this.heat=Math.max(-0.6, this.heat-dt*(0.045+d*0.06)); }
+    if(battery<20 || puppetOut) this.heat=Math.max(-0.6, this.heat-dt*0.05);   // zaten başı dertte
+    /* Isınınca uyumayanlar erken uyanır. Math.min(a.wakeAt, ...) ŞART: alt sınır clockT+3 tek başına
+       kullanılınca, uyanmasına 3sn'den az kalmış bir animatroniğin wakeAt'ini her karede ileri itip
+       uyanmayı sonsuza dek erteliyordu (clockT+3 hep önde kalıyor). Saat yalnız ÖNE alınabilir. */
+    if(this.heat>0.45) for(const a of AIS){
+      if(a.awake || a.wakeAt>9e8) continue;
+      a.wakeAt=Math.min(a.wakeAt, Math.max(clockT+3, a.wakeAt-dt*this.heat*9));
+    }
+    this.hint('flash','🔦 BONKO IŞIĞA ALIŞIYOR — feneri sürekli açık tutma');
+    this.hint('noise','🐤 CHIKA SESİNİ TANIDI — daha az koş');
+    this.hint('door', '🦊 FOXO KAPILARI ÖĞRENDİ — kapı tek başına yetmeyecek');
+    this.hint('vent', '🪜 VENTLER İZLENİYOR — kestirmeyi bırak');
+    this.hint('camp', '🐻 FREDDO OFİSİ BULDU — bir yerde kök salma');
+  },
+  // per-animatronik hız çarpanı: karşı-taktik burada karakterleşiyor
+  mult(id){
+    if(!this.active()) return 1;
+    const p=this.prof;
+    let m = 1 + this.heat*0.16;
+    if(id==='bonko')  m += p.flash*0.30;
+    if(id==='chika')  m += p.noise*0.28;
+    if(id==='foxo')   m += p.door*0.26;
+    if(id==='freddo') m += p.camp*0.26;
+    return Math.max(0.75, Math.min(1.6, m));
+  },
+  // gece config'ini modüle et (hız hariç — o per-AI mult() ile veriliyor)
+  apply(cfg){
+    if(!this.active()) return cfg;
+    const h=Math.max(0,this.heat), p=this.prof;
+    return {...cfg,
+      detect:   cfg.detect*(1 + this.heat*0.10 + p.camp*0.10),
+      raid:     cfg.raid/(1 + h*0.35 + p.camp*0.45),          // kamp → ofis baskını sıklaşır
+      coveStep: cfg.coveStep/(1 + h*0.20 + p.door*0.35),      // kapıcıya Foxo daha sık koşar
+      box:      cfg.box*(1 + h*0.12),
+    };
+  },
+};
 function ncfg(){
-  if(!customMode) return NIGHT_CFG[night]||NIGHT_CFG[6];
+  if(!customMode) return Dir.apply(NIGHT_CFG[night]||NIGHT_CFG[6]);
   const mx=cnLevelMax();
   // Genel yoğunluğu en agresif karaktere göre ölçekle; uyanma saatleri cnWake ile ezilir
   return {
@@ -2622,6 +2701,8 @@ function ncfg(){
     custom:true,
   };
 }
+// 🧠 Vent tehditleri arası bekleme — kestirmeyi spam'leyen oyuncuda (vent profili) sıklaşır
+function ventGap(){ const b=randRange(40,70); return Dir.active()? b/(1+Dir.prof.vent*0.5+Math.max(0,Dir.heat)*0.25) : b; }
 // OFİS BASKINI aralığı — gece config'ine göre + rastgele saçılma (hepsi aynı anda gelmesin)
 function raidInterval(){ const base=(ncfg().raid)||40; return base*(0.7+Math.random()*0.7); }
 function clockHour(){ return Math.min(NIGHT_HOURS, Math.floor(clockT/HOUR_SEC)); }
@@ -2682,14 +2763,14 @@ function paintPay(el, p){ if(!el||!p) return;
 
 /* ================= AYARLAR ================= */
 const SET_KEY='gb3d_set_v1';
-const SET={ vol:0.42, scare:1, shake:1, hallu:1, bloom: isMobile?0:1 };
+const SET={ vol:0.42, scare:1, shake:1, hallu:1, bloom: isMobile?0:1, director:1 };
 try{ const s=JSON.parse(localStorage.getItem(SET_KEY)); if(s) Object.assign(SET,s); }catch(e){}
 gfxBloom = SET.bloom!==0;   // kaydedilmiş bloom tercihini uygula
 function saveSet(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SET)); }catch(e){} }
 function applySet(){
   Audio.setMaster(SET.vol);
   $('#setVol').value=Math.round(SET.vol*100); $('#setVolVal').textContent=Math.round(SET.vol*100)+'%';
-  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu); segSel('#setBloom', SET.bloom);
+  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu); segSel('#setBloom', SET.bloom); segSel('#setDir', SET.director);
 }
 function segSel(sel,val){ document.querySelectorAll(sel+' button').forEach(b=>b.classList.toggle('sel', parseFloat(b.dataset.v)===val)); }
 function openSettings(){ applySet(); $('#setPanel').classList.add('show'); }
@@ -2697,7 +2778,7 @@ function closeSettings(){ $('#setPanel').classList.remove('show'); }
 $('#setBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume(); openSettings(); });
 $('#setClose').addEventListener('click',e=>{ e.stopPropagation(); closeSettings(); });
 $('#setVol').addEventListener('input',e=>{ SET.vol=e.target.value/100; $('#setVolVal').textContent=Math.round(SET.vol*100)+'%'; Audio.setMaster(SET.vol); saveSet(); });
-[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu'],['#setBloom','bloom']].forEach(([sel,key])=>{
+[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu'],['#setBloom','bloom'],['#setDir','director']].forEach(([sel,key])=>{
   document.querySelectorAll(sel+' button').forEach(b=> b.addEventListener('click',e=>{ e.stopPropagation();
     SET[key]=parseFloat(b.dataset.v); segSel(sel,SET[key]); if(key==='bloom') gfxBloom=SET.bloom!==0; saveSet(); }));
 });
@@ -3368,6 +3449,7 @@ function enterVent(){
   const v=nearVent(); if(!v) return;
   const other=VENTS.find(o=>o!==v);
   ventFrom={x:player.x,z:player.z}; ventTo={x:other.x,z:other.z}; ventT=0; runStats.ventUsed++;   // 🏆 vent kullanımı
+  Dir.bump('vent', 0.22);   // 🧠 kestirmeyi spam'lersen vent tehdidi sıklaşır
   state=S.VENT; masked=false; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on'); flashOn=false;
   hidePlayUI(); $('#ventDark').classList.add('show');
   Audio.noise(.6,.12,700); toast('🪜 VENT KANALI — SÜRÜNÜYORSUN');
@@ -3399,6 +3481,7 @@ function interactDoor(){
       Audio.tone(140,.12,'square',.18); return;
     }
     nearDoor.closed=true; nearDoor.closeT=DOOR_TIME; runStats.doorUsed=true;   // 🏆 kapı kapatıldı
+    Dir.bump('door', 0.14);   // 🧠 kapıya yaslanan oyuncuya Foxo ısrarcılaşır
     toast(nearDoor.name+' KAPANDI — '+DOOR_TIME+'s');
   }
   if(Net.isPlaying()) Net.sendDoor(doors.indexOf(nearDoor));   // çok oyuncu: kapı durumunu herkese yansıt
@@ -3492,7 +3575,7 @@ $('#cheatIn').addEventListener('input',e=>{ const v=(e.target.value||'').trim().
 
 function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Audio.startAmbience(); Audio.setAmbient(true);
   Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show'); $('#mktBtn').classList.add('hidden'); $('#mktPanel').classList.remove('show'); $('#fsBtn').classList.add('hidden');
-  resetRunStats();
+  resetRunStats(); Dir.reset();   // 🧠 Director her vardiyada sıfırdan okumaya başlar
   night=selNight; clockT=0; lastHour=0;
   masked=false; maskCharge=100; $('#maskOv').classList.remove('show'); $('#maskBtn').classList.remove('on','spent');
   ventCrawler=0; ventCrawlerT=randRange(45,75); ventFrom=ventTo=null; ventCool=0;
@@ -4114,7 +4197,7 @@ function update(dt){
     ventCrawler-=dt;
     $('#ventWarn').classList.remove('hidden');
     if(masked){                       // maske → geri çekilir
-      ventCrawler=0; $('#ventWarn').classList.add('hidden'); ventCrawlerT=randRange(40,70);
+      ventCrawler=0; $('#ventWarn').classList.add('hidden'); ventCrawlerT=ventGap();
       toast('🎭 VENT\'TEKİ GERİ ÇEKİLDİ'); Audio.growl(VENTS[0]);
     } else if(ventCrawler<=0){         // süre doldu, maske yok → saldırı
       $('#ventWarn').classList.add('hidden');
@@ -4164,6 +4247,12 @@ function update(dt){
     if(stamina<=0){ exhausted=true; running=false; $('#runBtn').classList.remove('on'); toast('😮‍💨 NEFES NEFESE — biraz yürü'); }
   } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
+
+  // 🧠 DIRECTOR beslemesi — oyuncunun ŞU ANKİ davranışı (kapı/vent olayları kendi yerlerinde bump'lar)
+  Dir.feed('flash', flashOn && battery>0, dt);
+  Dir.feed('noise', (running && moved>0.001) || exhausted, dt);
+  Dir.feed('camp',  inOffice() && moved<0.001 && !inBasement, dt);
+  Dir.update(dt);
 
   // yakın kapı algıla + eylem butonu
   nearDoor=null;
