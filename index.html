@@ -2231,7 +2231,7 @@ function updateRisen(dt){
   const dp=Math.hypot(player.x-risen.x,player.z-risen.z);
   dangerLevel=Math.max(dangerLevel, 0.3, 1-Math.min(dp,14)/14);   // uyanıkken en az 0.3 taban → uzaktayken bile "sessiz katil" değil, gerilim müziği çalar
   if(Math.random()<dt*0.4) Audio.robotGlitch(risen);   // arızası kendi konumundan → arkandan mı geliyor duyarsın
-  if(dp<1.2 && losClear(player.x,player.z,risen.x,risen.z)) catchPlayer(risen.model, risen.name);   // duvar/kapı arkasından yakalayamaz (ana AI'da da losClear var)
+  if(dp<1.2 && losClear(player.x,player.z,risen.x,risen.z) && !(downed && downCalm>0)) catchPlayer(risen.model, risen.name);   // duvar/kapı arkasından yakalayamaz; yaralıyken 2sn nefes payı (takım sarabilsin)
 }
 risen.eyeMat=risen.model.userData.eyeMat;
 // bodrum çarpışması (oyuncu + düşman)
@@ -2296,7 +2296,7 @@ function updateBasement(dt){
     a.model.position.set(a.x*SC, bob, a.z*SC); a.model.lookAt(player.x*SC,1.4,player.z*SC);
     if(a.eyeMat) a.eyeMat.emissiveIntensity=a.chasing?2.8:1.1;
     dmax=Math.max(dmax, 1-Math.min(d,10)/10);
-    if(d<1.2 && basLosClear(player.x,player.z,a.x,a.z)) catchPlayer(a.model, a.name);   // kolon arkasından yakalamaz
+    if(d<1.2 && basLosClear(player.x,player.z,a.x,a.z) && !(downed && downCalm>0)) catchPlayer(a.model, a.name);   // kolon arkasından yakalamaz; yaralıyken 2sn nefes payı
   }
   dangerLevel=dmax;
 }
@@ -3068,7 +3068,7 @@ I18N.tr={
   role_seer:'KÂHİN',
   role_seer_d:'👁 Her 25sn’de bir 5 saniye: en yakın uyanık animatroniğin KONUMU ve GİDECEĞİ NOKTA (iki işaret) belirir.',
   role_lock:'ÇİLİNGİR',
-  role_lock_d:'🚪 Bir kapıyı 25sn mühürlersin — o süre ÖTEKİ kapı kapanmaz. İstersen mührü kaldırıp normal kapı düzenine dönersin.',
+  role_lock_d:'🚪 Bir kapıyı 25sn mühürlersin — o süre ÖTEKİ kapı kapanmaz. Mührü kaldırabilirsin ama sonra kısa bir bekleme (10sn) olur.',
   role_hero:'KAHRAMAN',
   role_hero_d:'🛡 Yakınındaki arkadaşına gelen darbeyi sen yersin. Onlar ayakta kalır, sen yere düşersin.',
   abil_seer_btn:'OKU',
@@ -3267,7 +3267,7 @@ I18N.en={
   role_seer:'SEER',
   role_seer_d:'👁 Every 25s for 5s: see the nearest awake animatronic\'s POSITION and its DESTINATION (two markers).',
   role_lock:'LOCKSMITH',
-  role_lock_d:'🚪 Seal a door for 25s — the OTHER door won’t close during it. You can lift the seal any time and use the doors normally.',
+  role_lock_d:'🚪 Seal a door for 25s — the OTHER door won’t close during it. You can lift the seal, but a brief 10s cooldown follows.',
   role_hero:'HERO',
   role_hero_d:'🛡 You take the hit meant for a nearby teammate. They stay up, you go down.',
   abil_seer_btn:'READ',
@@ -3463,7 +3463,7 @@ I18N.es={
   role_seer:'VIDENTE',
   role_seer_d:'👁 Cada 25s durante 5s: ves la POSICIÓN del animatrónico despierto más cercano y su DESTINO (dos marcas).',
   role_lock:'CERRAJERO',
-  role_lock_d:'🚪 Sellas una puerta 25s — la OTRA no se cierra mientras tanto. Puedes quitar el sello cuando quieras y usar las puertas normalmente.',
+  role_lock_d:'🚪 Sellas una puerta 25s — la OTRA no se cierra mientras tanto. Puedes quitar el sello, pero luego hay una breve espera (10s).',
   role_hero:'HÉROE',
   role_hero_d:'🛡 Recibes el golpe dirigido a un compañero cercano. Él sigue en pie, tú caes.',
   abil_seer_btn:'LEER',
@@ -3659,7 +3659,7 @@ I18N.ru={
   role_seer:'ПРОВИДЕЦ',
   role_seer_d:'👁 Каждые 25с на 5с: видно ПОЛОЖЕНИЕ ближайшего активного аниматроника и его ЦЕЛЬ (две метки).',
   role_lock:'СЛЕСАРЬ',
-  role_lock_d:'🚪 Запечатываешь дверь на 25с — ДРУГАЯ в это время не закроется. Печать можно снять в любой момент и пользоваться дверями как обычно.',
+  role_lock_d:'🚪 Запечатываешь дверь на 25с — ДРУГАЯ в это время не закроется. Печать можно снять, но потом короткая перезарядка (10с).',
   role_hero:'ГЕРОЙ',
   role_hero_d:'🛡 Принимаешь удар, летящий в товарища рядом. Он на ногах, ты падаешь.',
   abil_seer_btn:'ЧИТАТЬ',
@@ -3855,7 +3855,7 @@ I18N.de={
   role_seer:'SEHER',
   role_seer_d:'👁 Alle 25s für 5s: POSITION des nächsten aktiven Animatronics und sein ZIEL (zwei Marken).',
   role_lock:'SCHLOSSER',
-  role_lock_d:'🚪 Du versiegelst eine Tür 25s — die ANDERE schließt solange nicht. Das Siegel kannst du jederzeit lösen und die Türen normal nutzen.',
+  role_lock_d:'🚪 Du versiegelst eine Tür 25s — die ANDERE schließt solange nicht. Das Siegel kannst du lösen, danach folgt aber eine kurze Sperre (10s).',
   role_hero:'HELD',
   role_hero_d:'🛡 Du fängst den Treffer ab, der einem Kameraden neben dir gilt. Er bleibt stehen, du gehst zu Boden.',
   abil_seer_btn:'LESEN',
@@ -4051,7 +4051,7 @@ I18N.fr={
   role_seer:'VOYANT',
   role_seer_d:'👁 Toutes les 25s pendant 5s : la POSITION de l’animatronique éveillé le plus proche et sa DESTINATION (deux marques).',
   role_lock:'SERRURIER',
-  role_lock_d:'🚪 Tu scelles une porte 25s — l’AUTRE ne se ferme plus pendant ce temps. Tu peux lever le sceau quand tu veux et utiliser les portes normalement.',
+  role_lock_d:'🚪 Tu scelles une porte 25s — l’AUTRE ne se ferme plus pendant ce temps. Tu peux lever le sceau, mais un court délai (10s) suit ensuite.',
   role_hero:'HÉROS',
   role_hero_d:'🛡 Tu encaisses le coup destiné à un coéquipier proche. Il reste debout, tu tombes.',
   abil_seer_btn:'LIRE',
@@ -4347,11 +4347,12 @@ function useAbility(){
   } else if(myRole==='lock'){
     /* Mühür AÇIKKEN ⚡ = MÜHRÜ KALDIR. Çilingir yeteneğine mahkûm olmasın: mühür bir seçim,
        pişman olursan (ya da öteki kapıyı kapatman gerekirse) geri alıp normal kapı düzenine
-       dönebilirsin. Bekleme sayacı ceza olarak işlemeye devam eder — iptal bedava değil. */
+       dönebilirsin. AMA iptal bedava değil: 10sn bekleme → öteki kapıyı anında mühürleyip
+       ileri-geri "kapı seç-değiştir" oyunu yapamazsın (v52 denge). */
     if(lockT>0){
       const sealed=doors[lockDoor];
       if(sealed){ sealed.closeT=Math.min(sealed.closeT, DOOR_TIME); Net.sendDoor(lockDoor); }
-      lockT=0; abilT=0; lockDoor=-1;
+      lockT=0; abilT=0; lockDoor=-1; abilCd=10;   // 🚪 iptal artık BEDAVA değil: 10sn bekleme (öteki kapıyı anında mühürleyip dönemezsin)
       toast(t('abil_lock_off')); Audio.tone(300,.1,'square',.14);
       updateAbilHud(); return;
     }
@@ -6481,7 +6482,7 @@ function update(dt){
     // Kurma: kameradan (Ödül Köşesi + elektrik) VEYA kutunun yanında (her zaman)
     const canWind = winding && ((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox));
     if(canWind) musicBox=Math.min(100, musicBox+dt*34);
-    else musicBox=Math.max(0, musicBox-dt*ncfg().box*(1-upgLvl('box')*0.10)); // geceye göre hızlanır (🎵 KUTU YAYI yükseltmesi yavaşlatır)
+    else if(!downed) musicBox=Math.max(0, musicBox-dt*ncfg().box*(1-upgLvl('box')*0.10)); // geceye göre hızlanır (🎵 KUTU YAYI yükseltmesi yavaşlatır); yaralıyken DONAR (kuramazsın→haksız Puppet ölümü olmasın)
     if(musicBox<runStats.boxMin) runStats.boxMin=musicBox;   // 🏆 en düşük kutu seviyesi
     // KUR butonu görünürlüğü
     $('#windBtn').classList.toggle('hidden', !((state===S.CAMS && CAMV[camIndex].prize && powered) || (state===S.PLAY && nearBox)));
@@ -6537,7 +6538,7 @@ function update(dt){
       if(u.aL){ u.aL.rotation.x=-1.15+Math.sin(perf*0.006)*0.12; u.aR.rotation.x=-1.15-Math.sin(perf*0.006)*0.12; u.aL.rotation.z=0; u.aR.rotation.z=0; u.head.rotation.set(0.18,0,Math.sin(perf*0.003)*0.12); }
       // ulaştı → JUMPSCARE
       const dp=Math.hypot(player.x-puppetPos.x, player.z-puppetPos.z);
-      if(dp<1.4) catchPlayer(puppet,'PUPPET');
+      if(dp<1.4 && !(downed && downCalm>0)) catchPlayer(puppet,'PUPPET');   // yaralıyken 2sn nefes payı (takım sarabilsin)
     } else {
       // ================= KUTUNUN İÇİNDE (kademeye göre yükselir) =================
       const pf=Math.sin(perf*0.0012);
@@ -6574,7 +6575,7 @@ function update(dt){
     else if(puppetStage>=2){ pw.textContent='🎭 PUPPET UYANIYOR...'; pw.style.opacity='0.85'; }
     else pw.style.opacity='0';
     // BİTTİ → anında jumpscare
-    if(musicBox<=0) catchPlayer(puppet,'PUPPET');
+    if(musicBox<=0 && !(downed && downCalm>0)) catchPlayer(puppet,'PUPPET');   // yaralıyken 2sn nefes payı
   }
 
   // Animatronik yapay zekası (uyanma + kovalama) + gerilim ambiyansı
