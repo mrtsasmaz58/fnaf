@@ -407,6 +407,15 @@
   #stamFill{height:100%;width:100%;background:linear-gradient(90deg,#2a8adf,#39c0c0 55%,#3fd07a);transition:width .1s;}
   #stamFill.tired{background:linear-gradient(90deg,#c02020,#e0862a);}
 
+  /* ---- 🫀 PANİK METRESİ ---- */
+  #panicBox{margin-top:7px;text-align:right;}
+  #panicLabel{font-size:12px;color:#9aa;}
+  #panicBar{width:150px;height:9px;border:1px solid rgba(255,255,255,.3);border-radius:3px;margin-top:3px;overflow:hidden;background:#111;margin-left:auto;}
+  #panicFill{height:100%;width:100%;background:linear-gradient(90deg,#2a8adf,#5ad0a0);transition:width .15s;}
+  #panicFill.warn{background:linear-gradient(90deg,#e0862a,#e0c02a);}
+  #panicFill.bad{background:linear-gradient(90deg,#c02020,#e04040);}
+  #panicVig{position:fixed;inset:0;z-index:16;pointer-events:none;opacity:0;
+    background:radial-gradient(ellipse 62% 62% at 50% 50%,rgba(0,0,0,0) 42%,rgba(120,0,0,.55) 100%);}
   /* ---- KAMERA GÖREVİ ---- */
   #camTask{position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:27;font-family:'Courier New',monospace;
     font-weight:bold;font-size:14px;color:#ffe08a;background:rgba(20,14,4,.86);border:1px solid #c9a227;border-radius:9px;
@@ -526,6 +535,8 @@
     <div class="segBtns" id="setBloom"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
   <div class="setRow"><div class="setLbl">🧠 DIRECTOR <span style="color:#6a7480;font-size:11px">oynayışına göre zorluk</span></div>
     <div class="segBtns" id="setDir"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
+  <div class="setRow"><div class="setLbl">🫀 PANİK <span style="color:#6a7480;font-size:11px">el titremesi + nefes</span></div>
+    <div class="segBtns" id="setPanic"><button data-v="1">AÇIK</button><button data-v="0">KAPALI</button></div></div>
   <button id="setClose">‹ KAPAT</button>
 </div>
 
@@ -561,7 +572,8 @@
       <div id="clockBar"><div id="clockFill"></div></div></div></div>
   <div id="battBox"><div id="battLabel">FENER PİLİ</div><div id="battBar"><div id="battFill"></div></div><div id="flashState">KAPALI</div>
     <div id="stamBox"><div id="stamLabel">🏃 KOŞU</div><div id="stamBar"><div id="stamFill"></div></div></div>
-    <div id="maskBox" class="hidden"><div id="maskLabel">🎭 MASKE</div><div id="maskBar"><div id="maskFill"></div></div></div></div>
+    <div id="maskBox" class="hidden"><div id="maskLabel">🎭 MASKE</div><div id="maskBar"><div id="maskFill"></div></div></div>
+    <div id="panicBox"><div id="panicLabel">🫀 SOĞUKKANLILIK</div><div id="panicBar"><div id="panicFill"></div></div></div></div>
 </div>
 <div id="camTask"></div>
 <div id="hurtOv"></div>
@@ -717,6 +729,7 @@
 </div>
 
 <div id="roleHud"></div>
+<div id="panicVig"></div>
 
 <!-- 🎂 8-BIT ARA SAHNE — ölümden sonra bazen açılan piksel mini-oyun (lore) -->
 <div id="pix">
@@ -1975,7 +1988,11 @@ function litByFlash(x,z){
   const dx=x-player.x, dz=z-player.z, dist=Math.hypot(dx,dz);
   if(dist>15*(1+lu*0.15)*(roleIs('watch')?0.7:1) || dist<0.001) return false;   // 📹 GÖZCÜ feneri zayıf (görsel menzille aynı çarpan)
   const dot=(dx*Math.sin(player.yaw)+dz*Math.cos(player.yaw))/dist;
-  return dot>(0.80-lu*0.03) && losClear(player.x,player.z,x,z);   // ~±36° koni (mercekle biraz genişler)
+  // 🫀 PANİK: titreyen el ışığı hedefte tutamaz → koni etkin olarak daralır. Görsel titreme
+  // (flashTarget jitter) ile MANTIK birlikte gitsin; yoksa ekranda ışık kayarken Freddo yine
+  // donmaya devam eder ve titreme dekordan ibaret kalırdı.
+  const pj = panicActive()? panic*0.07 : 0;
+  return dot>(0.80-lu*0.03+pj) && losClear(player.x,player.z,x,z);   // ~±36° koni (mercekle genişler, panikte daralır)
 }
 /* 🧸 BOŞ KOSTÜM'ün tek kuralı: ONU GÖRÜYOR MUSUN? Görüyorsan taş kesilir, görmüyorsan gelir.
    "Görmek" = ekranında + görüş hattı açık + ORTALIK AYDINLIK. Karanlıkta ona bakmak işe yaramaz →
@@ -2850,6 +2867,54 @@ function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,c
 // ve tavan menü/başarım/skin/kazanma ekranında ayrı ayrı yazılıydı. Hepsi buradan türer.
 const CN_MAX=100;   // 5 karakter × 20
 function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.foxo+custom.spare; }
+/* ================= 🫀 PANİK METRESİ =================
+   Korku şimdiye kadar sadece bir SES ve GÖRÜNTÜ meselesiydi — oyuncunun elinde ölçülen bir
+   karşılığı yoktu. Panik onu bir KAYNAĞA çevirir:
+     • Tehdit yakınken, karanlıkta, Puppet çıkmışken, ara ara yakalanmanın eşiğindeyken dolar.
+     • Doldukça FENER TİTRER (nişan alamazsın → Freddo'yu ışıkta tutmak zorlaşır) ve NEFESİN
+       yükselir; nefes gürültüdür → CHİKA seni duyar. Yani panik kendi kendini besleyen bir
+       sarmal: korktukça daha çok tehlike çekersin.
+     • Tek çare DURUP SAKİNLEŞMEK: hareketsiz + tehditsiz kalırsan düşer. Yani oyun seni ara
+       sıra durup nefeslenmeye zorlar — koşarak her şeyi çözemezsin.
+   Tek oyuncuda da MP'de de çalışır (MP'de lokal: herkesin kendi paniği kendine).
+   ⚙ Ayarlar'dan kapatılabilir (hassas oyuncular / erişilebilirlik). */
+let panic=0;            // 0..1
+let panicBreathT=0, panicNoteT=0;
+function resetPanic(){ panic=0; panicBreathT=0; panicNoteT=0; $('#panicVig').style.opacity='0'; }
+function panicActive(){ return SET.panic!==0; }
+function updatePanic(dt){
+  if(!panicActive() || spectating){ panic=Math.max(0,panic-dt*0.3); return; }
+  if(state!==S.PLAY && state!==S.CAMS) return;
+  const d=Math.min(1, dangerLevel);
+  let up=0;
+  if(d>0.28) up += (d-0.28)*0.42;                 // yaklaşan tehdit
+  if(!powered && !flashOn) up += 0.16;            // zifiri karanlık
+  if(puppetOut) up += 0.14;                       // Puppet dışarıda
+  if(downed) up += 0.5;                           // yaralısın
+  if(ventCrawler>0) up += 0.22;                   // vent'te biri var
+  if(up>0) panic=Math.min(1, panic+dt*up);
+  else {
+    // sakinleşme: yalnız DURUYORSAN hızlı (oyunu ara sıra durmaya zorlayan şey bu)
+    const calm = (moveVecLen()<0.05 && !running)? 0.115 : 0.035;
+    panic=Math.max(0, panic-dt*calm);
+  }
+  // nefes: panik yükseldikçe sıklaşır ve GÜRÜLTÜ yayar → Chika duyar
+  if(panic>0.45 && !masked){
+    panicBreathT-=dt;
+    if(panicBreathT<=0){
+      panicBreathT=1.5-panic*0.75;
+      Audio.noise(.45,.03+panic*0.05,420+panic*260);
+      emitNoise(player.x, player.z, 0.25+panic*0.5);
+    }
+  }
+  // eşik uyarısı (bir kez, oyuncu mekaniği öğrensin)
+  if(panic>runStats.panicMax) runStats.panicMax=panic;   // 📊 rapor
+  if(panic>0.72 && panicNoteT<=0){ panicNoteT=22; toast('🫀 PANİKLİYORSUN — DUR VE NEFES AL'); }
+  if(panicNoteT>0) panicNoteT-=dt;
+  $('#panicVig').style.opacity = (Math.max(0, panic-0.35)*0.85).toFixed(2);
+}
+function moveVecLen(){ return Math.hypot(moveVec.x||0, moveVec.y||0) + ((keys['w']||keys['a']||keys['s']||keys['d'])?1:0); }
+
 /* ================= 👥 MP ROLLERİ =================
    Şimdiye kadar 4 oyuncu da birebir aynı şeyi yapabiliyordu → co-op "aynı işi 4 kez" demekti.
    Roller iş bölümü yaratır: her rol BİR ŞEYDE üstün, BİR ŞEYDE zayıf, yani birbirinize
@@ -3031,14 +3096,14 @@ function paintPay(el, p){ if(!el||!p) return;
 
 /* ================= AYARLAR ================= */
 const SET_KEY='gb3d_set_v1';
-const SET={ vol:0.42, scare:1, shake:1, hallu:1, bloom: isMobile?0:1, director:1 };
+const SET={ vol:0.42, scare:1, shake:1, hallu:1, bloom: isMobile?0:1, director:1, panic:1 };
 try{ const s=JSON.parse(localStorage.getItem(SET_KEY)); if(s) Object.assign(SET,s); }catch(e){}
 gfxBloom = SET.bloom!==0;   // kaydedilmiş bloom tercihini uygula
 function saveSet(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SET)); }catch(e){} }
 function applySet(){
   Audio.setMaster(SET.vol);
   $('#setVol').value=Math.round(SET.vol*100); $('#setVolVal').textContent=Math.round(SET.vol*100)+'%';
-  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu); segSel('#setBloom', SET.bloom); segSel('#setDir', SET.director);
+  segSel('#setScare', SET.scare); segSel('#setShake', SET.shake); segSel('#setHallu', SET.hallu); segSel('#setBloom', SET.bloom); segSel('#setDir', SET.director); segSel('#setPanic', SET.panic);
 }
 function segSel(sel,val){ document.querySelectorAll(sel+' button').forEach(b=>b.classList.toggle('sel', parseFloat(b.dataset.v)===val)); }
 function openSettings(){ applySet(); $('#setPanel').classList.add('show'); }
@@ -3046,7 +3111,7 @@ function closeSettings(){ $('#setPanel').classList.remove('show'); }
 $('#setBtn').addEventListener('click',e=>{ e.stopPropagation(); Audio.init(); Audio.resume(); openSettings(); });
 $('#setClose').addEventListener('click',e=>{ e.stopPropagation(); closeSettings(); });
 $('#setVol').addEventListener('input',e=>{ SET.vol=e.target.value/100; $('#setVolVal').textContent=Math.round(SET.vol*100)+'%'; Audio.setMaster(SET.vol); saveSet(); });
-[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu'],['#setBloom','bloom'],['#setDir','director']].forEach(([sel,key])=>{
+[['#setScare','scare'],['#setShake','shake'],['#setHallu','hallu'],['#setBloom','bloom'],['#setDir','director'],['#setPanic','panic']].forEach(([sel,key])=>{
   document.querySelectorAll(sel+' button').forEach(b=> b.addEventListener('click',e=>{ e.stopPropagation();
     SET[key]=parseFloat(b.dataset.v); segSel(sel,SET[key]); if(key==='bloom') gfxBloom=SET.bloom!==0; saveSet(); }));
 });
@@ -3128,8 +3193,8 @@ const ACH=[
   {id:'stare_calm',ico:'👁️', n:'GÖZÜMÜ AYIRMADIM',d:'Boş Kostüm ava çıktığı bir geceyi sağ atlat.'},
   {id:'lore_all',  ico:'🎂', n:'HİKÂYEYİ TOPLADIM',d:'Üç 8-bit ara sahnenin hepsini gör.'},
 ];
-const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false, doorCount:0, camOpens:0, dist:0, frozeStare:0};
-function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; runStats.doorCount=0; runStats.camOpens=0; runStats.dist=0; runStats.frozeStare=0; }
+const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false, doorCount:0, camOpens:0, dist:0, frozeStare:0, panicMax:0};
+function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; runStats.doorCount=0; runStats.camOpens=0; runStats.dist=0; runStats.frozeStare=0; runStats.panicMax=0; }
 
 /* ================= 🎂 8-BIT ARA SAHNE =================
    FNAF'ın imzası: ölünce bazen garip bir piksel sahneye düşersin ve oyun sana oynanışla
@@ -3374,6 +3439,8 @@ function buildReport(win){
   add('Müzik kutusu dibi', Math.round(runStats.boxMin)+'%', runStats.boxMin<20);
   add('Fener', runStats.battDied? 'BİTTİ':'dayandı', runStats.battDied);
   if(runStats.frozeStare>0) add('🧸 Göz teması', Math.round(runStats.frozeStare)+' sn');
+  if(panicActive()) add('🫀 En panik anın', Math.round(runStats.panicMax*100)+'%', runStats.panicMax>0.75);
+  if(Net.isPlaying()){ const rd=roleDef(myRole); if(rd) add('🎭 Rolün', rd.ico+' '+rd.n); }
   // Director ne gördü? — bu raporun asıl ilginç kısmı: oyuna göre DEĞİL, sana göre ne değişti
   if(Dir.active()){
     const names={flash:'🔦 fener hep açık',door:'🚪 kapıya güven',vent:'🪜 vent kestirmesi',noise:'🏃 gürültü',camp:'🐻 ofiste kamp',cam:'📹 tablete gömüldün'};
@@ -4293,6 +4360,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   camTask=null; camTaskT=randRange(35,55); camMiss=0; camBoost=1; camBoostT=0; camDwell=0;   // kamera görevi sıfırla
   resetCams();   // 📹 CCTV parazit/arıza durumu
   resetCalls();  // ☎ canlı arama sayacı
+  resetPanic();  // 🫀 panik metresi
   downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');   // yaralanma/izleyici sıfırla
   basUnlocked = customMode || night>=2;                            // BODRUM: 1. gece kilitli
   resetBasement(); resetRisen(); basTransT=0; $('#basFade').style.opacity='0';   // bodrum + yükselen düşman sıfırla
@@ -4712,6 +4780,7 @@ function update(dt){
        • Director'ın 'cam' ekseni hiç beslenmiyordu (tablette kamp exploit'i görünmezdi).
      İzleyicide çalışmaz (kendi guard'ı), bodrumda kamera yoktur. */
   if(!spectating && !inBasement && (state===S.PLAY||state===S.CAMS)){ updateCams(dt); updateCamTask(dt); }
+  updatePanic(dt);   // 🫀 panik: tablette de işler (kamerada saklanmak sakinleştirmez)
   if(achPopT>0){ achPopT-=dt; if(achPopT<=0){ $('#achPop').classList.remove('show'); setTimeout(showNextAch,450); } }
 
   // === JUMPSCARE animasyonu ===
@@ -5071,7 +5140,13 @@ function update(dt){
   const targetInt = (flashOn&&battery>0)? (8.0+Math.random()*0.7*(battery<15?4:0.3)) : 0;   // BUFF: daha parlak (5.5→8.0)
   flash.intensity += (targetInt-flash.intensity)*Math.min(1,dt*14);
   flash.position.copy(camera.position);
-  const fd=dirVec(); flashTarget.position.set(camera.position.x+fd.x*3, camera.position.y+fd.y*3, camera.position.z+fd.z*3);
+  // 🫀 EL TİTREMESİ — panik yükseldikçe fener sabit duramaz. Salınım (sinüs) + küçük rastgele
+  // seğirme: sadece sinüs olsaydı ritmi öğrenip telafi ederdin, sadece random olsaydı titreşim
+  // gibi durur, el gibi durmazdı.
+  const tr = panicActive()? panic*0.55 : 0;
+  const jx = tr*(Math.sin(perf*0.0072)*0.6 + Math.sin(perf*0.019)*0.25 + (Math.random()-0.5)*0.3);
+  const jy = tr*(Math.sin(perf*0.0091+1.7)*0.45 + (Math.random()-0.5)*0.25);
+  const fd=dirVec(); flashTarget.position.set(camera.position.x+fd.x*3+jx, camera.position.y+fd.y*3+jy, camera.position.z+fd.z*3+jx*0.6);
   nearLight.position.copy(camera.position);
 }
 
@@ -5084,6 +5159,10 @@ function hud(){ $('#roomName').textContent=roomName(); $('#battFill').style.widt
   $('#maskFill').style.width=maskCharge+'%';
   $('#maskFill').style.filter = maskCharge<20? 'saturate(1.6) brightness(1.2)':'none';
   const sf=$('#stamFill'); sf.style.width=stamina+'%'; sf.classList.toggle('tired', exhausted||stamina<25);   // koşu barı
+  // 🫀 panik barı SOĞUKKANLILIK olarak gösterilir (dolu = iyi) — boşalan bir bar korkutucudur
+  const pf=$('#panicFill'); const calmPct=Math.round((1-panic)*100);
+  pf.style.width=calmPct+'%'; pf.className = panic>0.7? 'bad' : (panic>0.42? 'warn':'');
+  $('#panicBox').style.display = panicActive()? '' : 'none';
   $('#clockFill').style.width=Math.min(100, clockT/(NIGHT_HOURS*HOUR_SEC)*100)+'%';
   const ps=$('#powerStat');
   if(powered){ ps.textContent='⚡ ELEKTRİK: AÇIK'; ps.className='pw-on'; }
