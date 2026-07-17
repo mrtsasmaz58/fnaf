@@ -586,10 +586,11 @@
   <div id="cnRows"></div>
   <div id="cnStar"></div>
   <div id="cnPresets">
-    <button class="cnPre" data-p="0,0,0,0">🕊️ SAKİN 0/0/0/0</button>
-    <button class="cnPre" data-p="10,10,10,10">⚖️ DENGE 10x4</button>
-    <button class="cnPre" data-p="20,20,20,20">💀 20/20/20/20</button>
-    <button class="cnPre" data-p="1,9,2,20">🦊 FOXO ÇILGIN</button>
+    <button class="cnPre" data-p="0,0,0,0,0">🕊️ SAKİN 0x5</button>
+    <button class="cnPre" data-p="10,10,10,10,10">⚖️ DENGE 10x5</button>
+    <button class="cnPre" data-p="20,20,20,20,20">💀 20x5</button>
+    <button class="cnPre" data-p="1,9,2,20,4">🦊 FOXO ÇILGIN</button>
+    <button class="cnPre" data-p="0,0,0,0,20">🧸 GÖZ TEMASI</button>
   </div>
   <button id="cnGo">🔒 GECEYE BAŞLA</button>
   <button id="cnBack">‹ MENÜYE DÖN</button>
@@ -1109,11 +1110,55 @@ colliders.push({minX:NX(-5),maxX:NX(5),minZ:NZ(-10),maxZ:NZ(-4)}); // sahneye ç
 decoBox(NX(0),2,NZ(-9.7), 9.6*NXF,3.4,0.15, M.curtain);
 poster('★ FREDDO & ARKADAŞLARI ★','#2a1030', NX(0),2.6,NZ(-9.55), 0, 'bear');
 
-// --- KULİS x[-13,-9] z[-2,2] --- (batı duvarında Ödül Köşesi'ne kapı)
-wallX(NX(-13),NX(-9),NZ(-2)); wallX(NX(-13),NX(-9),NZ(2)); wallZ(NZ(-3),NZ(3),NX(-13),[NZ(-1),NZ(1)]);
-decoBox(NX(-11),0.6,NZ(-1),0.5,1.2,0.5,M.metal);
-decoBox(NX(-11),1.35,NZ(-1),0.42,0.42,0.42,new THREE.MeshStandardMaterial({color:0x6a4a2a}));
-colliders.push({minX:NX(-11.3),maxX:NX(-10.7),minZ:NZ(-1.3),maxZ:NZ(-0.7)});
+// --- KULİS x[-13,-9] z[-2,2] --- (batı duvarında Ödül Köşesi'ne kapı, KUZEY duvarında Parça Servis'e kapı)
+wallX(NX(-13),NX(-9),NZ(-2),[NX(-11.8),NX(-10.2)]); wallX(NX(-13),NX(-9),NZ(2)); wallZ(NZ(-3),NZ(3),NX(-13),[NZ(-1),NZ(1)]);
+// kulis sandığı — eskiden (-11,-1)'deydi; Parça Servis kapısı x[-11.8,-10.2] tam oraya denk geldiği
+// için GÜNEYE alındı (z -1 → 1.3). Kapının önünü tıkamaz, BACKSTAGE→PARTS nav çizgisini kesmez.
+decoBox(NX(-11),0.6,NZ(1.3),0.5,1.2,0.5,M.metal);
+decoBox(NX(-11),1.35,NZ(1.3),0.42,0.42,0.42,new THREE.MeshStandardMaterial({color:0x6a4a2a}));
+colliders.push({minX:NX(-11.3),maxX:NX(-10.7),minZ:NZ(1.0),maxZ:NZ(1.6)});
+
+/* --- 🧸 PARÇA SERVİS ODASI x[-13,-9] z[-9,-2] — kulis kuzeyinden girilen ÇIKMAZ oda ---
+   Duvarda asılı boş kostümler + rafta yedek kafalar. İçlerinden biri boş değil (kind:'stare').
+   Tek çıkışlı olması kasıtlı: içerideyken geri dönüş yolun tek ve o yol seni ona bakmaya zorlar. */
+wallX(NX(-13),NX(-9),NZ(-9)); wallZ(NZ(-9),NZ(-2),NX(-13)); wallZ(NZ(-9),NZ(-2),NX(-9));
+dimLight(NX(-11),NZ(-5.5),0x7a8494,0.42,9);   // soğuk loş ışık (pLight değil — mobil ışık bütçesi)
+poster('PARÇA SERVİS','#2a2f38', NX(-9)-0.11, 1.9, NZ(-8.4), -Math.PI/2, 'bear');   // z: asılı kostümlerin (-7.6/-5.4/-3.2) hizasından uzak, yoksa içlerinden geçer
+// çalışma tezgahı (batı duvarı) + üstünde dağınık parçalar
+decoBox(NX(-12.4),0.5,NZ(-5.5), 0.9,1.0,4.4*NZF, M.metal);
+decoBox(NX(-12.4),1.04,NZ(-5.5), 0.96,0.08,4.5*NZF, new THREE.MeshStandardMaterial({color:0x24272d,roughness:.4,metalness:.45}));
+colliders.push({minX:NX(-13),maxX:NX(-11.9),minZ:NZ(-7.7),maxZ:NZ(-3.3)});
+/* ASILI BOŞ KOSTÜMLER (doğu duvarı, kancalarda sarkıyor) — gövde + boş kafa + kara göz çukurları.
+   DİKKAT: burası T_GRIME/M_ENDO tanımından (~1365) ÖNCE çalışır → onları KULLANMA (const = TDZ,
+   ReferenceError). Vent bölümünde aynı tuzağa düşülmüştü. Yalnız M.* ve yerel malzemeler. */
+const spSuit=new THREE.MeshStandardMaterial({color:0x4a4038, roughness:.9, metalness:.06});
+const spHole=new THREE.MeshStandardMaterial({color:0x030304, roughness:1});
+[[-7.6,0x5a4028],[-5.4,0x5a2a4a],[-3.2,0x8a7a2a]].forEach(([zz,col])=>{
+  const suitM=new THREE.MeshStandardMaterial({color:col, roughness:.88});
+  const hook=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.5,6), M.metal);
+  hook.position.set(NX(-9.4)*SC, 2.55, NZ(zz)*SC); scene.add(hook);
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.30,0.22,1.1,12), suitM);
+  body.position.set(NX(-9.4)*SC, 1.72, NZ(zz)*SC); body.castShadow=true; scene.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.30,12,10), spSuit);
+  head.position.set(NX(-9.4)*SC, 2.38, NZ(zz)*SC); head.scale.z=1.1; scene.add(head);
+  [-0.13,0.13].forEach(ox=>{ const soc=new THREE.Mesh(new THREE.SphereGeometry(0.085,8,8), spHole);
+    soc.position.set(NX(-9.4)*SC+ox, 2.42, NZ(zz)*SC+0.26); scene.add(soc); });
+  // sarkan kollar (boş kostüm = içinde kimse yok)
+  [-0.34,0.34].forEach(ox=>{ const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.06,0.85,8), suitM);
+    arm.position.set(NX(-9.4)*SC+ox, 1.75, NZ(zz)*SC); scene.add(arm); });
+});
+// YEDEK KAFALAR (tezgah üstünde sıra sıra, hepsi kapıya bakıyor)
+[[-7.2,0x6a4a2a],[-6.2,0x6a2a5a],[-5.2,0xb59a2a],[-4.2,0x9a3b1f]].forEach(([zz,col])=>{
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(0.26,12,10), new THREE.MeshStandardMaterial({color:col, roughness:.85}));
+  hd.position.set(NX(-12.4)*SC, 1.34, NZ(zz)*SC); hd.scale.z=1.12; scene.add(hd);
+  [-0.11,0.11].forEach(ox=>{ const soc=new THREE.Mesh(new THREE.SphereGeometry(0.075,8,8), spHole);
+    soc.position.set(NX(-12.4)*SC+ox, 1.38, NZ(zz)*SC+0.22); scene.add(soc); });
+});
+// yerde dağınık endoskelet kollar/bacaklar (dekor, çarpışmasız)
+[[-11.4,-8.2,0.9],[-10.6,-6.6,-0.4],[-11.8,-4.2,2.1]].forEach(([xx,zz,rot])=>{
+  const lb=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.05,0.8,8), M.metal);
+  lb.position.set(NX(xx)*SC, 0.08, NZ(zz)*SC); lb.rotation.set(Math.PI/2,0,rot); scene.add(lb);
+});
 
 // --- ÖDÜL KÖŞESİ (Prize Corner) x[-20,-13] z[-3,3] — Puppet + müzik kutusu ---
 wallX(NX(-20),NX(-13),NZ(-3)); wallX(NX(-20),NX(-13),NZ(3)); wallZ(NZ(-3),NZ(3),NX(-20));
@@ -1298,6 +1343,7 @@ const CAMV=[
   {n:'DOĞU KORİDOR', pos:[3.2,2.3,14.5], look:[3.2,1.1,7]},
   {n:'MUTFAK',       pos:[11,2.4,1.6],  look:[11,1.1,-1.5]},
   {n:'PIRATE COVE',  pos:[-7,2.4,7.5],  look:[-7,1.3,4], cove:true},
+  {n:'PARÇA SERVİS', pos:[-11,2.4,-2.6],look:[-11,1.2,-7], parts:true},
 ];
 // Koridor kameraları hariç tüm açıları büyüyen kuzeye hizala (NZ z>=6'da kimliktir)
 CAMV.forEach(c=>{ if(c.n==='BATI KORİDOR'||c.n==='DOĞU KORİDOR') return;
@@ -1561,6 +1607,12 @@ const CFG=[
    eye:0xff5ab4, glow:'rgba(255,95,185,0.9)'},
   {id:'foxo',  name:'FOXO',   color:0x9a3b1f, belly:0xc86a44, ear:'fox',   hook:true, eyepatch:true, torn:true, snout:'long',
    eye:0xffc814, glow:'rgba(255,200,25,0.9)'},
+  /* 🧸 BOŞ KOSTÜM — Parça Servis'te asılı kostümlerin arasında duran 5.'si. Kostümü soluk/yıpranmış
+     ve YIRTIK (torn) → altından endoskelet sırıtır; gözü sönük (glow sprite'ı resetAI'de kapalı
+     tutulur) çünkü karanlıkta fark edilmemesi mekaniğinin ta kendisi: onu ancak IŞIK varken
+     görürsün, gördüğün sürece de donar. */
+  {id:'spare', name:'BOŞ KOSTÜM', color:0x44403c, belly:0x33302e, ear:'round', torn:true,
+   eye:0xbfd4e8, glow:'rgba(190,212,232,0.55)'},
 ];
 const A={};
 CFG.forEach(c=>{ A[c.id]=buildAnimatronic(c); });
@@ -1570,9 +1622,16 @@ A.freddo.position.set(NX(0)*SC,0.4,NZ(-7.4)*SC);  A.freddo.lookAt(NX(0)*SC,1.4,1
 A.chika.position.set(NX(2.2)*SC,0.4,NZ(-7)*SC);   A.chika.lookAt(NX(2.2)*SC,1.4,10*SC);
 // Foxo — genişletilmiş Pirate Cove platformunda, yemekhaneye bakar
 A.foxo.position.set(NX(-7)*SC,0.4,NZ(4)*SC); A.foxo.lookAt(NX(-7)*SC,1.4,14*SC);
+// Boş Kostüm — Parça Servis'te, asılı kostümlerin yanında duruyor; KAPIYA bakar (girince gözgöze).
+// x=-9.9: kostümler x=-9.4'te ama animatronik modeli ~0.65 yarıçapında → duvara (x=-9) gömülmesin.
+A.spare.position.set(NX(-9.9)*SC,0.02,NZ(-6.4)*SC); A.spare.lookAt(NX(-10.5)*SC,1.4,NZ(-1)*SC);
 // atmosfer + büyük haritada belirgin dursunlar diye modeller büyütüldü
 const ANIM_SCALE=1.35;
 Object.values(A).forEach(m=>{ m.userData.glowL.visible=m.userData.glowR.visible=true; m.userData.eyeWhite.emissiveIntensity=0.9; m.visible=true; m.userData.baseScale=ANIM_SCALE; m.scale.setScalar(ANIM_SCALE); });
+// Boş Kostüm menüde/oyunda göz parıltısı taşımaz (bkz. updateAI) + biraz daha uzun/çelimsiz dursun
+A.spare.userData.glowL.visible=A.spare.userData.glowR.visible=false;
+A.spare.userData.eyeWhite.emissiveIntensity=0.18;
+A.spare.userData.baseScale=ANIM_SCALE*1.06; A.spare.scale.setScalar(ANIM_SCALE*1.06);
 
 /* ---- PUPPET / MARIONETTE ---- */
 function buildPuppet(){
@@ -1752,6 +1811,10 @@ const NODES=[
   {n:'DIN_MW',    x:-3,   z:2.55},  // 22
   {n:'DIN_MC',    x:0,    z:2.55},  // 23
   {n:'DIN_ME',    x:3,    z:2.55},  // 24
+  // Parça Servis — kulis kuzey kapısı (x[-11.8,-10.2]) üzerinden; BACKSTAGE(-11,0) ile arasındaki
+  // düz çizgi x=-11 şeridinde ve kulis sandığı z=1.3'e alındığı için temiz.
+  {n:'PARTS_D',   x:-11,  z:-2.6},  // 25 (kapı ağzı)
+  {n:'PARTS',     x:-11,  z:-6},    // 26 (oda ortası)
 ];
 // Kuzey (z<6) düğümleri büyüyen haritaya taşı; ofis+koridor (z>=6) sabit.
 // Komşu-düğüm arası düz çizgi duvarsız kalır (duvarlar da aynı NX/NZ ile taşındı).
@@ -1760,7 +1823,8 @@ const EDGES=[[0,1],[0,2],[1,3],[3,4],[4,5],[2,6],[6,7],[7,8],[4,9],[7,10],
              [5,11],[8,12],[13,14],[13,15],[13,16],[16,17],
              [15,18],[14,19],[19,20],[14,21],
              // masaları kesen [11,13]/[12,13]/[21,11] KALDIRILDI → z≈2 şeridinden dolan
-             [11,22],[22,23],[23,13],[12,24],[24,23]];
+             [11,22],[22,23],[23,13],[12,24],[24,23],
+             [19,25],[25,26]];   // KULİS → Parça Servis kapısı → oda
 const ADJ=NODES.map(()=>[]);
 EDGES.forEach(([a,b])=>{ ADJ[a].push(b); ADJ[b].push(a); });
 // Her hedef için BFS → "n düğümündeyken t'ye gitmek için sıradaki düğüm" tablosu
@@ -1823,6 +1887,25 @@ function litByFlash(x,z){
   const dot=(dx*Math.sin(player.yaw)+dz*Math.cos(player.yaw))/dist;
   return dot>(0.80-lu*0.03) && losClear(player.x,player.z,x,z);   // ~±36° koni (mercekle biraz genişler)
 }
+/* 🧸 BOŞ KOSTÜM'ün tek kuralı: ONU GÖRÜYOR MUSUN? Görüyorsan taş kesilir, görmüyorsan gelir.
+   "Görmek" = ekranında + görüş hattı açık + ORTALIK AYDINLIK. Karanlıkta ona bakmak işe yaramaz →
+   ya elektriği ayakta tutarsın ya feneri yakarsın; fener de BONKO'yu çıldırtır. İkilem kasıtlı.
+   Maske/tablet/bodrum → göremezsin, yani maske burada seni KORUMAZ (Freddo'nun tersi).
+   litByFlash'ten ayrı bir koni: bu "ekranımda mı" sorusu (~53°), o "fenerim üstünde mi" (~36°). */
+function seenByPlayer(x,z){
+  if(state!==S.PLAY || masked || inBasement || downed) return false;
+  const dx=x-player.x, dz=z-player.z, d=Math.hypot(dx,dz);
+  if(d>16) return false;
+  if(d>0.4 && (dx/d)*Math.sin(player.yaw)+(dz/d)*Math.cos(player.yaw) < 0.6) return false;
+  if(!losClear(player.x,player.z,x,z)) return false;
+  return powered || litByFlash(x,z);
+}
+// Boş Kostüm'ün ava çıkma aralığı — gece/özel gece agresifliğiyle kısalır
+const STARE_HUNT=42;   // ava çıkınca ofise kadar gelip odasına dönene kadar geçen süre
+function stareGap(){
+  const b = customMode? Math.max(28, 92-custom.spare*3.2) : Math.max(34, 118-night*12);
+  return b*(0.75+Math.random()*0.6);
+}
 // Animatronik ile oyuncunun arasında KAPALI KAPI var mı?
 // "Takılma" ölçmek yetmiyordu: BONKO pusu mesafesinde durup kapıya hiç dokunmadığı için
 // sonsuza kadar kapının önünde dikiliyordu. Vazgeçmeyi kapıyı GÖRMEYE bağlıyoruz.
@@ -1842,6 +1925,8 @@ const AIS=[
   {id:'bonko', name:'BONKO',  kind:'light', home:{x:NX(-2.2),z:NZ(-7)}, homeY:0.4, speed:2.30},
   {id:'chika', name:'CHİKA',  kind:'noise', home:{x:NX(2.2),z:NZ(-7)},  homeY:0.4, speed:2.35},
   {id:'foxo',  name:'FOXO',   kind:'cove',  home:{x:NX(-7),z:NZ(4)},    homeY:0.4, speed:2.60},
+  // Boş Kostüm: hızlı ama YALNIZ bakmadığın karelerde ilerler → net hızı senin dikkatine bağlı
+  {id:'spare', name:'BOŞ KOSTÜM', kind:'stare', home:{x:NX(-9.9),z:NZ(-6.4)}, homeY:0.02, speed:2.85},
 ].map(a=>({...a, model:A[a.id], pos:{x:a.home.x,z:a.home.z}}));
 
 /* ================= BODRUM (opt 7) — Puppet odasından inilen ayrı kat =================
@@ -2029,8 +2114,11 @@ function resetAI(){
     a.rage=0; a.frozen=0; a.cry=3+Math.random()*7; a.stuck=0; a.giveUp=0; a.doorT=0;
     a.hx=a.home.x; a.hz=a.home.z; a.hear=0; a.wp=0; a.wpT=16;
     a.navT=0; a.ntx=a.home.x; a.ntz=a.home.z;
-    a.mode='cove'; a.coveT=0; a.stage=0; a.run=0; a.blocked=0; a.bang=0;
-    a.raid=0; a.raidNext=raidInterval()+8+Math.random()*22;   // ilk baskın biraz gecikir (oyun başı sakin)
+    a.mode = a.kind==='stare'? 'idle' : 'cove';
+    a.coveT=0; a.stage=0; a.run=0; a.blocked=0; a.bang=0;
+    a.raid=0;
+    // stare raidNext'i "ava çıkma" sayacı olarak kullanır (ofis baskını değil)
+    a.raidNext = a.kind==='stare'? stareGap()+10 : raidInterval()+8+Math.random()*22;   // ilk baskın biraz gecikir (oyun başı sakin)
     const w=ncfg().wake[a.id]; a.wakeAt=(w===undefined?9e9:w);
     a.model.scale.setScalar(a.model.userData.baseScale||1);
     a.model.rotation.set(0,0,0);
@@ -2073,7 +2161,9 @@ function updateAI(dt){
         continue;
       }
     }
-    u.glowL.visible=u.glowR.visible=true;
+    // BOŞ KOSTÜM'ün göz parıltısı sprite'ı HİÇ yanmaz: karanlıkta onu ele verecek tek şey oydu.
+    // Onu görmenin tek yolu ışık — bu da mekaniğinin (ışık = donma) bedelini gerçek kılar.
+    u.glowL.visible=u.glowR.visible=(a.kind!=='stare');
 
     // MULTIPLAYER YARALI: sen yerdeysen (downed) canavarlar seni hedef almaz, evlerine çekilir
     // (helpless'ken üstünde kamp kurmasınlar; tek tehdit 60sn kan kaybı sayacı + takımın yetişmesi)
@@ -2097,7 +2187,8 @@ function updateAI(dt){
     // ---- KAPALI KAPIYI GÖRDÜ → DOOR_FORGET sn sonra unut ----
     // Kapıya dokunmasına gerek yok (Bonko pusuda durup hiç dokunmuyordu);
     // arada kapalı kapı varsa sayaç işler.
-    if(a.kind!=='cove' && a.giveUp<=0 && dist0<12 && doorBlocks(a.pos.x,a.pos.z,tgt.x,tgt.z)){
+    // (stare muaf: kapıda vazgeçmez, zaten hunt süresi dolunca kendi odasına döner)
+    if(a.kind!=='cove' && a.kind!=='stare' && a.giveUp<=0 && dist0<12 && doorBlocks(a.pos.x,a.pos.z,tgt.x,tgt.z)){
       a.doorT+=dt;
       if(a.doorT>DOOR_FORGET){
         a.doorT=0; a.giveUp=GIVEUP_TIME; a.rage=0; a.hear=0; a.stuck=0; a.raid=0; a.raidNext=raidInterval();
@@ -2195,11 +2286,37 @@ function updateAI(dt){
         if(Math.hypot(a.pos.x-a.home.x,a.pos.z-a.home.z)<0.8){ a.mode='cove'; a.coveT=0; a.stage=0; a.pos.x=a.home.x; a.pos.z=a.home.z; }
       }
     }
+    /* ================= 🧸 BOŞ KOSTÜM — BAKARSAN DONAR =================
+       Parça Servis'te asılı kostümlerin arasında bekler; arada AVA ÇIKAR ve ofise kadar gelir
+       (kullanıcı isteği: odasında oturup kalmasın). Avdayken bile SANA BAKMADIĞIN karelerde
+       ilerler — baktığın an taş kesilir. Yani onu durdurmak bedava değil: ona bakmak, kutuyu
+       kurmamak / kamerayı açmamak / diğerlerini izlememek demek. Kapı onu durdurur (aşağıdaki
+       ortak takılma bloğu stare'i de kapsar), ama esas savunma GÖZ TEMASIDIR. */
+    else if(a.kind==='stare'){
+      if(a.mode==='hunt'){
+        a.run-=dt;
+        if(a.run<=0){ a.mode='idle'; a.raidNext=stareGap(); }
+        tx=tgt.x; tz=tgt.z; want=true; a.chasing=true; sp*=1.05;
+      } else {
+        a.raidNext-=dt;
+        tx=a.home.x; tz=a.home.z; want=Math.hypot(tx-a.pos.x,tz-a.pos.z)>0.6; sp*=0.55; a.chasing=false;
+        if(a.raidNext<=0){
+          a.mode='hunt'; a.run=STARE_HUNT; runStats.stareHunt=true;   // 🏆 ava çıktığı geceyi atlatmak başarım
+          toast('🧸 PARÇA SERVİS\'TE BİR KOSTÜM EKSİLDİ'); Audio.creak(a.pos); Audio.robotGlitch(a.pos);
+          if(navigator.vibrate) navigator.vibrate([50,30,50,30,50]);
+        }
+      }
+      // ---- GÖZ TEMASI = TAM DONMA (hareket + animasyon + yakalama durur) ----
+      if(seenByPlayer(a.pos.x,a.pos.z)){
+        if(a.frozen<=0 && a.chasing) Audio.sting();   // ilk göz göze: bir tık — "fark ettin"
+        a.frozen=1; want=false; a.chasing=false;
+      } else a.frozen=0;
+    }
 
     // ---- ARADA DOĞRUDAN OFİS BASKINI (görmese/duymasa da) ----
     // Uyanık animatronik periyodik olarak DOĞRUDAN ofise yürür; kapatmazsan girer ve yakalar.
     // Foxo hariç (kendi cove mekaniği var). Maske veya vazgeçme sırasında tetiklenmez.
-    if(a.kind!=='cove' && !masked && a.giveUp<=0){
+    if(a.kind!=='cove' && a.kind!=='stare' && !masked && a.giveUp<=0){   // stare'in kendi hunt döngüsü var
       if(a.raid>0){
         a.raid-=dt;
         tx=tgt.x; tz=tgt.z; want=true; a.chasing=true; sp=a.speed*sm*camBoost*1.12;
@@ -2225,7 +2342,7 @@ function updateAI(dt){
     if(moved>0.0001) a.left=true;
 
     // Kapalı kapıya toslayan diğerleri: DOOR_FORGET sn vurup vazgeçer, çeker gider
-    if(a.kind!=='cove' && a.chasing && want){
+    if(a.kind!=='cove' && a.kind!=='stare' && a.chasing && want){
       if(moved < sp*dt*0.3){
         a.stuck+=dt;
         a.bang-=dt; if(a.bang<=0){ a.bang=0.5; Audio.bang(a.pos); if(navigator.vibrate) navigator.vibrate(45); }
@@ -2248,6 +2365,15 @@ function updateAI(dt){
     }
 
     // ---- ANİMASYON ----
+    // BOŞ KOSTÜM bakılırken TAM donmalı: phase'i ilerletirsek nefes alıyormuş gibi kıpırdar ve
+    // "heykel" illüzyonu (asılı kostümlerden ayırt edilemezlik) bozulur.
+    if(a.kind==='stare' && a.frozen>0){
+      u.eyeWhite.emissiveIntensity=2.8;   // göz göze: donduğu an gözü parlar — fark ettiğini anlarsın
+      m.position.set(a.pos.x*SC, (a.left?0.02:a.homeY), a.pos.z*SC);
+      m.lookAt(tgt.x*SC, 1.4, tgt.z*SC);  // donsa da sana BAKAR
+      dmax=Math.max(dmax, 1-Math.min(dist0,13)/13*0.85);
+      continue;
+    }
     const spd = dt>0? moved/dt : 0;
     a.walk += (Math.min(1,spd/2.6)-a.walk)*Math.min(1,dt*8);
     a.phase += dt*(4.5+spd*1.7);
@@ -2506,6 +2632,9 @@ const Audio=(()=>{ let ac=null,mas=null,ambGain=null,hum=[];
     light: {low:[190,240,300], lowV:.09, lowLp:1500, hi:[1750,2450,3350], hiV:.105, hiType:'sawtooth', rise:1.42, fall:.62, nHi:[.85,.3,5200], nLo:[.7,.09,900], sub:[120,40,.24,.5], dur:1.15},
     noise: {low:[150,196,247], lowV:.11, lowLp:1100, hi:[820,1180,1560], hiV:.095, hiType:'square', rise:1.3, fall:.42, nHi:[.75,.28,6000], nLo:[.8,.13,700], sub:[130,34,.3,.6], dur:1.1},
     cove:  {low:[104,131,165], lowV:.14, lowLp:800, hi:[1450,2050,2750], hiV:.075, hiType:'sawtooth', rise:1.2, fall:.38, nHi:[.95,.32,4200], nLo:[.9,.19,520], sub:[160,28,.38,.7], dur:1.25},
+    // stare/BOŞ KOSTÜM = çığlık ATMAZ. İçinde ses telleri olan bir şey yok: kuru servo iniltisi +
+    // boş kostümün içindeki metal takırtısı. Diğer dördünün tersine sessizliğiyle korkutur.
+    stare: {low:[58,73,88],    lowV:.19, lowLp:400, hi:[380,520,700],   hiV:.03,  hiType:'square',   rise:.92, fall:.7,  nHi:[.5,.1,900],   nLo:[1.0,.26,220], sub:[90,18,.5,1.0], dur:1.45},
   };
   function animScream(kind){ if(!ac)return; const t=ac.currentTime, S=SCREAM[kind]||SCREAM.dark;
     // gövde: bozuk kükreme/çığlık (karakterin ana perdesi)
@@ -2595,22 +2724,25 @@ const NIGHT_HOURS=6;    // 12:00 → 06:00
 let night=1, selNight=1, clockT=0, lastHour=0;
 // Gece zorluk tablosu: kim kaçıncı saniyede uyanır + hız/kutu/algı/Foxo eşiği
 const NIGHT_CFG={
-  1:{wake:{bonko:26, chika:58, freddo:100, foxo:9e9}, sm:0.80, box:0.95, detect:10, coveStep:18, raid:62},
-  2:{wake:{bonko:18, chika:38, freddo:66,  foxo:120}, sm:0.90, box:1.05, detect:11, coveStep:14, raid:50},
-  3:{wake:{bonko:12, chika:26, freddo:44,  foxo:70},  sm:1.00, box:1.18, detect:12, coveStep:11, raid:42},
-  4:{wake:{bonko:8,  chika:18, freddo:30,  foxo:45},  sm:1.10, box:1.32, detect:13, coveStep:9,  raid:34},
-  5:{wake:{bonko:5,  chika:11, freddo:18,  foxo:26},  sm:1.20, box:1.48, detect:14, coveStep:7.5,raid:28},
-  6:{wake:{bonko:3,  chika:7,  freddo:10,  foxo:15},  sm:1.35, box:1.65, detect:15, coveStep:6,  raid:22},
+  1:{wake:{bonko:26, chika:58, freddo:100, foxo:9e9, spare:78},  sm:0.80, box:0.95, detect:10, coveStep:18, raid:62},
+  2:{wake:{bonko:18, chika:38, freddo:66,  foxo:120, spare:56},  sm:0.90, box:1.05, detect:11, coveStep:14, raid:50},
+  3:{wake:{bonko:12, chika:26, freddo:44,  foxo:70,  spare:40},  sm:1.00, box:1.18, detect:12, coveStep:11, raid:42},
+  4:{wake:{bonko:8,  chika:18, freddo:30,  foxo:45,  spare:28},  sm:1.10, box:1.32, detect:13, coveStep:9,  raid:34},
+  5:{wake:{bonko:5,  chika:11, freddo:18,  foxo:26,  spare:18},  sm:1.20, box:1.48, detect:14, coveStep:7.5,raid:28},
+  6:{wake:{bonko:3,  chika:7,  freddo:10,  foxo:15,  spare:11},  sm:1.35, box:1.65, detect:15, coveStep:6,  raid:22},
 };
 // ÖZEL GECE: 4 karakterin agresifliği 0..20; oyun içi değerlere ölçeklenir
 let customMode=false;
 let mpConfiguringCustom=false;   // host lobide "Özel Gece" seçerken cnGo MP oturumunu başlatır
 let spectating=false;            // MP: öldükten sonra izleyici modu
-const custom={freddo:10, bonko:10, chika:10, foxo:10};
+const custom={freddo:10, bonko:10, chika:10, foxo:10, spare:10};
 // 0..20 → uyanma saniyesi (yüksek AI = erken uyanır) ve hız çarpanı
 function cnWake(ai){ const lv=custom[ai]; if(lv<=0) return 9e9; return Math.max(3, 150 - lv*7.2); } // lv20≈6s, lv1≈143s
-function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,custom.foxo); }
-function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.foxo; }   // 0-80 → özel gece yevmiyesi
+function cnLevelMax(){ return Math.max(custom.freddo,custom.bonko,custom.chika,custom.foxo,custom.spare); }
+// Zorluk puanı tavanı ARTIK ELLE YAZILMIYOR: Boş Kostüm 5. karakter olarak eklenince 80 → 100 oldu
+// ve tavan menü/başarım/skin/kazanma ekranında ayrı ayrı yazılıydı. Hepsi buradan türer.
+const CN_MAX=100;   // 5 karakter × 20
+function cnLevelTotal(){ return custom.freddo+custom.bonko+custom.chika+custom.foxo+custom.spare; }
 /* ================= 🧠 DIRECTOR AI =================
    Zorluk eskiden geceye SABİTTİ: NIGHT_CFG'den okunan tek tablo, oyuncu ne yaparsa yapsın aynı.
    Bu, işleyen tek bir taktiği bulan oyuncunun (kapı spam'i / fener hep açık / vent kestirmesi)
@@ -2692,7 +2824,7 @@ function ncfg(){
   const mx=cnLevelMax();
   // Genel yoğunluğu en agresif karaktere göre ölçekle; uyanma saatleri cnWake ile ezilir
   return {
-    wake:{ freddo:cnWake('freddo'), bonko:cnWake('bonko'), chika:cnWake('chika'), foxo:cnWake('foxo') },
+    wake:{ freddo:cnWake('freddo'), bonko:cnWake('bonko'), chika:cnWake('chika'), foxo:cnWake('foxo'), spare:cnWake('spare') },
     sm: 0.78 + mx*0.030,          // hareket çarpanı (lv20 ≈ 1.38)
     box: 0.95 + mx*0.04,          // müzik kutusu tükenme hızı (yavaşlatıldı)
     detect: 9 + mx*0.32,          // algı menzili
@@ -2855,10 +2987,12 @@ const ACH=[
   {id:'puppet_esc',ico:'🎭', n:'İP CAMBAZI',     d:'Puppet kutudan çıktığı bir geceyi sağ atlat.'},
   {id:'no_door',   ico:'🚪', n:'KAPISIZ',        d:'Hiç kapı kapatmadan bir gece geçir.'},
   {id:'vent3',     ico:'🪜', n:'VANTİLATÖR FARESİ',d:'Bir gecede 3 kez havalandırmaya gir.'},
-  {id:'legend20',  ico:'★',  n:'EFSANE',         d:'20/20/20/20 Özel Gece\'yi bitir.'},
+  {id:'legend20',  ico:'★',  n:'EFSANE',         d:'20x5 Özel Gece\'yi bitir.'},
+  {id:'stare_room',ico:'🧸', n:'KOSTÜMLERİ SAYDIM',d:'Parça Servis Odası\'na gir ve sağ çık.'},
+  {id:'stare_calm',ico:'👁️', n:'GÖZÜMÜ AYIRMADIM',d:'Boş Kostüm ava çıktığı bir geceyi sağ atlat.'},
 ];
-const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0};
-function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; }
+const runStats={battDied:false, boxMin:100, pptOut:false, doorUsed:false, ventUsed:0, camDone:0, partsRoom:false, stareHunt:false};
+function resetRunStats(){ runStats.battDied=false; runStats.boxMin=100; runStats.pptOut=false; runStats.doorUsed=false; runStats.ventUsed=0; runStats.camDone=0; runStats.partsRoom=false; runStats.stareHunt=false; }
 let achQueue=[], achShowing=false, achPopT=0;
 function unlockAch(id){ if(save.ach.includes(id)) return; save.ach.push(id); saveGame();
   const a=ACH.find(x=>x.id===id); if(a){ achQueue.push(a); if(!achShowing) showNextAch(); } }
@@ -2874,6 +3008,8 @@ function evalAch(){
   if(runStats.pptOut)     unlockAch('puppet_esc');
   if(!runStats.doorUsed)  unlockAch('no_door');
   if(runStats.ventUsed>=3)unlockAch('vent3');
+  if(runStats.partsRoom)  unlockAch('stare_room');
+  if(runStats.stareHunt)  unlockAch('stare_calm');
 }
 function renderAch(){ const el=$('#achList'); el.innerHTML='';
   ACH.forEach(a=>{ const unl=save.ach.includes(a.id); const row=document.createElement('div');
@@ -2899,6 +3035,8 @@ const PHONE={
      'Aynı alet, zıt sonuç. Kafanı çalıştır.'],
   4:['Hâlâ dayanıyorsun, helal. Tilkiyi kameradan gözden kaçırma, yoksa koridorda koşarak gelir.',
      'Havalandırma iyi bir kestirme ama içinde bir ses duyarsan hemen maskeni tak.',
+     'Bir de... kulisin arkasındaki Parça Servis\'e girme. Orada asılı duran kostümleri say, sonra tekrar say.',
+     'Sayın tutmuyorsa BAKMAYA DEVAM ET. Gözünü ayırdığın an ilerliyor. Kamerada da yok — arama, bulamazsın.',
      'Az kaldı... galiba.'],
   5:['Ben... pek iyi hissetmiyorum dostum. Bu gece hepsi birden üstüne gelecek gibi.',
      'Kapıya değil, harekete güven. Kutuyu kur, ışığı akıllı kullan, durma.',
@@ -2998,7 +3136,7 @@ const Net=(()=>{
     {n:'Buz Beyazı',   shirt:0xdfe6ee, pants:0x8a94a0, cap:0xaab4c0, skin:0xd8a878, id:'beat6',          req:'Gece 6\'yı bitir'},
     {n:'Altın',        shirt:0xe0b020, pants:0x5a4410, cap:0xb08818, skin:0xe6c0a0, ach:'legend20',      req:'★ Efsane (20/20/20/20)'},
     {n:'Gölge',        shirt:0x1a1c22, pants:0x0c0d10, cap:0x2a2d36, skin:0x9a8878, id:'allach',         req:'Tüm 8 başarımı aç'},
-    {n:'Prizma',       shirt:0x9a3fd0, pants:0x2a1440, cap:0x3f9ad0, skin:0xe6c0a0, id:'cn80',           req:'Özel Gece 80/80'},
+    {n:'Prizma',       shirt:0x9a3fd0, pants:0x2a1440, cap:0x3f9ad0, skin:0xe6c0a0, id:'cn80',           req:'Özel Gece '+CN_MAX+'/'+CN_MAX},
   ];
   function skinUnlocked(i){ const s=SKINS[i]; if(!s) return false;
     if(s.free) return true;
@@ -3006,7 +3144,7 @@ const Net=(()=>{
     if(s.night)return save.maxNight>=s.night;
     if(s.id==='beat6')  return !!save.beat6;
     if(s.id==='allach') return save.ach.length>=8;
-    if(s.id==='cn80')   return save.cnBest>=80;
+    if(s.id==='cn80')   return save.cnBest>=CN_MAX;
     return false; }
   const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   function genCode(){ let s=''; for(let i=0;i<5;i++) s+=CH[Math.floor(Math.random()*CH.length)]; return s; }
@@ -3309,6 +3447,7 @@ const REGIONS=[
   {n:'TUVALETLER',      x:[4,8],     z:[9,12]},
   {n:'PIRATE COVE',     x:[-8.9,-5.1],z:[2.5,5.4]},
   {n:'KULİS',           x:[-13,-9],  z:[-2,2]},
+  {n:'🧸 PARÇA SERVİS',  x:[-13,-9],  z:[-9,-2]},
   {n:'MUTFAK',          x:[9,13],    z:[-4,5]},
   {n:'SAHNE ÖNÜ',       x:[-5,5],    z:[-4,-1]},
   {n:'YEMEKHANE',       x:[-9,9],    z:[-4,6]},
@@ -3531,7 +3670,7 @@ function renderNights(){
 selNight=save.maxNight; renderNights();
 
 /* ---- ÖZEL GECE PANELİ ---- */
-const CN_CHARS=[{id:'freddo',n:'🐻 FREDDO'},{id:'bonko',n:'💜 BONKO'},{id:'chika',n:'🐤 CHİKA'},{id:'foxo',n:'🦊 FOXO'}];
+const CN_CHARS=[{id:'freddo',n:'🐻 FREDDO'},{id:'bonko',n:'💜 BONKO'},{id:'chika',n:'🐤 CHİKA'},{id:'foxo',n:'🦊 FOXO'},{id:'spare',n:'🧸 BOŞ KOSTÜM'}];
 function buildCnRows(){
   const box=$('#cnRows'); box.innerHTML='';
   CN_CHARS.forEach(c=>{
@@ -3557,15 +3696,17 @@ $('#cnGo').addEventListener('click',()=>{ if(CN_CHARS.every(c=>custom[c.id]===0)
   if(mpConfiguringCustom){ mpConfiguringCustom=false; Net.startHostCustom(); return; }   // MP: host özel geceyi başlat (herkese yayınlanır)
   customMode=true; startGame(); });
 document.querySelectorAll('.cnPre').forEach(b=>b.addEventListener('click',()=>{
-  const [f,bo,ch,fo]=b.dataset.p.split(',').map(Number);
-  custom.freddo=f; custom.bonko=bo; custom.chika=ch; custom.foxo=fo; buildCnRows(); Audio.click();
+  // CN_CHARS sırasıyla eşleşir → yeni karakter eklenince preset'e bir değer eklemek yeterli
+  const vals=b.dataset.p.split(',').map(Number);
+  CN_CHARS.forEach((c,i)=>{ if(vals[i]!==undefined) custom[c.id]=vals[i]; });
+  buildCnRows(); Audio.click();
 }));
 $('#customBtn').addEventListener('click',e=>{ e.stopPropagation(); openCustom(); });
 function refreshMenu(){ $('#customBtn').classList.toggle('hidden', !save.beat6);
   $('#menuMoney').textContent='💵 $'+save.money; }
 refreshMenu();
 // 🔑 GİZLİ KOD: "MRT" → her şey açılır (tüm geceler, özel gece, başarımlar, skinler, para)
-function unlockAll(){ save.maxNight=6; save.beat6=true; save.cnBest=80; save.money=Math.max(save.money,9999);
+function unlockAll(){ save.maxNight=6; save.beat6=true; save.cnBest=CN_MAX; save.money=Math.max(save.money,9999);
   ACH.forEach(a=>{ if(!save.ach.includes(a.id)) save.ach.push(a.id); }); saveGame();
   refreshMenu(); if(typeof renderNights==='function') renderNights();
   toast('🔑 MRT KODU — HER ŞEY AÇILDI! (tüm geceler + özel gece + skinler + $9999)'); Audio.init(); Audio.resume(); Audio.achievePop(); }
@@ -3649,7 +3790,7 @@ function winNight(){
     $('#winTitle').textContent = legend? '★ EFSANE ★' : 'ÖZEL GECE BİTTİ';
     $('#winTitle').style.color = legend? '#ffd76a':'#3fae5a';
     $('#winTitle').style.textShadow = legend? '0 0 26px #ffd76a':'0 0 22px #3fae5a';
-    $('#winSub').textContent = 'Zorluk puanı '+score+'/80'+(legend?' — resmen delisin.':'');
+    $('#winSub').textContent = 'Zorluk puanı '+score+'/'+CN_MAX+(legend?' — resmen delisin.':'');
     paintPay($('#winPay'), pay);
     $('#win').classList.remove('hidden');
     return;
@@ -3756,6 +3897,9 @@ const JUMP_STYLE={
   light: {dist:2.05, shake:0.30, scale:1.38, jaw:44, wob:44, flick:34, dur:1.30, vib:[220,40,220,40,220,40,300], eye:0xe0ccff},
   noise: {dist:1.90, shake:0.24, scale:1.40, jaw:52, wob:34, flick:30, dur:1.25, vib:[120,50,120,50,120,50,120,50,300], eye:0xfff0b0},
   cove:  {dist:1.55, shake:0.27, scale:1.50, jaw:40, wob:26, flick:22, dur:1.40, vib:[650,40,180,40,180], eye:0xffc8b0},
+  // BOŞ KOSTÜM: sarsıntısı ve titremesi EN AZ, süresi EN UZUN — bağırarak atlamaz, öylece
+  // üstüne eğilip bekler. Yavaşlığı diğer dördünden sonra tekinsiz gelsin diye.
+  stare: {dist:1.70, shake:0.10, scale:1.46, jaw:14, wob:8,  flick:9,  dur:1.85, vib:[900,120,900], eye:0xcfe4ff},
 };
 function jumpStyle(){ return puppetJump? {dist:1.5, shake:0.24, scale:1.72, jaw:40, wob:34, flick:30, dur:1.65, eye:0xff88aa} : (JUMP_STYLE[jumpKind]||JUMP_STYLE.dark); }
 function startJump(model,name){
@@ -3911,6 +4055,7 @@ function onDead(){ state=S.DEAD; Audio.setAmbient(false); if(jumpModel) jumpMode
     light:['BONKO ışığını gördü ve üstüne atladı','BONKO pusudan fırladı — feneri ona tutmayacaktın'],
     noise:['CHİKA sesini duydu ve seni buldu','CHİKA gaklayarak üstüne yürüdü — çok gürültü yaptın'],
     cove: ['FOXO koridoru koşarak geçti — kapı çok geç kapandı','FOXO kancasıyla seni durdurdu'],
+    stare:['BOŞ KOSTÜM bir an gözünü ayırdığında oradaydı','BOŞ KOSTÜM hiç ses çıkarmadı — sadece bakmayı bıraktın','BOŞ KOSTÜM artık boş değil. Sen içindesin.'],
   };
   const dl=DEATH[jumpKind];
   $('#deadWho').textContent = puppetJump? 'PUPPET seni müzik kutusuna soktu'
@@ -4248,6 +4393,9 @@ function update(dt){
   } else { stamina=Math.min(100, stamina+dt*(exhausted?9:13)*(1+stamU*0.18)); if(exhausted && stamina>=40) exhausted=false; }
   if(exhausted){ breathT-=dt; if(breathT<=0){ breathT=1.1; Audio.noise(.5,.045,480); emitNoise(player.x,player.z,0.55); } }
 
+  // 🏆 Parça Servis'e ayak bastı mı (gece sonunda "sağ çıktın" başarımı için)
+  if(!inBasement && player.x>=NX(-13) && player.x<=NX(-9) && player.z>=NZ(-9) && player.z<=NZ(-2)) runStats.partsRoom=true;
+
   // 🧠 DIRECTOR beslemesi — oyuncunun ŞU ANKİ davranışı (kapı/vent olayları kendi yerlerinde bump'lar)
   Dir.feed('flash', flashOn && battery>0, dt);
   Dir.feed('noise', (running && moved>0.001) || exhausted, dt);
@@ -4358,6 +4506,10 @@ function loop(now){ perf=now; const dt=Math.min(0.05,(now-last)/1000); last=now;
     gradePass.material.uniforms.grain.value= (isMobile?0.04:0.055)+ dl*0.05;
     gradePass.material.uniforms.vig.value  = 0.62 + (powered?0:0.12) + dl*0.1;
   }
+  /* 🧸 BOŞ KOSTÜM KAMERADA GÖRÜNMEZ — imzası bu: tablete bakarken haritada onu ARAYAMAZSIN,
+     üstelik tablet açıkken sana bakmıyorsun demektir, yani tam o sırada yürüyor. Kamerayı ne
+     kadar çok kullanırsan o kadar yaklaşır. (Jumpscare'de görünür kalmalı → yalnız S.CAMS.) */
+  A.spare.visible = (state!==S.CAMS);
   if(composer && gfxBloom) composer.render(); else renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
