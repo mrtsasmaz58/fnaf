@@ -10,8 +10,9 @@
 <title>GECE BEKÇİSİ 3D — Pizzacı (Serbest Gezinti)</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
+  button{touch-action:manipulation;}   /* tablette anında tepki: çift-dokun-zoom bekleme gecikmesi olmasın */
   /* Mobil tam ekran: position:fixed + dvh → adres çubuğu boşluğu/kaydırma/rubber-band olmaz */
-  html,body{position:fixed;inset:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;
+  html,body{position:fixed;inset:0;width:100%;height:100%;height:100dvh;height:calc(var(--vh,1vh)*100);overflow:hidden;overscroll-behavior:none;
     background:#000;font-family:'Courier New',monospace;color:#ddd;}
   #app{position:fixed;inset:0;}
   canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
@@ -972,10 +973,15 @@ function exitFullscreen(){ const ef=document.exitFullscreen||document.webkitExit
   if(ef){ try{ ef.call(document); }catch(e){} } }
 function toggleFullscreen(){ if(fsElement()) exitFullscreen(); else goFullscreen(); }
 $('#fsBtn').addEventListener('click',e=>{ e.stopPropagation(); toggleFullscreen(); });
-// Mobilde İLK dokunuşta otomatik tam ekran (kullanıcı hareketi şart; touchend hiç durdurulmuyor)
-if(isMobile){
-  const fsOnce=()=>{ goFullscreen(); setTimeout(fitViewport,120); document.removeEventListener('touchend',fsOnce); };
-  document.addEventListener('touchend',fsOnce,{passive:true});
+// DOKUNMATİK cihazda İLK dokunuşta otomatik tam ekran (kullanıcı hareketi şart; touchend hiç durdurulmuyor).
+// ÖNEMLİ: eskiden yalnız isMobile idi → mobil regex'ine takılmayan TABLETLER tam ekrana geçmiyordu,
+// adres çubuğu üstte kalıyor ve alttaki kontroller (joystick/kapı/fener) çubuğun altına kayıp erişilemez oluyordu.
+if(isTouch){
+  const fsGo=()=>{ goFullscreen(); setTimeout(fitViewport,120); setTimeout(fitViewport,500); document.removeEventListener('touchend',fsT); document.removeEventListener('pointerup',fsP); };
+  const fsT=()=>fsGo();
+  const fsP=(e)=>{ if(!e || e.pointerType!=='mouse') fsGo(); };   // fareyle tetiklenmesin (dokunmatik masaüstünde ilk tıkta istenmez)
+  document.addEventListener('touchend',fsT,{passive:true});
+  document.addEventListener('pointerup',fsP,{passive:true});   // touchend fire etmeyen bazı tablet tarayıcıları için pointer (yalnız touch/pen)
 }
 
 /* ================= DOKULAR ================= */
@@ -5932,6 +5938,7 @@ $('#cheatIn').addEventListener('input',e=>{ const v=(e.target.value||'').trim().
   if(v==='MRT'){ unlockAll(); e.target.value=''; e.target.blur(); } });
 
 function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Audio.startAmbience(); Audio.setAmbient(true);
+  if(isTouch && !fsElement()){ goFullscreen(); setTimeout(fitViewport,150); setTimeout(fitViewport,600); }   // başlat = kesin kullanıcı hareketi → adres çubuğunu gizle, kontroller görünür alana otursun
   Hallu.reset(); closeSettings(); $('#setBtn').classList.add('hidden'); $('#achBtn').classList.add('hidden'); $('#achPanel').classList.remove('show'); $('#mktBtn').classList.add('hidden'); $('#mktPanel').classList.remove('show'); $('#fsBtn').classList.add('hidden');
   resetRunStats(); Dir.reset(); resetReport();   // 🧠 Director her vardiyada sıfırdan okumaya başlar
   night=selNight; clockT=0; lastHour=0;
