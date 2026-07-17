@@ -3189,8 +3189,54 @@ function startPhone(){
   phoneIdx=0; phoneShown=0; phoneCharAcc=0; phoneHold=0; phoneRingT=1.4; phoneActive=true;
   $('#phoneText').textContent=''; $('#phone').classList.add('show'); Audio.phoneRing();
 }
-function endPhone(){ phoneActive=false; $('#phone').classList.remove('show'); }
+function endPhone(){ phoneActive=false; phoneLive=false; $('#phone').classList.remove('show'); $('#phoneName').textContent='☎ ESKİ GECE BEKÇİSİ'; }
 $('#phoneSkip').addEventListener('click',e=>{ e.stopPropagation(); endPhone(); Audio.click(); });
+
+/* ================= ☎ CANLI ARAMA =================
+   Gece başındaki brifing kayıttı; bu CANLI. Gecede EN FAZLA 2 kez arar (kullanıcı isteği:
+   dakika başı çalmasın) ve ne söyleyeceğini o anki duruma bakarak seçer — düşen kamera,
+   boşalan kutu, aynı anda ayakta olan animatronik sayısı.
+
+   BEDELİ VAR: telefon OFİSTEKİ masada çalıyor ve GÜRÜLTÜ yapıyor (emitNoise) → CHİKA sesi
+   duyar ve ofise yönelir. Yani arama bazen hayat kurtarır, bazen tam saklanman gereken anda
+   seni ele verir. Ofiste değilsen aynı gürültü Chika'yı senden UZAĞA çeker — iki tarafı da var.
+   Susturmak istiyorsan KAPAT'a bas: gürültü biter ama bilgiyi kaçırırsın. */
+let phoneLive=false, callT=0, callsMade=0, callNoiseT=0;
+const CALL_MAX=2;
+function resetCalls(){ callT=randRange(95,140); callsMade=0; callNoiseT=0; phoneLive=false; }
+function pickCallLines(){
+  const pool=[];
+  const awake=AIS.filter(a=>a.awake && a.kind!=='stare');
+  const di=camDown.findIndex(d=>d>0);
+  if(musicBox<45) pool.push(['Dinle — buradan bile duyabiliyorum, o kutu susmak üzere.','Ne yapıyorsan bırak ve kur onu. Ciddiyim.']);
+  if(di>=0) pool.push([CAMV[di].n+' kamerası düştü, sistemde görüyorum.','Teknisyen yarın gelecekmiş. Yani hiç. O odayı kör say.']);
+  if(awake.length>=3) pool.push([awake.length+' tanesi birden ayakta... Bu normal değil dostum.','Benim gecelerimde en fazla ikisi kalkardı. Dikkatli ol.']);
+  if(battery<35) pool.push(['Pilin azalıyor, oradan görebiliyorum.','Feneri kapat, karanlığa alış. Alışman gerekecek.']);
+  if(AIS.find(a=>a.id==='spare')?.mode==='hunt') pool.push(['Şey... Parça Servis\'te bir hareket var.','Bir kostüm eksik. Sayarsan anlarsın. BAKMAYI BIRAKMA.']);
+  // duruma bağlı bir şey yoksa: lore
+  pool.push(['Selam, ben yine. Uyuyamadım.','Şu binada bir şey var, biliyorsun değil mi? 1987\'den beri.','Neyse... boş ver. İyi geceler.']);
+  pool.push(['Sadece kontrol ediyorum. Hâlâ orada mısın?','Güzel. Konuşacak birinin olması iyi geliyor.']);
+  pool.push(['Bir şey soracağım — kostümleri hiç saydın mı?','Boş ver. Unut gitti. Ben hiçbir şey demedim.']);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function startCall(){
+  phoneLines=pickCallLines();
+  phoneIdx=0; phoneShown=0; phoneCharAcc=0; phoneHold=0; phoneRingT=2.6; phoneActive=true; phoneLive=true;
+  $('#phoneName').textContent='📞 GELEN ARAMA — ESKİ GECE BEKÇİSİ';
+  $('#phoneText').textContent=''; $('#phone').classList.add('show'); Audio.phoneRing();
+  if(navigator.vibrate) navigator.vibrate([90,60,90,60,90]);
+}
+function updateCalls(dt){
+  if(state!==S.PLAY && state!==S.CAMS) return;
+  // canlı arama gürültüsü — telefon ofis masasında; çalarken yüksek, konuşurken kısık
+  if(phoneLive){
+    callNoiseT-=dt;
+    if(callNoiseT<=0){ callNoiseT=0.55; emitNoise(0, 18, phoneRingT>0? 0.95 : 0.4); }
+  }
+  if(phoneActive || callsMade>=CALL_MAX) return;
+  callT-=dt;
+  if(callT<=0){ callsMade++; callT=randRange(105,150); startCall(); }
+}
 function updatePhone(dt){
   if(!phoneActive) return;
   if(phoneRingT>0){ phoneRingT-=dt; if(phoneRingT<=0) Audio.phoneBlip(); return; }
@@ -3951,6 +3997,7 @@ function startGame(){ Audio.init(); Audio.resume(); Audio.setMaster(SET.vol); Au
   stamina=100; exhausted=false; breathT=0;                       // koşu barı sıfırla
   camTask=null; camTaskT=randRange(35,55); camMiss=0; camBoost=1; camBoostT=0; camDwell=0;   // kamera görevi sıfırla
   resetCams();   // 📹 CCTV parazit/arıza durumu
+  resetCalls();  // ☎ canlı arama sayacı
   downed=false; downT=0; reviveHold=0; spectating=false; $('#specOv').classList.remove('show'); $('#specNext').classList.remove('show');   // yaralanma/izleyici sıfırla
   basUnlocked = customMode || night>=2;                            // BODRUM: 1. gece kilitli
   resetBasement(); resetRisen(); basTransT=0; $('#basFade').style.opacity='0';   // bodrum + yükselen düşman sıfırla
@@ -4332,7 +4379,7 @@ function update(dt){
   // halüsinasyonlar (aktif anim her durumda ilerler; yeni tetik yalnız PLAY + ayar açıkken)
   Hallu.update(dt, Math.min(1,dangerLevel), state===S.PLAY && SET.hallu>0);
   // 📞 Telefon Adamı + 🏆 başarım pop zamanlayıcısı
-  if(state===S.PLAY||state===S.CAMS) updatePhone(dt);
+  if(state===S.PLAY||state===S.CAMS){ updatePhone(dt); updateCalls(dt); }   // ☎ brifing + canlı arama
   if(achPopT>0){ achPopT-=dt; if(achPopT<=0){ $('#achPop').classList.remove('show'); setTimeout(showNextAch,450); } }
 
   // === JUMPSCARE animasyonu ===
