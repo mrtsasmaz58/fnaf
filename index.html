@@ -1427,9 +1427,10 @@ function makeDoorway(name,x0,x1,z){
 }
 const DOOR_TIME=9;    // kapı bu kadar saniye kapalı kalır, sonra otomatik açılır
 const DOOR_COOL=7;    // açıldıktan sonra tekrar kapatmak için bekleme
+const TECH_DOOR_COOL=5;  // 🔧 teknisyenin tabanı (elektronik onun işi) — yalnız MP'de
 // 🚪 YAĞLANMIŞ KAPI yükseltmesi beklemeyi kısaltır (taban 7s → en iyi ihtimalle 2.5s)
-// 🔧 TEKNİSYEN kapıyı daha çabuk tekrar kapatır (elektronik onun işi)
-function doorCool(){ return Math.max(2.5, DOOR_COOL - upgLvl('door')*1.5); }
+// 🔧 TEKNİSYEN 5s tabandan başlar. v43'te söz verilmişti ama kod hiç uygulamıyordu (v50'de gerçek oldu).
+function doorCool(){ return Math.max(2.5, (roleIs('tech')? TECH_DOOR_COOL : DOOR_COOL) - upgLvl('door')*1.5); }
 const DOOR_FORGET=3;  // animatronik kapalı kapıda bu kadar takılırsa vazgeçer
 // Menüdeki kapı açıklaması SABİTLERDEN üretilir. Elle yazılıydı ve DOOR_TIME 7→9 olunca
 // kaymıştı (menü 7s diyordu, kod 9s uyguluyordu). Artık süreleri değiştirmek yazıyı da düzeltir.
@@ -3036,7 +3037,7 @@ I18N.tr={
   abil_radio:'📡 RADAR TARAMASI — 3sn',
   abil_radio_team:'📡 RADAR MEVKİ VERDİ — 3sn',
   rat_vent:'🐀 VENTTEKİ SANA DOKUNMADI — burası senin evin',
-  role_tech_d:'⚡ Elektrik gitse bile bir kez İKİ KAPIYI birden kapatabilirsin.',
+  role_tech_d:'⚡ Elektrik gitse bile bir kez İKİ KAPIYI birden kapatabilirsin. Kapı beklemen 5sn (diğerleri 7sn).',
   role_bait_d:'Yaratıklar sana daha çok odaklanır. Bu rolle geceyi bitirirsen 🏆 kazanırsın.',
   role_watch_d:'🌙 Gece görüşü: her 30sn’de bir 5 saniyelik tam görüş.',
   role_runner:'KOŞUCU',
@@ -3117,9 +3118,12 @@ I18N.tr={
   mp_name:'Ad:', mp_name_ph:'Bekçi', mp_skin:'👤 Görünüm (skin):', mp_role:'🎭 Rolün (takımda iş bölümü):',
   mp_code:'ODA KODU:', mp_copy:'📋 KOPYALA', mp_night:'🌙 GECE SEÇ:', mp_sel:'Seçili:',
   mp_start:'▶ GECEYİ BAŞLAT', mp_wait:'Host\'un başlatması bekleniyor…',
-  role_tech:'TEKNİSYEN', role_tech_d:'Elektriği yalnız sen getirebilirsin. Kapı beklemesi -3sn.',
-  role_watch:'GÖZCÜ', role_watch_d:'CCTV sende tam: sensör+mikrofon bedava, parazit yarı. Fener menzilin -30%.',
-  role_bait:'YEM', role_bait_d:'Koşu +30%, nefes 2× dayanır. Ama pilin 2× hızlı biter.',
+  // NOT: role_tech_d/role_watch_d/role_bait_d yukarıda (v46 rol listesinde) tanımlı.
+  // Burada v43'ten kalma eski metinler duruyordu; aynı objede ikinci kez tanımlanınca
+  // doğru olanları EZİYOR ve menü kodun yapmadığı şeyleri vaat ediyordu. Silindi.
+  role_tech:'TEKNİSYEN',
+  role_watch:'GÖZCÜ',
+  role_bait:'YEM',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — hareket et', pix_skip:'ATLA ▸',
 };
@@ -3230,7 +3234,7 @@ I18N.en={
   abil_radio:'📡 RADAR SWEEP — 3s',
   abil_radio_team:'📡 RADAR MARKED THEM — 3s',
   rat_vent:'🐀 THE VENT THING LET YOU PASS — this is your house',
-  role_tech_d:'⚡ Once per night you can slam BOTH DOORS shut — even with the power out.',
+  role_tech_d:'⚡ Once per night you can slam BOTH DOORS shut — even with the power out. Your door cooldown is 5s (everyone else 7s).',
   role_bait_d:'They focus on you more. Survive a night as bait and you earn a 🏆.',
   role_watch_d:'🌙 Night vision: 5 seconds of full sight every 30s.',
   role_runner:'RUNNER',
@@ -3311,9 +3315,9 @@ I18N.en={
   mp_name:'Name:', mp_name_ph:'Guard', mp_skin:'👤 Skin:', mp_role:'🎭 Your role (team job):',
   mp_code:'ROOM CODE:', mp_copy:'📋 COPY', mp_night:'🌙 PICK A NIGHT:', mp_sel:'Selected:',
   mp_start:'▶ START THE NIGHT', mp_wait:'Waiting for the host to start…',
-  role_tech:'TECHNICIAN', role_tech_d:'Only you can restore the power. Door wait -3s.',
-  role_watch:'LOOKOUT', role_watch_d:'CCTV is all yours: sensor+mic free, static halved. Flashlight range -30%.',
-  role_bait:'BAIT', role_bait_d:'Sprint +30%, breath lasts 2×. But your battery drains 2× faster.',
+  role_tech:'TECHNICIAN',
+  role_watch:'LOOKOUT',
+  role_bait:'BAIT',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — move', pix_skip:'SKIP ▸',
 };
@@ -3424,7 +3428,7 @@ I18N.es={
   abil_radio:'📡 BARRIDO DE RADAR — 3s',
   abil_radio_team:'📡 EL RADAR LOS MARCÓ — 3s',
   rat_vent:'🐀 LO DEL CONDUCTO TE DEJÓ PASAR — esta es tu casa',
-  role_tech_d:'⚡ Una vez por noche cierras LAS DOS PUERTAS — aunque no haya luz.',
+  role_tech_d:'⚡ Una vez por noche cierras LAS DOS PUERTAS — aunque no haya luz. Tu espera de puerta es 5s (los demás 7s).',
   role_bait_d:'Se centran más en ti. Sobrevive una noche así y ganas un 🏆.',
   role_watch_d:'🌙 Visión nocturna: 5 segundos de visión total cada 30s.',
   role_runner:'CORREDOR',
@@ -3505,9 +3509,9 @@ I18N.es={
   mp_name:'Nombre:', mp_name_ph:'Vigilante', mp_skin:'👤 Aspecto (skin):', mp_role:'🎭 Tu rol (reparto del equipo):',
   mp_code:'CÓDIGO DE SALA:', mp_copy:'📋 COPIAR', mp_night:'🌙 ELIGE NOCHE:', mp_sel:'Elegida:',
   mp_start:'▶ EMPEZAR NOCHE', mp_wait:'Esperando al host…',
-  role_tech:'TÉCNICO', role_tech_d:'Solo tú puedes devolver la luz. Espera de puerta -3s.',
-  role_watch:'VIGÍA', role_watch_d:'CCTV completo: sensor+micro gratis, mitad de estática. Alcance de linterna -30%.',
-  role_bait:'CEBO', role_bait_d:'Correr +30%, aliento dura 2×. Pero la batería se gasta 2× más rápido.',
+  role_tech:'TÉCNICO',
+  role_watch:'VIGÍA',
+  role_bait:'CEBO',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — muévete', pix_skip:'SALTAR ▸',
 };
@@ -3618,7 +3622,7 @@ I18N.ru={
   abil_radio:'📡 СКАН РАДАРА — 3с',
   abil_radio_team:'📡 РАДАР ИХ ОТМЕТИЛ — 3с',
   rat_vent:'🐀 ТО, ЧТО В ВЕНТИЛЯЦИИ, ТЕБЯ ПРОПУСТИЛО — это твой дом',
-  role_tech_d:'⚡ Раз за ночь закрываешь ОБЕ ДВЕРИ — даже без света.',
+  role_tech_d:'⚡ Раз за ночь закрываешь ОБЕ ДВЕРИ — даже без света. Твоя перезарядка двери 5с (у остальных 7с).',
   role_bait_d:'Они охотятся на тебя активнее. Переживи ночь так — получишь 🏆.',
   role_watch_d:'🌙 Ночное зрение: 5 секунд полного обзора каждые 30с.',
   role_runner:'БЕГУН',
@@ -3699,9 +3703,9 @@ I18N.ru={
   mp_name:'Имя:', mp_name_ph:'Сторож', mp_skin:'👤 Внешность (скин):', mp_role:'🎭 Твоя роль (в команде):',
   mp_code:'КОД КОМНАТЫ:', mp_copy:'📋 КОПИЯ', mp_night:'🌙 ВЫБОР НОЧИ:', mp_sel:'Выбрано:',
   mp_start:'▶ НАЧАТЬ НОЧЬ', mp_wait:'Ждём старт от хоста…',
-  role_tech:'ТЕХНИК', role_tech_d:'Только ты чинишь питание. Дверь ждёт на 3 сек меньше.',
-  role_watch:'НАБЛЮДАТЕЛЬ', role_watch_d:'CCTV твой: сенсор+микрофон даром, помех вдвое меньше. Дальность фонаря -30%.',
-  role_bait:'ПРИМАНКА', role_bait_d:'Бег +30%, дыхание держит 2×. Но батарея садится вдвое быстрее.',
+  role_tech:'ТЕХНИК',
+  role_watch:'НАБЛЮДАТЕЛЬ',
+  role_bait:'ПРИМАНКА',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — двигайся', pix_skip:'ПРОПУСТИТЬ ▸',
 };
@@ -3812,7 +3816,7 @@ I18N.de={
   abil_radio:'📡 RADAR-SCAN — 3s',
   abil_radio_team:'📡 RADAR HAT SIE MARKIERT — 3s',
   rat_vent:'🐀 DAS DING IM SCHACHT LIESS DICH DURCH — das hier ist dein Zuhause',
-  role_tech_d:'⚡ Einmal pro Nacht schließt du BEIDE TÜREN — auch ohne Strom.',
+  role_tech_d:'⚡ Einmal pro Nacht schließt du BEIDE TÜREN — auch ohne Strom. Deine Tür-Wartezeit ist 5s (alle anderen 7s).',
   role_bait_d:'Sie halten sich mehr an dich. Überlebe so eine Nacht und du bekommst einen 🏆.',
   role_watch_d:'🌙 Nachtsicht: alle 30s 5 Sekunden volle Sicht.',
   role_runner:'LÄUFER',
@@ -3893,9 +3897,9 @@ I18N.de={
   mp_name:'Name:', mp_name_ph:'Wächter', mp_skin:'👤 Aussehen (Skin):', mp_role:'🎭 Deine Rolle (Aufgabe im Team):',
   mp_code:'RAUMCODE:', mp_copy:'📋 KOPIEREN', mp_night:'🌙 NACHT WÄHLEN:', mp_sel:'Gewählt:',
   mp_start:'▶ NACHT STARTEN', mp_wait:'Warte auf den Host…',
-  role_tech:'TECHNIKER', role_tech_d:'Nur du holst den Strom zurück. Tür-Wartezeit -3 Sek.',
-  role_watch:'BEOBACHTER', role_watch_d:'CCTV voll: Sensor+Mikro gratis, halbes Rauschen. Lampenreichweite -30%.',
-  role_bait:'KÖDER', role_bait_d:'Sprint +30%, Atem hält 2× so lang. Aber dein Akku ist 2× schneller leer.',
+  role_tech:'TECHNIKER',
+  role_watch:'BEOBACHTER',
+  role_bait:'KÖDER',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — bewegen', pix_skip:'ÜBERSPRINGEN ▸',
 };
@@ -4006,7 +4010,7 @@ I18N.fr={
   abil_radio:'📡 BALAYAGE RADAR — 3s',
   abil_radio_team:'📡 LE RADAR LES A MARQUÉS — 3s',
   rat_vent:'🐀 LA CHOSE DU CONDUIT T’A LAISSÉ PASSER — c’est chez toi ici',
-  role_tech_d:'⚡ Une fois par nuit, tu fermes LES DEUX PORTES — même sans courant.',
+  role_tech_d:'⚡ Une fois par nuit, tu fermes LES DEUX PORTES — même sans courant. Ton attente de porte est de 5s (les autres 7s).',
   role_bait_d:'Ils se concentrent sur toi. Survis une nuit ainsi et tu gagnes un 🏆.',
   role_watch_d:'🌙 Vision nocturne : 5 secondes de vue totale toutes les 30s.',
   role_runner:'COUREUR',
@@ -4087,9 +4091,9 @@ I18N.fr={
   mp_name:'Nom :', mp_name_ph:'Gardien', mp_skin:'👤 Apparence (skin) :', mp_role:'🎭 Ton rôle (dans l\'équipe) :',
   mp_code:'CODE DE SALLE :', mp_copy:'📋 COPIER', mp_night:'🌙 CHOISIR LA NUIT :', mp_sel:'Choisi :',
   mp_start:'▶ LANCER LA NUIT', mp_wait:'En attente de l\'hôte…',
-  role_tech:'TECHNICIEN', role_tech_d:'Toi seul peux rétablir le courant. Attente porte -3 s.',
-  role_watch:'GUETTEUR', role_watch_d:'CCTV complet : capteur+micro gratuits, parasites divisés par 2. Portée de lampe -30%.',
-  role_bait:'APPÂT', role_bait_d:'Course +30%, souffle 2× plus long. Mais ta pile se vide 2× plus vite.',
+  role_tech:'TECHNICIEN',
+  role_watch:'GUETTEUR',
+  role_bait:'APPÂT',
   // --- 8-bit ---
   pix_hint:'← → ↑ ↓ / WASD — déplace-toi', pix_skip:'PASSER ▸',
 };
@@ -4183,11 +4187,11 @@ function moveVecLen(){ return Math.hypot(moveVec.x||0, moveVec.y||0) + ((keys['w
    Roller iş bölümü yaratır: her rol BİR ŞEYDE üstün, BİR ŞEYDE zayıf, yani birbirinize
    mecbursunuz. Yalnız MULTIPLAYER'da geçerli — tek oyuncuda hepsi sende (roleIs() null döner),
    yoksa tek başına oynayan oyuncuyu sebepsiz sakatlamış olurduk.
-     🔧 TEKNİSYEN — elektriği yalnız o geri getirir; kapıyı daha çabuk tekrar kapatır.
-     📹 GÖZCÜ     — CCTV onda tam çalışır (sensör+mikrofon bedava, parazit yarı); feneri zayıf.
-     🎯 YEM       — hızlı koşar, nefesi geç tükenir; ama pili hızla biter.
-   Takımda o rolden CANLI kimse kalmadıysa kısıt düşer (bkz. restorePower) — yoksa teknisyen
-   ölünce elektrik bir daha hiç gelmez ve takım çaresiz kalırdı. */
+   Roller v46'da 3'ten 16'ya çıktı; listenin tamamı aşağıdaki ROLES dizisi, her rolün ne yaptığı
+   kendi role_*_d metninde. Rol yeteneklerinin kodu için useAbility() ve roleIs() çağrılarına bak.
+   TASARIM KURALI: hiçbir rol takım için ZORUNLU olmasın. Teknisyen bir ara elektriği getirebilen
+   tek rol'dü; öldüğü an takım sonsuza kilitleniyordu. v46'da restorePower() herkese açıldı — yeni
+   rol eklerken aynı tuzağa düşme, kısıt değil ÜSTÜNLÜK ver. */
 const ROLES=[
   // AKTİF yetenekli roller `ab` taşır: {cd: bekleme sn, dur: etki sn, uses: toplam kullanım (0=sınırsız)}
   {id:'tech',  ico:'🔧', ab:{cd:0,  dur:0,  uses:1}, get n(){return t('role_tech');},   get d(){return t('role_tech_d');}},
