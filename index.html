@@ -866,7 +866,7 @@ let composer=null, bloomPass=null, gradePass=null;
 let gfxBloom = !isMobile;   // masaüstünde açık; mobilde ⚙ Ayarlar'dan açılabilir (perf)
 // Grade ayarları tek yerde: taban + tehlikede eklenen tavan (loop içinde de bunlar kullanılır,
 // eskiden sayılar iki yere elle yazılıydı ve loop taban değerini eziyordu).
-const AB_BASE    = isMobile?0.008:0.012, AB_DANGER    = 0.018;   // tavan 0.030 → 1080p köşede ~14px
+const AB_BASE    = isMobile?0.008:0.012, AB_DANGER    = 0.012;   // tavan 0.024 → 1080p köşede ~11px (v52.5: 0.018 iken köşeler tehlikede fazla bulanıyordu)
 const GRAIN_BASE = isMobile?0.030:0.038, GRAIN_DANGER = 0.030;
 // SİNEMATİK DERECELENDİRME shader'ı (vignette + film grain + kromatik aberasyon + renk grade)
 // → OutputPass'tan SONRA (sRGB görüntü üzerinde), tek tam-ekran geçiş, ucuz ama atmosferi uçurur.
@@ -1494,6 +1494,11 @@ function doorHelpText(){
 }
 const GIVEUP_TIME=8;  // vazgeçince bu kadar saniye uzaklaşır
 const RAID_DUR=16;    // "OFİS BASKINI": görmese/duymasa da doğrudan ofise yürür (kapatmazsan girer)
+/* Aynı anda EN FAZLA kaç animatronik baskına çıkabilir. Gece 5-6'da 5'i birden uyanık olduğu
+   için baskın aralığı (28sn) herkeste ayrı işliyor ve zamanla üst üste biniyordu: 4-5 canavar
+   aynı anda ofise yürüyünce iki kapıyla yapılabilecek bir şey kalmıyor, gerilim yerine
+   çaresizlik oluyordu. 2 = "iki kapı, iki tehdit" — hâlâ zor ama çözülebilir bir bulmaca. */
+const RAID_MAX=2;
 makeDoorway('BATI KAPI',-4,-2,15);
 makeDoorway('DOĞU KAPI', 2,4,15);
 
@@ -2315,7 +2320,7 @@ function resetAI(){
     a.phase=Math.random()*6.28; a.walk=0; a.lean=0; a.jaw=0;
     a.rage=0; a.frozen=0; a.cry=3+Math.random()*7; a.stuck=0; a.giveUp=0; a.doorT=0; a.stun=0;
     a.hx=a.home.x; a.hz=a.home.z; a.hear=0; a.wp=0; a.wpT=16;
-    a.navT=0; a.ntx=a.home.x; a.ntz=a.home.z;
+    a.navT=0; a.ntx=a.home.x; a.ntz=a.home.z; a.dstX=a.home.x; a.dstZ=a.home.z;
     a.mode = a.kind==='stare'? 'idle' : 'cove';
     a.coveT=0; a.stage=0; a.run=0; a.blocked=0; a.bang=0;
     a.raid=0;
@@ -2555,13 +2560,20 @@ function updateAI(dt){
         if(a.raid<=0) a.raidNext=raidInterval();
       } else {
         a.raidNext-=dt;
-        if(a.raidNext<=0 && !a.chasing){ a.raid=RAID_DUR;
-          toast(tf('ts_raid',{n:a.name})); Audio.growl(a.pos); Audio.noise(.4,.14,300,a.pos); if(navigator.vibrate) navigator.vibrate([80,40,80]); }
+        if(a.raidNext<=0 && !a.chasing){
+          // sıra sende ama kontenjan doluysa baskını ERTELE (iptal etme) — kuyruk gibi çalışır
+          let active=0; for(const x of AIS) if(x.raid>0) active++;
+          if(active>=RAID_MAX){ a.raidNext=5+Math.random()*7; }
+          else { a.raid=RAID_DUR;
+            toast(tf('ts_raid',{n:a.name})); Audio.growl(a.pos); Audio.noise(.4,.14,300,a.pos); if(navigator.vibrate) navigator.vibrate([80,40,80]); } }
       }
     }
 
     // ---- HAREKET (yol ağını takip ederek) ----
     let moved=0;
+    // 👁 KÂHİN bu iki alanı okur: ara nokta (ntx/ntz) değil, gitmeye çalıştığı NİHAİ yer.
+    // Durduğu anda hedef kendisidir → işaret üstünde durur, "şu an bir yere gitmiyor" demektir.
+    a.dstX = want? tx : a.pos.x;  a.dstZ = want? tz : a.pos.z;
     if(want){
       a.navT-=dt;
       // ara nokta bayatladıysa ya da ulaşıldıysa yeniden hesapla
@@ -4396,9 +4408,14 @@ AIS.forEach(a=>{
   s.material.depthTest=false; s.material.depthWrite=false; s.renderOrder=999; s.visible=false;
   scene.add(s); pingMarks[a.id]=s;
 });
-/* 👁 KÂHİN işaretleri: biri animatroniğin ÜSTÜNDE (kimi okuyorsun), biri onun GİTTİĞİ YERDE
-   (a.ntx/a.ntz = yol ağındaki bir sonraki ara nokta). İkisi de duvar arkasından görünür.
-   Hedef işareti yanıp söner ki "burası şu an boş ama birazdan orada olacak" hissi versin. */
+/* 👁 KÂHİN işaretleri: biri animatroniğin ÜSTÜNDE (kimi okuyorsun), biri onun GİTTİĞİ YERDE.
+   İkisi de duvar arkasından görünür. Hedef işareti yanıp söner ki "burası şu an boş ama
+   birazdan orada olacak" hissi versin.
+   v52.5: hedef işareti eskiden a.ntx/a.ntz'ye — yol ağındaki BİR SONRAKİ ara noktaya — konuyordu.
+   O nokta çoğu zaman animatroniğin 2 metre önü oluyordu, yani rol "nereye gidiyor" diyip aslında
+   "hangi yöne bakıyor" gösteriyordu ve 📡 Radar'ın yanında işe yaramaz kalıyordu. Artık a.dstX/dstZ
+   (NİHAİ hedef: ofis / evi / duyduğu ses) işaretleniyor: Radar "şu an neredeler" (takıma, 3sn),
+   Kâhin "birazdan nerede olacak" (sana, 5sn). İkisi artık gerçekten farklı bilgi. */
 const seerMarkA=glowSprite('rgba(180,120,255,0.95)',0.9);
 const seerMarkB=glowSprite('rgba(255,80,120,0.95)',0.75);
 [seerMarkA,seerMarkB].forEach(s=>{ s.material.depthTest=false; s.material.depthWrite=false; s.renderOrder=999; s.visible=false; scene.add(s); });
@@ -4421,7 +4438,7 @@ function updatePings(dt){
   if(sa && sa.awake){
     seerMarkA.position.set(sa.pos.x*SC, 2.9, sa.pos.z*SC);
     seerMarkA.material.opacity=Math.min(1, seerT);
-    seerMarkB.position.set(sa.ntx*SC, 1.4, sa.ntz*SC);
+    seerMarkB.position.set((sa.dstX!==undefined?sa.dstX:sa.ntx)*SC, 1.4, (sa.dstZ!==undefined?sa.dstZ:sa.ntz)*SC);
     seerMarkB.material.opacity=Math.min(1, seerT)*(0.45+Math.abs(Math.sin(perf*0.006))*0.55);
   }
 }
@@ -5185,7 +5202,7 @@ const Net=(()=>{
     {n:'Bordo',        shirt:0x7a1f2a, pants:0x2a0e12, cap:0x4a1218, skin:0xe0b088, ach:'night6',        req:'💀 Fazla Mesai'},
     {n:'Buz Beyazı',   shirt:0xdfe6ee, pants:0x8a94a0, cap:0xaab4c0, skin:0xd8a878, id:'beat6',          req:'Gece 6\'yı bitir'},
     {n:'Altın',        shirt:0xe0b020, pants:0x5a4410, cap:0xb08818, skin:0xe6c0a0, ach:'legend20',      req:'★ Efsane (20/20/20/20)'},
-    {n:'Gölge',        shirt:0x1a1c22, pants:0x0c0d10, cap:0x2a2d36, skin:0x9a8878, id:'allach',         req:'Tüm 8 başarımı aç'},
+    {n:'Gölge',        shirt:0x1a1c22, pants:0x0c0d10, cap:0x2a2d36, skin:0x9a8878, id:'allach',         req:'Tüm '+ACH.length+' başarımı aç'},
     {n:'Prizma',       shirt:0x9a3fd0, pants:0x2a1440, cap:0x3f9ad0, skin:0xe6c0a0, id:'cn80',           req:'Özel Gece '+CN_MAX+'/'+CN_MAX},
   ];
   function skinUnlocked(i){ const s=SKINS[i]; if(!s) return false;
@@ -5193,7 +5210,7 @@ const Net=(()=>{
     if(s.ach)  return save.ach.includes(s.ach);
     if(s.night)return save.maxNight>=s.night;
     if(s.id==='beat6')  return !!save.beat6;
-    if(s.id==='allach') return save.ach.length>=8;
+    if(s.id==='allach') return save.ach.length>=ACH.length;   // başarım sayısı 8→11 oldu, kilit sabit kalmıştı (metin de yalan söylüyordu)
     if(s.id==='cn80')   return save.cnBest>=CN_MAX;
     return false; }
   const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -6210,10 +6227,13 @@ function enterDowned(model,name){
   $('#hurtOv').classList.add('show');
   Audio.animScream(kindOfModel(model)); Audio.noise(.4,.2,600); if(navigator.vibrate) navigator.vibrate([220,80,220]);
   toast(t('ts_downed'));
-  // Seni yakalayan da yalnız DOWN_CALM kadar çekilir (eskiden GIVEUP_TIME*1.6 = 12.8sn idi;
-  // "2sn'ye gitsinler" kuralı onun için de geçerli, yoksa uyuma hissi onda devam ederdi).
+  /* SENİ YIKAN animatronik GIVEUP_TIME(8sn) çeker gider — diğerleri hâlâ yalnız DOWN_CALM(2sn)
+     bekler. Fark bilerek: "2sn" kuralı haritanın uyumaması içindi ve öyle kalıyor, ama üstünde
+     duran katilin 2sn sonra geri dönüp seni bitirmesi kurtarılmayı imkânsız kılıyordu (takım
+     koşup + 3sn sarmaya yetişemiyor). Ayrıca 💪 Dayanıklı sıyrıldığında saldırgan zaten
+     GIVEUP_TIME çekiliyordu: AYAKTA kalan oyuncuya 8sn, YERDE yatana 2sn vermek terstir. */
   const a=AIS.find(x=>x.model===model);
-  if(a){ a.chasing=false; a.rage=0; a.hear=0; a.stuck=0; a.doorT=0; a.giveUp=DOWN_CALM; if(a.kind==='cove') a.mode='back'; }
+  if(a){ a.chasing=false; a.rage=0; a.hear=0; a.stuck=0; a.doorT=0; a.raid=0; a.giveUp=GIVEUP_TIME; if(a.kind==='cove') a.mode='back'; }
   if(model===puppet){ puppetOut=false; puppetStage=0; musicBox=Math.max(musicBox,60); puppetJump=false; }
   Net.sendDown();
 }
